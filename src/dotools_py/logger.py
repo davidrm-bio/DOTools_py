@@ -6,8 +6,7 @@ logger = logging.getLogger("dotools")
 
 
 def _setup_logger() -> None:
-    """
-    Logger settings
+    """Logger settings.
 
     :return: None
     """
@@ -22,14 +21,14 @@ def _setup_logger() -> None:
 
 
 def verbosity(level: int = 2) -> None:
-    """
-    Set verbosity
+    """Set verbosity.
 
     :param level: 0 - Silent;
                   1 - Info/Warnings;
                   2 - Info/Warnings + Scanpy Info/Warnings;
                   3 - Debug mode
     :return: None
+
     """
     if level == 0:
         # Completely silent
@@ -57,7 +56,7 @@ def verbosity(level: int = 2) -> None:
 
 
 def info(msg: str):
-    """
+    """Produce an info message.
 
     :param msg:
     :return:
@@ -66,21 +65,23 @@ def info(msg: str):
 
 
 def warn(msg: str):
-    """
+    """Produce a warn message.
 
     :param msg:
     :return:
     """
     logger.warning(msg)
+    return None
 
 
 def debug(msg: str):
-    """
+    """Produce a debug message.
 
     :param msg:
     :return:
     """
     logger.debug(msg)
+    return None
 
 
 _setup_logger()

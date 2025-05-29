@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 def get_paths_utils(script: str):
-    """
+    """Get path for a script within the project.
 
     :param script:
     :return:
@@ -12,8 +12,7 @@ def get_paths_utils(script: str):
 
 
 def convert_path(path: Path | str) -> Path:
-    """
-    Convert to Path format if string is provided
+    """Convert to Path format if string is provided.
 
     :param path: string or Path variable
     :return: path
