@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Description: Run CellBender sequentially for multiple samples 
+# Description: Run CellBender sequentially for multiple samples
 # Author: David Rodriguez Morales
 # Date created: 21-12-23
 # Date Modified: 21-05-25
@@ -10,9 +10,9 @@
 
 function usage()
 {
-	echo 
+	echo
 	echo "Run CellBender for multiple samples (adapted for CellRanger)"
-	echo 
+	echo
 	echo "Usage: $0 [-i name of samples (comma separated)] [-o output path] [--cellRanger-output path to CellRanger outputs]"
 	echo
 	echo "OPTIONS"
@@ -55,7 +55,7 @@ force_umi_prior=500
 # Parameters
 while test $# -gt 0
 do
-	case $1 in 
+	case $1 in
 		-h | --help)
 		usage
 		;;
@@ -182,4 +182,3 @@ for SAMPLENAME in ${SAMPLENAMES[*]}; do
 	let i++
 
 done
-
