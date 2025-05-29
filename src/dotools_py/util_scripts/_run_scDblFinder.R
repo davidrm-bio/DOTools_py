@@ -61,4 +61,3 @@ df <- as.data.frame(colData(sce)[c('scDblFinder.class', 'scDblFinder.score')])
 # Save csv with metadata information
 message('Exporting to Python')
 fwrite(df, paste0(opt$out, 'scDblFinder_inference.csv'))
-

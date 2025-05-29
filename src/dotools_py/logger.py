@@ -1,12 +1,14 @@
 import logging
+
 import scanpy as sc
 
-
 logger = logging.getLogger("dotools")
+
 
 def _setup_logger() -> None:
     """
     Logger settings
+
     :return: None
     """
     if not logger.handlers:
@@ -22,15 +24,13 @@ def _setup_logger() -> None:
 def verbosity(level: int = 2) -> None:
     """
     Set verbosity
+
     :param level: 0 - Silent;
                   1 - Info/Warnings;
                   2 - Info/Warnings + Scanpy Info/Warnings;
                   3 - Debug mode
     :return: None
     """
-
-    from scanpy._settings import settings as sc_settings
-
     if level == 0:
         # Completely silent
         logger.setLevel(logging.CRITICAL + 1)  # Higher than CRITICAL
@@ -55,13 +55,32 @@ def verbosity(level: int = 2) -> None:
 
 # ---- Custom logging functions ----
 
+
 def info(msg: str):
+    """
+
+    :param msg:
+    :return:
+    """
     logger.info(msg)
 
+
 def warn(msg: str):
+    """
+
+    :param msg:
+    :return:
+    """
     logger.warning(msg)
 
+
 def debug(msg: str):
+    """
+
+    :param msg:
+    :return:
+    """
     logger.debug(msg)
+
 
 _setup_logger()
