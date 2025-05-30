@@ -46,12 +46,12 @@ optional-dependencies.doc = [
   "sphinx-tabs",
   "sphinxcontrib-bibtex>=1",
   "sphinxext-opengraph",
-  "scanpy",
-  "matplotlib"
 ]
 optional-dependencies.test = [
   "coverage",
   "pytest",
+  "scanpy",
+  "matplotlib"
 ]
 # https://docs.pypi.org/project_metadata/#project-urls
 urls.Documentation = "https://DOTools_py.readthedocs.io/"
