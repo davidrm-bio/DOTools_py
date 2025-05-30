@@ -1,1 +1,1 @@
-from embeddings import umap, embedding
+from .embeddings import umap, embedding
