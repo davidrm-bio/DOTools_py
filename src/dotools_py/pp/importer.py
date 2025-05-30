@@ -6,7 +6,7 @@ from datetime import date
 from pathlib import Path
 
 import anndata as ad
-import logger
+from .. import logger
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
