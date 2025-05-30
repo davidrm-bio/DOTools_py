@@ -7,8 +7,8 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 from adjustText import adjust_text
-from tl import get_expr
-from utils import get_centroids, get_subplot_shape, remove_extra, sanitize_anndata, spine_format
+from ..tl.get_stats import get_expr
+from ..utils import get_centroids, get_subplot_shape, remove_extra, sanitize_anndata, spine_format
 
 
 def umap(

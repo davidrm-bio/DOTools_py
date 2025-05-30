@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-import logger
+from .. import logger
 import numpy as np
 
 def _run_barcoderanks(adata):
