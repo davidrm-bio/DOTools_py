@@ -1,1 +1,1 @@
-from .basic import BasicClass, basic_plot
+from embeddings import umap, embedding
