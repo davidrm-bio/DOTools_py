@@ -46,6 +46,8 @@ optional-dependencies.doc = [
   "sphinx-tabs",
   "sphinxcontrib-bibtex>=1",
   "sphinxext-opengraph",
+  "scanpy",
+  "matplotlib"
 ]
 optional-dependencies.test = [
   "coverage",
