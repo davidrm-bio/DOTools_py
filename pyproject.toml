@@ -51,7 +51,19 @@ optional-dependencies.test = [
   "coverage",
   "pytest",
   "scanpy",
-  "matplotlib"
+  "matplotlib",
+  "adjustText",
+  "scipy",
+  "celltypist",
+  "scvi-tools",
+  "seaborn",
+  "polars",
+  "numpy",
+  "pandas",
+  "bbknn",
+  "anndata",
+  "tqdm",
+
 ]
 # https://docs.pypi.org/project_metadata/#project-urls
 urls.Documentation = "https://DOTools_py.readthedocs.io/"
