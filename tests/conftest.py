@@ -1,7 +1,7 @@
 import anndata as ad
 import numpy as np
 import pytest
-
+import dotools_py
 
 @pytest.fixture
 def adata():
