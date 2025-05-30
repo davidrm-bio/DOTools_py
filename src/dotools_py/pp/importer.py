@@ -13,7 +13,8 @@ import pandas as pd
 import polars
 import scanpy as sc
 import seaborn as sns
-from utils import convert_path, get_paths_utils
+
+from ..utils import convert_path, get_paths_utils
 
 
 def _qc_vln(

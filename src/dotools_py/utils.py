@@ -1,8 +1,10 @@
 from pathlib import Path
+
 import anndata as ad
-import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
 
 def get_paths_utils(script: str):
     """Get path for a script within the project.
@@ -33,25 +35,23 @@ def sanitize_anndata(adata: ad.AnnData) -> None:
     :return None
     """
     adata._sanitize()
-    return  None
+    return None
 
 
+def get_centroids(adata: ad.AnnData, cluster_key: str, basis: str = "X_umap"):
+    """Get centroids for clusters in anndata object.
 
-def get_centroids(adata: ad.AnnData, cluster_key: str, basis: str = 'X_umap'):
-    """
-    Get centroids for clusters in anndata object
     :param adata: anndata
     :param cluster_key: .obs column with categorical information
     :param basis: embedding to use (Default X_umaP)
     :return: centroids as a panda dataframe
     """
-    all_pos = pd.DataFrame(adata.obsm[basis], columns=['x', 'y'])
-    all_pos['group'] = adata.obs[cluster_key].values
-    return all_pos.groupby('group', observed=True).median().sort_index()
+    all_pos = pd.DataFrame(adata.obsm[basis], columns=["x", "y"])
+    all_pos["group"] = adata.obs[cluster_key].values
+    return all_pos.groupby("group", observed=True).median().sort_index()
 
 
-def get_subplot_shape(n_samples: int,
-                      ncols: int) -> tuple:
+def get_subplot_shape(n_samples: int, ncols: int) -> tuple:
     """Compute the number of rows and columns to use for defining the figure base on a desired number of samples and columns.
 
     :param n_samples: number of samples to plot
@@ -65,7 +65,7 @@ def get_subplot_shape(n_samples: int,
     return nrows, ncols, extras
 
 
-def spine_format(axis: plt.axis, txt: str = 'UMAP', fontsize: int = 10) -> None:
+def spine_format(axis: plt.axis, txt: str = "UMAP", fontsize: int = 10) -> None:
     """Formatting the spines for Embeddings.
 
     :param axis: axis object
@@ -73,11 +73,10 @@ def spine_format(axis: plt.axis, txt: str = 'UMAP', fontsize: int = 10) -> None:
     :param fontsize: size of the text
     :return:
     """
-    axis.spines[['right', 'top']].set_visible(False)
-    axis.set_xlabel(txt + '1', loc='left', fontsize=fontsize, fontweight='bold')
-    axis.set_ylabel(txt + '2', loc='bottom', fontsize=fontsize, fontweight='bold')
+    axis.spines[["right", "top"]].set_visible(False)
+    axis.set_xlabel(txt + "1", loc="left", fontsize=fontsize, fontweight="bold")
+    axis.set_ylabel(txt + "2", loc="bottom", fontsize=fontsize, fontweight="bold")
     return
-
 
 
 def remove_extra(extras: int, nrows: int, ncols: int, axs: plt.Axes) -> None:
@@ -95,4 +94,3 @@ def remove_extra(extras: int, nrows: int, ncols: int, axs: plt.Axes) -> None:
         for check in range(nrows * ncols - extras, nrows * ncols):
             axs[check].set_visible(False)
         return
-

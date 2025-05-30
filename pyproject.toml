@@ -48,22 +48,23 @@ optional-dependencies.doc = [
   "sphinxext-opengraph",
 ]
 optional-dependencies.test = [
-  "coverage",
-  "pytest",
-  "scanpy",
-  "matplotlib",
-  "adjustText",
-  "scipy",
+  "adjusttext",
+  "anndata",
+  "bbknn",
   "celltypist",
-  "scvi-tools",
-  "seaborn",
-  "polars",
+  "coverage",
+  "matplotlib",
   "numpy",
   "pandas",
-  "bbknn",
-  "anndata",
-  "tqdm",
+  "polars",
+  "pytest",
+  "rpy2",
 
+  "scanpy",
+  "scipy",
+  "scvi-tools",
+  "seaborn",
+  "tqdm",
 ]
 # https://docs.pypi.org/project_metadata/#project-urls
 urls.Documentation = "https://DOTools_py.readthedocs.io/"
@@ -88,7 +89,7 @@ python = [ "3.10", "3.13" ]
 # Test the newest supported Python version also with pre-release deps
 [[tool.hatch.envs.hatch-test.matrix]]
 deps = [ "pre" ]
-python = [ "3.13" ]
+python = [ "3.10" ]
 
 [tool.hatch.envs.hatch-test]
 features = [ "test" ]

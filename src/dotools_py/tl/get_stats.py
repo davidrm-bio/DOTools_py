@@ -1,8 +1,10 @@
 import anndata as ad
-import pandas as pd
 import numpy as np
+import pandas as pd
 import scipy as sp
-import logger
+
+from .. import logger
+
 
 def _expm1_anndata(adata: ad.AnnData) -> None:
     """Apply expm1 transformation for the X data.
@@ -17,12 +19,13 @@ def _expm1_anndata(adata: ad.AnnData) -> None:
         adata.X = np.expm1(adata.X)
 
 
-def mean_expr(adata: ad.AnnData,
-              group_by: str,
-              features: list or str = None,
-              out_format: str = 'long',
-              layer: str = None,
-              ) -> pd.DataFrame:
+def mean_expr(
+    adata: ad.AnnData,
+    group_by: str,
+    features: list or str = None,
+    out_format: str = "long",
+    layer: str = None,
+) -> pd.DataFrame:
     """Calculate Average Expression in AnnData Objects for features
 
     This function calculates the average expression of a set of features grouping by one
@@ -37,7 +40,7 @@ def mean_expr(adata: ad.AnnData,
     """
     features = [features] if isinstance(features, str) else features
     group_by = [group_by] if isinstance(group_by, str) else group_by
-    assert out_format == 'wide' or out_format == 'long', f'{out_format} not recognize, try "long" or "wide"'
+    assert out_format == "wide" or out_format == "long", f'{out_format} not recognize, try "long" or "wide"'
 
     # Set-up configuration
     if features is not None:
@@ -55,34 +58,33 @@ def mean_expr(adata: ad.AnnData,
     main_df = pd.DataFrame([])
     for group_name, df in group_obs:
         df_tmp = np.log1p(
-            pd.DataFrame(data[df.index].X.mean(axis=0).T, columns=['expr']))  # Mean expr per gene in groupN
-        df_tmp['gene'] = adata[df.index].var_names  # Update with Gene names
+            pd.DataFrame(data[df.index].X.mean(axis=0).T, columns=["expr"])
+        )  # Mean expr per gene in groupN
+        df_tmp["gene"] = adata[df.index].var_names  # Update with Gene names
         if type(group_name) is str:  # If only grouping by one category
             group_name = [group_name]
         for idx, name in enumerate(group_name):
-            df_tmp['group' + str(idx)] = str(name).replace('-', '_')  # Update with metadata
+            df_tmp["group" + str(idx)] = str(name).replace("-", "_")  # Update with metadata
         main_df = pd.concat([main_df, df_tmp], axis=0)
-    main_df['expr'] = pd.to_numeric(main_df['expr'])  # Convert to numeric values
+    main_df["expr"] = pd.to_numeric(main_df["expr"])  # Convert to numeric values
 
     # Move expr column to last position
-    expr_col = main_df.pop('expr')
-    main_df['expr'] = expr_col
+    expr_col = main_df.pop("expr")
+    main_df["expr"] = expr_col
 
     # Change to wide format
-    if out_format == 'wide':
-        main_df = pd.pivot_table(main_df, index='gene',
-                                 columns=list(main_df.columns[main_df.columns.str.startswith('group')]),
-                                 values='expr')
+    if out_format == "wide":
+        main_df = pd.pivot_table(
+            main_df, index="gene", columns=list(main_df.columns[main_df.columns.str.startswith("group")]), values="expr"
+        )
         if len(group_by) > 1:
-            main_df.columns = main_df.columns.map('_'.join)
+            main_df.columns = main_df.columns.map("_".join)
     return main_df
 
 
-def get_expr(adata: ad.AnnData,
-             features: str,
-             groups: str = None,
-             out_format: str = 'long',
-             layer: str = None) -> pd.DataFrame:
+def get_expr(
+    adata: ad.AnnData, features: str, groups: str = None, out_format: str = "long", layer: str = None
+) -> pd.DataFrame:
     """Extract the expression of features.
 
     This function extract the expression from an AnnData object and returns a dataframe. If layer
@@ -103,24 +105,26 @@ def get_expr(adata: ad.AnnData,
         adata.X = adata.layers[layer].copy()  # Select the specified layer
 
     # Check out_format specified
-    assert out_format == 'wide' or out_format == 'long', f'{out_format} not recognize, try "long" or "wide"'
+    assert out_format == "wide" or out_format == "long", f'{out_format} not recognize, try "long" or "wide"'
     features = [features] if isinstance(features, str) else features
 
     # Remove features not present and warn
     features_copy = []
     for g in features:
         if g not in list(adata.var_names):
-            logger.warn(f'{g} not in adata.var_names, ignoring')
+            logger.warn(f"{g} not in adata.var_names, ignoring")
         else:
             features_copy.append(g)
 
-    assert len(features_copy) != 0, 'None of {features} in adata.var_names'
+    assert len(features_copy) != 0, "None of {features} in adata.var_names"
     features = features_copy
 
     # Extract expression
-    table_expr = pd.DataFrame(adata[:, features].X.toarray(),  # densify the matrix (Replace .A)
-                              index=adata.obs_names,
-                              columns=features)
+    table_expr = pd.DataFrame(
+        adata[:, features].X.toarray(),  # densify the matrix (Replace .A)
+        index=adata.obs_names,
+        columns=features,
+    )
     # Add Metadata
     if groups is not None:
         if isinstance(groups, str):
@@ -128,8 +132,8 @@ def get_expr(adata: ad.AnnData,
         else:
             for group in groups:  # Multiple columns
                 table_expr[group] = adata.obs[group]
-    if out_format == 'long':
-        table_expr = pd.melt(table_expr, id_vars=groups, var_name='genes', value_name='expr')
+    if out_format == "long":
+        table_expr = pd.melt(table_expr, id_vars=groups, var_name="genes", value_name="expr")
 
     return table_expr
 
@@ -139,11 +143,9 @@ def free_memory():
 
     :return: None
     """
-    import gc
     import ctypes
+    import gc
+
     gc.collect()
-    ctypes.CDLL('libc.so.6').malloc_trim(0)
+    ctypes.CDLL("libc.so.6").malloc_trim(0)
     return
-
-
-

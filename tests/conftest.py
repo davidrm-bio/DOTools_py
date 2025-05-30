@@ -1,7 +1,6 @@
 import anndata as ad
 import numpy as np
 import pytest
-import dotools_py
 
 
 @pytest.fixture
@@ -10,4 +9,3 @@ def adata():
     adata.layers["scaled"] = np.array([[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]]).astype(np.float32)
 
     return adata
-

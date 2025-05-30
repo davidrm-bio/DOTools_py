@@ -1,37 +1,37 @@
-import scanpy as sc
-import anndata as ad
-import pandas as pd
-import numpy as np
 import os
-from typing import Optional, Union
 
-import matplotlib.pyplot as plt
+import anndata as ad
 import matplotlib.patheffects as path_effects
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import scanpy as sc
 from adjustText import adjust_text
-
-from utils import sanitize_anndata, get_centroids, get_subplot_shape, spine_format, remove_extra
 from tl import get_expr
+from utils import get_centroids, get_subplot_shape, remove_extra, sanitize_anndata, spine_format
 
 
-def umap(adata: ad.AnnData,
-         color: str,
-         split_by: Optional[str] = None,
-         order_catgs: list = None,
-         ncols: int = 4,
-         title_font: dict = {'size': 18, 'weight': 'bold'},
-         figsize: tuple = (12, 6),
-         common_legend: bool = False,
-         title: str = None,
-         vmax: Optional[float] = None,
-         spacing: tuple = (.3, .2),
-         path: Optional[str] = None,
-         filename: str = 'Umap.svg',
-         show: bool = True,
-         labels: str = None,
-         labels_fontproporties: dict = {'weight': 'bold', 'size': 12, 'outline': 1.5},
-         labels_repel: dict = {},
-         basis: str = 'X_umap',
-         **kwargs) -> Union[plt.Axes, None]:
+def umap(
+    adata: ad.AnnData,
+    color: str,
+    split_by: str | None = None,
+    order_catgs: list = None,
+    ncols: int = 4,
+    title_font: dict = {"size": 18, "weight": "bold"},
+    figsize: tuple = (12, 6),
+    common_legend: bool = False,
+    title: str = None,
+    vmax: float | None = None,
+    spacing: tuple = (0.3, 0.2),
+    path: str | None = None,
+    filename: str = "Umap.svg",
+    show: bool = True,
+    labels: str = None,
+    labels_fontproporties: dict = {"weight": "bold", "size": 12, "outline": 1.5},
+    labels_repel: dict = {},
+    basis: str = "X_umap",
+    **kwargs,
+) -> plt.Axes | None:
     """Create UMAP Plot
 
     This function builds on `sc.pl.umap()` and add extra functionalities like splitting by a categorical column in obs.
@@ -60,20 +60,24 @@ def umap(adata: ad.AnnData,
     :param kwargs: additional parameters pass to ``sc.pl.umap()``
     :return: matplotlib axis
     """
-
     # TODO for some reason it does not work in jupyter notebook?
     sanitize_anndata(adata)
 
-    def _plot_labels_embedding(axis: plt.Axes,
-                               centroids: pd.DataFrame,
-                               fontweight: Union[float, str],
-                               fontsize: float,
-                               fontoutline: float) -> list:
+    def _plot_labels_embedding(
+        axis: plt.Axes, centroids: pd.DataFrame, fontweight: float | str, fontsize: float, fontoutline: float
+    ) -> list:
         txts = []
         for label, row in centroids.iterrows():
-            text = axis.text(row['x'], row['y'], label, weight=fontweight, fontsize=fontsize,
-                             verticalalignment='center', horizontalalignment='center',
-                             path_effects=[path_effects.withStroke(linewidth=fontoutline, foreground='w')])
+            text = axis.text(
+                row["x"],
+                row["y"],
+                label,
+                weight=fontweight,
+                fontsize=fontsize,
+                verticalalignment="center",
+                horizontalalignment="center",
+                path_effects=[path_effects.withStroke(linewidth=fontoutline, foreground="w")],
+            )
             txts.append(text)
         return txts
 
@@ -82,9 +86,9 @@ def umap(adata: ad.AnnData,
     # Labels is used when plotting inside the plot
     if labels is not None:
         labels_centroids = get_centroids(adata, labels, basis=basis)
-        labels_fontsize = labels_fontproporties['size'] if 'size' in labels_fontproporties else 12
-        labels_fontweight = labels_fontproporties['weight'] if 'weight' in labels_fontproporties else 'bold'
-        labels_fontoutline = labels_fontproporties['outline'] if 'outline' in labels_fontproporties else 1.5
+        labels_fontsize = labels_fontproporties["size"] if "size" in labels_fontproporties else 12
+        labels_fontweight = labels_fontproporties["weight"] if "weight" in labels_fontproporties else "bold"
+        labels_fontoutline = labels_fontproporties["outline"] if "outline" in labels_fontproporties else 1.5
 
     # We consider that the input is always a list;
     if isinstance(color, str):  # If we only provide a string, convert to list
@@ -94,24 +98,25 @@ def umap(adata: ad.AnnData,
     if title is None and len(color) == 1:
         title = color[0]
 
-    if basis == 'X_umap':
-        txt_basis = 'UMAP'
-    elif basis == 'X_spatial' or basis == 'spatial':
-        txt_basis = 'SP'
-    elif 'X_' in basis:
-        txt_basis = basis.split('X_')[-1]
+    if basis == "X_umap":
+        txt_basis = "UMAP"
+    elif basis == "X_spatial" or basis == "spatial":
+        txt_basis = "SP"
+    elif "X_" in basis:
+        txt_basis = basis.split("X_")[-1]
     else:
         txt_basis = basis
 
     # If a .obs column is provided plot will have as many subplots as categories
     ncatgs = 1
     if split_by is not None:
-        assert adata.obs[split_by].dtype == 'category', 'split_by is not a categorical column'
+        assert adata.obs[split_by].dtype == "category", "split_by is not a categorical column"
         ncatgs = len(adata.obs[split_by].unique())
 
         if order_catgs is not None:
-            assert len(adata.obs[split_by].unique()) == len(
-                order_catgs), f'Number of categories provided != ccategories in {split_by}'
+            assert len(adata.obs[split_by].unique()) == len(order_catgs), (
+                f"Number of categories provided != ccategories in {split_by}"
+            )
             catgs = order_catgs
         else:
             catgs = adata.obs[split_by].unique()
@@ -125,27 +130,29 @@ def umap(adata: ad.AnnData,
         # We could be plotting different genes
         if len(color) > 1:
             genes = [val for val in color if val in adata.var_names]
-            expr = get_expr(adata, features=genes, out_format='wide')  # Extract the expression
-            vmax_genes = expr.apply(lambda x: np.percentile(x, 99.2),
-                                    axis=0).mean()  # the vmax is the mean of 99.2 percentile across genes
+            expr = get_expr(adata, features=genes, out_format="wide")  # Extract the expression
+            vmax_genes = expr.apply(
+                lambda x: np.percentile(x, 99.2), axis=0
+            ).mean()  # the vmax is the mean of 99.2 percentile across genes
         else:  # We could also be plotting one gene splitting by categories
             if split_by is not None and color[0] in adata.var_names:
+
                 def q99_2(x):
                     return x.quantile(0.992)
 
                 # We plot one value but split by something
-                expr = get_expr(adata, features=color[0], groups=split_by,
-                                out_format='wide')  # Extract the expression
-                vmax_genes = expr.groupby(split_by).agg(q99_2).mean()[
-                    0]  # the vmax is the mean of 99.2 percentile across categories
+                expr = get_expr(adata, features=color[0], groups=split_by, out_format="wide")  # Extract the expression
+                vmax_genes = (
+                    expr.groupby(split_by).agg(q99_2).mean()[0]
+                )  # the vmax is the mean of 99.2 percentile across categories
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Generate the Plot                                       #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     fig, axs = plt.subplots(nrows, ncols, figsize=figsize)
-    plt.subplots_adjust(hspace=spacing[0], wspace=spacing[1], left=.1)  # Spacing between subplots
-    cat, cb_loc, cont = None, 'right', 0
+    plt.subplots_adjust(hspace=spacing[0], wspace=spacing[1], left=0.1)  # Spacing between subplots
+    cat, cb_loc, cont = None, "right", 0
     # 1st Case; - We do not split by categories and only 1 thing is plotted
     if ncatgs == 1:
         if len(color) == 1:
@@ -154,8 +161,9 @@ def umap(adata: ad.AnnData,
             axs.set_title(title, fontdict=title_font)
             spine_format(axs, txt_basis)
             if labels is not None:
-                texts = _plot_labels_embedding(axs, labels_centroids, labels_fontweight, labels_fontsize,
-                                               labels_fontoutline)
+                texts = _plot_labels_embedding(
+                    axs, labels_centroids, labels_fontweight, labels_fontsize, labels_fontoutline
+                )
                 adjust_text(texts, ax=axs, **labels_repel)
 
         # 2nd Case; We do not split by categories and multiple values are plotted
@@ -164,28 +172,31 @@ def umap(adata: ad.AnnData,
             for idx, val in enumerate(color):
                 if common_legend:
                     # Remove the legend from all subplots except the last one per row
-                    if cont != ncols - 1 and idx != len(
-                        color) - 1:  # We remove legend from all subplots except last column per row
+                    if (
+                        cont != ncols - 1 and idx != len(color) - 1
+                    ):  # We remove legend from all subplots except last column per row
                         if val in adata.obs.columns:  # Is color in .obs?
                             cat = adata.obs[val].dtype.name  # It can be continuous or categorical
-                        if cat != 'category':
+                        if cat != "category":
                             # Is continuous --> Remove color bar
                             cb_loc = None
                         cont += 1
                     else:
                         # Entered when we are in the last column per row
-                        cat, cb_loc, cont = None, 'right', 0
+                        cat, cb_loc, cont = None, "right", 0
 
                 # If value to plot is a gene, update vmax (if common legend true) otherwise use the vmax provided by user
                 vmax = vmax_genes if val in adata.var_names else vmax
-                sc.pl.embedding(adata, color=val, ax=axs[idx], colorbar_loc=cb_loc, basis=basis, vmax=vmax,
-                                **kwargs)  # use embedding to generalise
+                sc.pl.embedding(
+                    adata, color=val, ax=axs[idx], colorbar_loc=cb_loc, basis=basis, vmax=vmax, **kwargs
+                )  # use embedding to generalise
                 spine_format(axs[idx], txt_basis)
                 axs[idx].set_title(val, fontdict=title_font)
                 remove_extra(nExtra, nrows, ncols, axs)
                 if labels is not None:
-                    texts = _plot_labels_embedding(axs[idx], labels_centroids, labels_fontweight, labels_fontsize,
-                                                   labels_fontoutline)
+                    texts = _plot_labels_embedding(
+                        axs[idx], labels_centroids, labels_fontweight, labels_fontsize, labels_fontoutline
+                    )
                     adjust_text(texts, ax=axs[idx], **labels_repel)
 
                 # Never remove categorical when plotting several values without splitting by
@@ -195,7 +206,7 @@ def umap(adata: ad.AnnData,
     else:
         # 3rd Case Multiple Values are plotted and splitting by categories
         # 3rd case plot each category per row
-        assert len(color) == 1, 'Not Implemented'
+        assert len(color) == 1, "Not Implemented"
 
         # 4th Case; One value is plotted splitting by categories
         color = color[0]  # color is always converted to list
@@ -207,38 +218,40 @@ def umap(adata: ad.AnnData,
                 if cont != ncols - 1 and idx != ncatgs - 1:
                     if color in adata.obs.columns:  # Is color in .obs?
                         cat = adata.obs[color].dtype.name  # It can be continuous or categorical
-                    if cat != 'category':
+                    if cat != "category":
                         # Is continuous --> Remove color bar
                         cb_loc = None
                     cont += 1
                 else:
                     # Entered when we are in the last column per row
-                    cat, cb_loc, cont = None, 'right', 0
+                    cat, cb_loc, cont = None, "right", 0
 
             # If value to plot is a gene, update vmax (if common legend true) otherwise use the vmax provided by user
             vmax = vmax_genes if color in adata.var_names else vmax
 
-            sc.pl.embedding(adata_subset, basis=basis, color=color, ax=axs[idx], colorbar_loc=cb_loc, vmax=vmax,
-                            **kwargs)  # embedding to generalise
+            sc.pl.embedding(
+                adata_subset, basis=basis, color=color, ax=axs[idx], colorbar_loc=cb_loc, vmax=vmax, **kwargs
+            )  # embedding to generalise
             spine_format(axs[idx], txt_basis)
             remove_extra(nExtra, nrows, ncols, axs)
 
-            if common_legend and cat == 'category':
+            if common_legend and cat == "category":
                 try:
                     axs[idx].get_legend().remove()  # Remove legend for categorical values except last column
                 except AttributeError:
                     pass
             if labels is not None:
-                texts = _plot_labels_embedding(axs[idx], labels_centroids, labels_fontweight, labels_fontsize,
-                                               labels_fontoutline)
+                texts = _plot_labels_embedding(
+                    axs[idx], labels_centroids, labels_fontweight, labels_fontsize, labels_fontoutline
+                )
                 adjust_text(texts, ax=axs[idx], **labels_repel)
 
             # Minimal Text when Splitting by categories
             axs[idx].set_title(catgs[idx], fontdict=title_font)
-            fig.supylabel(color, fontsize=23, fontweight='bold')
+            fig.supylabel(color, fontsize=23, fontweight="bold")
 
     if path is not None:
-        plt.savefig(os.path.join(path, filename), bbox_inches='tight')
+        plt.savefig(os.path.join(path, filename), bbox_inches="tight")
     if show:
         plt.tight_layout()
         return None
@@ -246,74 +259,77 @@ def umap(adata: ad.AnnData,
         return axs
 
 
-def embedding(adata: ad.AnnData,
-                 color: str,
-                 split_by: Optional[str] = None,
-                 order_catgs: list = None,
-                 ncols: int = 4,
-                 title_font: dict = {'size': 18, 'weight': 'bold'},
-                 figsize: tuple = (12, 6),
-                 common_legend=False,
-                 title: str = None,
-                 vmax: Optional[float] = None,
-                 spacing: tuple = (.3, .2),
-                 path: Optional[str] = None,
-                 filename: str = 'Umap.svg',
-                 show: bool = True,
-                 labels: str = None,
-                 labels_fontproporties: dict = {'weight': 'bold', 'size': 12, 'outline': 1.5},
-                 labels_repel: dict = {},
-                 basis: str = 'X_umap',
-                 **kwargs) -> Union[None, plt.Axes]:
-    """ **Create Embedding Plot**
+def embedding(
+    adata: ad.AnnData,
+    color: str,
+    split_by: str | None = None,
+    order_catgs: list = None,
+    ncols: int = 4,
+    title_font: dict = {"size": 18, "weight": "bold"},
+    figsize: tuple = (12, 6),
+    common_legend=False,
+    title: str = None,
+    vmax: float | None = None,
+    spacing: tuple = (0.3, 0.2),
+    path: str | None = None,
+    filename: str = "Umap.svg",
+    show: bool = True,
+    labels: str = None,
+    labels_fontproporties: dict = {"weight": "bold", "size": 12, "outline": 1.5},
+    labels_repel: dict = {},
+    basis: str = "X_umap",
+    **kwargs,
+) -> None | plt.Axes:
+    """**Create Embedding Plot**
 
-       This function builds on `sc.pl.embedding()` and add extra functionalities like
-       splitting by a categorical column in .obs
+    This function builds on `sc.pl.embedding()` and add extra functionalities like
+    splitting by a categorical column in .obs
 
-       :param adata: anndata object
-       :param color: .obs column or .var_names value
-       :param split_by: categorical .obs column
-       :param order_catgs: order of the categories when splitting by a categorical column
-       :param ncols: number of columns per row
-       :param figsize: figure size (width, heigh) in Inches
-       :param common_legend: set a common legend when plotting multiple values, it will automatically scale if plotting continuous values like
-                             gene expression if vmax is not specified
-       :param title: title of the plot. Only used when 1 value is plotted. If 1 value is plotted splitting by categories, the title
-                     will be the categories. If several values are plotted the title will be each value
-       :param title_font: font properties of the title for each subplot
-       :param vmax: maximum value for continuos data
-       :param spacing: spacing between subplots (height, width) padding between plots
-       :param show: when set to False the matplotlib axes will be returned
-       :param labels: .obs column name with categorical values to add to the plot. If a gene is plotted, you can add the celltype
-                      labels
-       :param labels_fontproporties: fontproperties for the labels
-       :param labels_repel: additional arguments pass to adjust_text
-       :param basis: embedding to use, default UMAP
-       :param path: path to save plot
-       :param filename: filename of the plot
-       :param kwargs: additional parameters pass to ``sc.pl.umap()``
-       :return: matplotlib axis
-       """
-
-    axis = umap(adata=adata,
-                color=color,
-                split_by=split_by,
-                order_catgs=order_catgs,
-                ncols=ncols,
-                title_font=title_font,
-                figsize=figsize,
-                common_legend=common_legend,
-                title=title,
-                vmax=vmax,
-                spacing=spacing,
-                path=path,
-                filename=filename,
-                show=show,
-                labels=labels,
-                labels_fontproporties=labels_fontproporties,
-                labels_repel=labels_repel,
-                basis=basis,
-                **kwargs)
+    :param adata: anndata object
+    :param color: .obs column or .var_names value
+    :param split_by: categorical .obs column
+    :param order_catgs: order of the categories when splitting by a categorical column
+    :param ncols: number of columns per row
+    :param figsize: figure size (width, heigh) in Inches
+    :param common_legend: set a common legend when plotting multiple values, it will automatically scale if plotting continuous values like
+                          gene expression if vmax is not specified
+    :param title: title of the plot. Only used when 1 value is plotted. If 1 value is plotted splitting by categories, the title
+                  will be the categories. If several values are plotted the title will be each value
+    :param title_font: font properties of the title for each subplot
+    :param vmax: maximum value for continuos data
+    :param spacing: spacing between subplots (height, width) padding between plots
+    :param show: when set to False the matplotlib axes will be returned
+    :param labels: .obs column name with categorical values to add to the plot. If a gene is plotted, you can add the celltype
+                   labels
+    :param labels_fontproporties: fontproperties for the labels
+    :param labels_repel: additional arguments pass to adjust_text
+    :param basis: embedding to use, default UMAP
+    :param path: path to save plot
+    :param filename: filename of the plot
+    :param kwargs: additional parameters pass to ``sc.pl.umap()``
+    :return: matplotlib axis
+    """
+    axis = umap(
+        adata=adata,
+        color=color,
+        split_by=split_by,
+        order_catgs=order_catgs,
+        ncols=ncols,
+        title_font=title_font,
+        figsize=figsize,
+        common_legend=common_legend,
+        title=title,
+        vmax=vmax,
+        spacing=spacing,
+        path=path,
+        filename=filename,
+        show=show,
+        labels=labels,
+        labels_fontproporties=labels_fontproporties,
+        labels_repel=labels_repel,
+        basis=basis,
+        **kwargs,
+    )
 
     if show:
         plt.tight_layout()

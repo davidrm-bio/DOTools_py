@@ -1,3 +1,2 @@
-from .analysis import integrate_data
-from .analysis import auto_annot
-from .get_stats import mean_expr, get_expr, free_memory
+from .analysis import auto_annot, integrate_data
+from .get_stats import free_memory, get_expr, mean_expr
