@@ -396,7 +396,7 @@ def volcano_plot(
 
     if fig_path is not None:
         plt.savefig(convert_path(fig_path) / filename, bbox_inches="tight")
-    if show:
+    if not show:
         return axs
     else:
         return None
@@ -567,4 +567,4 @@ def split_bar_gsea(
     if not show:
         return axs
     else:
-        return
+        return None

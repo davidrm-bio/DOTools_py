@@ -154,3 +154,38 @@ def format_terms_gsea(df: pd.DataFrame, term_col: str, cutoff: int = 35):
     df[term_col] = newterms
 
     return df
+
+
+
+
+def transfer_labels(adata_original: ad.AnnData,
+                    adata_subset: ad.AnnData,
+                    col_original: str,
+                    col_subset: str,
+                    labels_original: list,
+                    copy: bool = False):
+    """ Transfer annotation from a subset of an anndata.
+
+    :param adata_original: original anndata
+    :param adata_subset: subsetted anndata
+    :param col_original: .obs column name in the original anndata where new labels are added
+    :param col_subset: .obs column name in the subsetted object with the new labels
+    :param labels_original: list of labels in the original anndata to replace
+    :param copy: if copy is True, returns the updated anndata, else changes are inplace
+    :return: Nothing, changes are saved inplace
+    """
+    if copy:
+        adata_original = adata_original.copy()
+        adata_subset = adata_subset.copy()
+
+    assert adata_subset.n_obs < adata_original.n_obs, 'adata_subset is not a subset of adata_original'
+
+    adata_original.obs[col_original] = adata_original.obs[col_original].astype(str)
+    adata_original.obs[col_original] = adata_original.obs[col_original].where(
+        ~adata_original.obs[col_original].isin(labels_original),
+        adata_original.obs.index.map(adata_subset.obs[col_subset]))
+
+    if copy:
+        return adata_original
+    return
+
