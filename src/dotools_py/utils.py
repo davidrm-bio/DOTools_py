@@ -4,6 +4,7 @@ import anndata as ad
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import matplotlib.gridspec as gridspec
 
 
 def get_paths_utils(script: str):
@@ -94,3 +95,60 @@ def remove_extra(extras: int, nrows: int, ncols: int, axs: plt.Axes) -> None:
         for check in range(nrows * ncols - extras, nrows * ncols):
             axs[check].set_visible(False)
         return
+
+
+
+def make_grid_spec(ax_or_figsize, *,
+                   nrows: int,
+                   ncols: int,
+                   wspace: float = None,
+                   hspace: float = None,
+                   width_ratios: float = None,
+                   height_ratios: float = None
+                   ):
+    # Taken from Scanpy
+    kw = dict(wspace=wspace, hspace=hspace, width_ratios=width_ratios, height_ratios=height_ratios)
+
+    if isinstance(ax_or_figsize, tuple):
+        fig = plt.figure(figsize=ax_or_figsize)
+        return fig, gridspec.GridSpec(nrows, ncols, **kw)
+    else:
+        ax = ax_or_figsize
+        ax.axis("off")
+        ax.set_frame_on(False)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        return ax.figure, ax.get_subplotspec().subgridspec(nrows, ncols, **kw)
+
+
+def format_terms_gsea(df: pd.DataFrame, term_col: str, cutoff: int=35):
+    """Format Terms from Gene Set Enrichment Analysis.
+
+    :param df:
+    :param term_col:
+    :param cutoff:
+    :return:
+    """
+    import re
+    def remove_whitespace_around_newlines(text):
+        # Replace whitespace before and after newlines with just the newline
+        return re.sub(r'\s*\n\s*', '\n', text)
+
+    newterms = []
+    for text in df[term_col]:
+        newterm, text_list_nchar, nchar, limit = [], [], 0, cutoff
+        text_list = text.split(' ')
+        for txt in text_list:  # From text_list get a list where we sum nchar from a word + previous word
+            nchar += len(txt)
+            text_list_nchar.append(nchar)
+        for idx, word in enumerate(text_list_nchar):
+            if word > limit:  # If we have more than cutoff characters in len add a break line
+                newterm.append('\n')
+                limit += cutoff
+            newterm.append(text_list[idx])
+        newterm = ' '.join(newterm)
+        cleanterm = remove_whitespace_around_newlines(newterm)  # remove whitespace inserted
+        newterms.append(cleanterm)
+    df[term_col] = newterms
+
+    return df
