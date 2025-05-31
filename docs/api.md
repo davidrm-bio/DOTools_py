@@ -9,8 +9,6 @@
 .. autosummary::
     :toctree: generated
 
-    pl.dotplot
-
 
 ```
 
@@ -33,5 +31,7 @@
 
 .. autosummary::
     :toctree: generated
+
+    pl.dotplot
 
 ```
