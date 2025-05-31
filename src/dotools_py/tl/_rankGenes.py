@@ -21,14 +21,13 @@ from scanpy.get import _check_mask
 from scanpy.preprocessing._utils import _get_mean_var
 from scipy.sparse import issparse, vstack
 
-if TYPE_CHECKING:
-    from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable
 
-    from anndata import AnnData
-    from numpy.typing import NDArray
-    from scipy import sparse
+from anndata import AnnData
+from numpy.typing import NDArray
+from scipy import sparse
 
-    _CorrMethod = Literal["benjamini-hochberg", "bonferroni"]
+_CorrMethod = Literal["benjamini-hochberg", "bonferroni"]
 
 # Used with get_args
 _Method = Literal["logreg", "t-test", "wilcoxon", "t-test_overestim_var"]

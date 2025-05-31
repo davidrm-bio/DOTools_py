@@ -70,6 +70,3 @@ def iOff():
     mpl.use("Agg")
     return
 
-
-set_plt_theme()
-iOn()

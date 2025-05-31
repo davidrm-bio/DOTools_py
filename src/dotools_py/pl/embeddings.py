@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 from adjustText import adjust_text
-
+from typing import  Union
 from dotools_py.tl.get_stats import get_expr
 from dotools_py.utils import convert_path, get_centroids, get_subplot_shape, remove_extra, sanitize_anndata, spine_format
 
@@ -32,7 +32,7 @@ def umap(
     labels_repel: dict = {},
     basis: str = "X_umap",
     **kwargs,
-) -> plt.Axes | None:
+) -> Union[plt.Axes, None]:
     """Create UMAP Plot
 
     This function builds on `sc.pl.umap()` and add extra functionalities like splitting by a categorical column in obs.
@@ -280,7 +280,7 @@ def embedding(
     labels_repel: dict = {},
     basis: str = "X_umap",
     **kwargs,
-) -> None | plt.Axes:
+) -> Union[None, plt.Axes]:
     """**Create Embedding Plot**
 
     This function builds on `sc.pl.embedding()` and add extra functionalities like
@@ -352,7 +352,7 @@ def split_embeddding(
     sp_size: float = 1.5,
     show: bool = False,
     **kwargs,
-) -> plt.axes | None:
+) -> Union[plt.axes, None]:
     """Plot categorical values splited in an embedding.
 
     This function takes an AnnData and a categorical column in obs and generate a plot of subplots  highlighting the

@@ -10,7 +10,7 @@ from adjustText import adjust_text
 
 from dotools_py import logger
 from dotools_py.utils import convert_path, format_terms_gsea, make_grid_spec, sanitize_anndata
-
+from typing import Union
 
 def cell_props(
     adata: ad.AnnData,
@@ -40,7 +40,7 @@ def cell_props(
     linewidth: float = 0.9,
     get_props: bool = False,
     **kwargs,
-) -> None | pd.DataFrame | plt.Axes:
+) -> Union[None, pd.DataFrame, plt.Axes]:
     """Generate a stacked barplot showing changes in the proportions of cell populations
     in single cell data.
 
@@ -420,7 +420,7 @@ def split_bar_gsea(
     filename: str = "SplitBar.svg",
     title: str = "Top 10 GO Terms in each Condition",
     show: bool = True,
-) -> None | plt.axis:
+) -> plt.axis:
     """Split BarPlot for GO terms
 
     This function generates a split barplot. This is a plot where the top 10 Go terms
