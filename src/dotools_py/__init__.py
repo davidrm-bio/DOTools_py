@@ -8,3 +8,4 @@ __all__ = ["pl", "pp", "tl"]
 __version__ = version("DOTools_py")
 
 set_plt_theme()
+iOn()

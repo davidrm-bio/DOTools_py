@@ -58,10 +58,21 @@ def set_plt_theme():
 
 
 def iOn():
-    """Activate Interactive plotting (tkagg backed)"""
-    plt.ion()
-    mpl.use("TkAgg")
-    return
+    """Activate interactive plotting (TkAgg backend), if available."""
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+    import os
+
+    try:
+        # If in headless (no display), don't try to use TkAgg
+        if os.environ.get("DISPLAY", "") == "":
+            raise RuntimeError("No display found. Cannot use interactive backend.")
+
+        mpl.use("TkAgg", force=True)
+        plt.ion()
+        print("Interactive plotting enabled (TkAgg).")
+    except Exception as e:
+        print(f"[iOn()] Interactive plotting not available: {e}")
 
 
 def iOff():
