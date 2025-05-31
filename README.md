@@ -4,7 +4,7 @@
 [![Documentation][badge-docs]][documentation]
 
 [badge-tests]: https://img.shields.io/github/actions/workflow/status/davidrm-bio/DOTools_py/test.yaml?branch=main
-[badge-docs]: https://img.shields.io/readthedocs/DOTools_py
+[badge-docs]: [https://img.shields.io/readthedocs/DOTools_py](https://dotools-py.readthedocs.io/en/latest/)
 
 Functions for sc/snRNAseq Analysis and Visualisation
 
