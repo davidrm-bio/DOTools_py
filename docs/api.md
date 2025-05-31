@@ -32,6 +32,4 @@
 .. autosummary::
     :toctree: generated
 
-    pl.dotplot
-
 ```
