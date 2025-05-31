@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import scipy as sp
 
-from .. import logger
+from dotools_py import logger
 
 
 def _expm1_anndata(adata: ad.AnnData) -> None:

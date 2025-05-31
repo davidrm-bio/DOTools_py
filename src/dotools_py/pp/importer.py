@@ -13,8 +13,8 @@ import polars
 import scanpy as sc
 import seaborn as sns
 
-from .. import logger
-from ..utils import convert_path, get_paths_utils
+from dotools_py import logger
+from dotools_py.utils import convert_path, get_paths_utils
 
 
 def _qc_vln(

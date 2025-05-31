@@ -14,9 +14,9 @@ import scanpy as sc
 import scanpy.external as sce
 from tqdm import tqdm
 
-from .. import logger
-from ..utils import get_paths_utils, transfer_labels
-from ._data import DictUpdateCellLabels
+from dotools_py import logger
+from dotools_py.utils import get_paths_utils, transfer_labels
+from dotools_py.tl._data import DictUpdateCellLabels
 
 
 def _run_cca(

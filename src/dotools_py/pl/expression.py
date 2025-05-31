@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 from adjustText import adjust_text
 
-from .. import logger
-from ..utils import convert_path, format_terms_gsea, make_grid_spec, sanitize_anndata
+from dotools_py import logger
+from dotools_py.utils import convert_path, format_terms_gsea, make_grid_spec, sanitize_anndata
 
 
 def cell_props(

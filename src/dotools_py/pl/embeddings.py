@@ -8,8 +8,8 @@ import pandas as pd
 import scanpy as sc
 from adjustText import adjust_text
 
-from ..tl.get_stats import get_expr
-from ..utils import convert_path, get_centroids, get_subplot_shape, remove_extra, sanitize_anndata, spine_format
+from dotools_py.tl.get_stats import get_expr
+from dotools_py.utils import convert_path, get_centroids, get_subplot_shape, remove_extra, sanitize_anndata, spine_format
 
 
 def umap(

@@ -3,7 +3,7 @@ import subprocess
 
 import numpy as np
 
-from .. import logger
+from dotools_py import logger
 
 
 def _run_barcoderanks(adata):

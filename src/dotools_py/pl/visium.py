@@ -4,10 +4,9 @@ import anndata as ad
 import numpy as np
 import matplotlib.pyplot as plt
 
-from utils import convert_path
-from ..utils import sanitize_anndata, get_subplot_shape, remove_extra, spine_format
+from dotools_py.utils import sanitize_anndata, get_subplot_shape, remove_extra, spine_format, convert_path
 from typing import Union
-from ..tl import get_expr
+from dotools_py.tl import get_expr
 import pandas as pd
 
 

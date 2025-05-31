@@ -26,9 +26,9 @@ from scanpy.plotting._utils import (
     savefig_or_show,
 )
 
-from .. import logger
-from ..tl import get_expr
-from ..utils import convert_path, sanitize_anndata
+from dotools_py import logger
+from dotools_py.tl import get_expr
+from dotools_py.utils import convert_path, sanitize_anndata
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
