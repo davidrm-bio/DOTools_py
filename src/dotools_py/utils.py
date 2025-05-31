@@ -1,10 +1,10 @@
 from pathlib import Path
 
 import anndata as ad
+import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.gridspec as gridspec
 
 
 def get_paths_utils(script: str):
@@ -97,15 +97,16 @@ def remove_extra(extras: int, nrows: int, ncols: int, axs: plt.Axes) -> None:
         return
 
 
-
-def make_grid_spec(ax_or_figsize, *,
-                   nrows: int,
-                   ncols: int,
-                   wspace: float = None,
-                   hspace: float = None,
-                   width_ratios: float = None,
-                   height_ratios: float = None
-                   ):
+def make_grid_spec(
+    ax_or_figsize,
+    *,
+    nrows: int,
+    ncols: int,
+    wspace: float = None,
+    hspace: float = None,
+    width_ratios: float = None,
+    height_ratios: float = None,
+):
     # Taken from Scanpy
     kw = dict(wspace=wspace, hspace=hspace, width_ratios=width_ratios, height_ratios=height_ratios)
 
@@ -121,7 +122,7 @@ def make_grid_spec(ax_or_figsize, *,
         return ax.figure, ax.get_subplotspec().subgridspec(nrows, ncols, **kw)
 
 
-def format_terms_gsea(df: pd.DataFrame, term_col: str, cutoff: int=35):
+def format_terms_gsea(df: pd.DataFrame, term_col: str, cutoff: int = 35):
     """Format Terms from Gene Set Enrichment Analysis.
 
     :param df:
@@ -130,23 +131,24 @@ def format_terms_gsea(df: pd.DataFrame, term_col: str, cutoff: int=35):
     :return:
     """
     import re
+
     def remove_whitespace_around_newlines(text):
         # Replace whitespace before and after newlines with just the newline
-        return re.sub(r'\s*\n\s*', '\n', text)
+        return re.sub(r"\s*\n\s*", "\n", text)
 
     newterms = []
     for text in df[term_col]:
         newterm, text_list_nchar, nchar, limit = [], [], 0, cutoff
-        text_list = text.split(' ')
+        text_list = text.split(" ")
         for txt in text_list:  # From text_list get a list where we sum nchar from a word + previous word
             nchar += len(txt)
             text_list_nchar.append(nchar)
         for idx, word in enumerate(text_list_nchar):
             if word > limit:  # If we have more than cutoff characters in len add a break line
-                newterm.append('\n')
+                newterm.append("\n")
                 limit += cutoff
             newterm.append(text_list[idx])
-        newterm = ' '.join(newterm)
+        newterm = " ".join(newterm)
         cleanterm = remove_whitespace_around_newlines(newterm)  # remove whitespace inserted
         newterms.append(cleanterm)
     df[term_col] = newterms

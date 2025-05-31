@@ -7,9 +7,10 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 from adjustText import adjust_text
+
 from ..tl.get_stats import get_expr
-from ..utils import get_centroids, get_subplot_shape, remove_extra, sanitize_anndata, spine_format, convert_path
-from typing import Union
+from ..utils import convert_path, get_centroids, get_subplot_shape, remove_extra, sanitize_anndata, spine_format
+
 
 def umap(
     adata: ad.AnnData,
@@ -338,19 +339,20 @@ def embedding(
         return axis
 
 
-
-def split_embeddding(adata: ad.AnnData,
-                     split_by: str,
-                     ncols: int = 4,
-                     title_font: dict = {'size': 18, 'weight': 'bold'},
-                     path: str = None,
-                     filename: str = 'UMAP.svg',
-                     figsize: tuple = (10, 8),
-                     basis: str = 'X_umap',
-                     visium: bool = False,
-                     sp_size: float = 1.5,
-                     show: bool = False,
-                     **kwargs) -> Union[plt.axes, None]:
+def split_embeddding(
+    adata: ad.AnnData,
+    split_by: str,
+    ncols: int = 4,
+    title_font: dict = {"size": 18, "weight": "bold"},
+    path: str = None,
+    filename: str = "UMAP.svg",
+    figsize: tuple = (10, 8),
+    basis: str = "X_umap",
+    visium: bool = False,
+    sp_size: float = 1.5,
+    show: bool = False,
+    **kwargs,
+) -> plt.axes | None:
     """Plot categorical values splited in an embedding.
 
     This function takes an AnnData and a categorical column in obs and generate a plot of subplots  highlighting the
@@ -370,7 +372,7 @@ def split_embeddding(adata: ad.AnnData,
     :param kwargs: additional arguments for ``sc.pl.embedding()`` or ``sc.pl.spatial()`` if visium is True
     :return: None
     """
-    assert adata.obs[split_by].dtypes == 'category', 'Not a categorical column'
+    assert adata.obs[split_by].dtypes == "category", "Not a categorical column"
     sanitize_anndata(adata)
 
     # Set-Up
@@ -382,15 +384,15 @@ def split_embeddding(adata: ad.AnnData,
     axs = axs.flatten()
     for idx, cat in enumerate(categories):
         if visium:
-            sc.pl.spatial(adata, ax=axs[idx], groups=[cat],  size=sp_size, **kwargs)
+            sc.pl.spatial(adata, ax=axs[idx], groups=[cat], size=sp_size, **kwargs)
         else:
-            sc.pl.embedding(adata, basis=basis, color=split_by, groups=[cat], ax=axs[idx],title=str(cat), **kwargs)
+            sc.pl.embedding(adata, basis=basis, color=split_by, groups=[cat], ax=axs[idx], title=str(cat), **kwargs)
         axs[idx].set_title(cat, fontdict=title_font)
         axs[idx].get_legend().remove()
         spine_format(axs[idx])
         remove_extra(nextra, nrows, ncols, axs)
     if path is not None:
-        plt.savefig(convert_path(path) / filename, bbox_inches='tight')
+        plt.savefig(convert_path(path) / filename, bbox_inches="tight")
     if show:
         plt.tight_layout()
         return None

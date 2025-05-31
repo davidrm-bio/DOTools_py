@@ -1,3 +1,3 @@
-from .embeddings import embedding, umap
 from .dotplot import dotplot
-from .expression import split_bar_gsea, volcano_plot, cell_props
+from .embeddings import embedding, umap
+from .expression import cell_props, split_bar_gsea, volcano_plot

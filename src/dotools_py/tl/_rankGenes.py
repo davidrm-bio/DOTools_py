@@ -1,4 +1,3 @@
-
 ########################################################################################################################
 #
 #     CORRECTION FOR RANK GENES GROUPS
@@ -7,11 +6,10 @@
 
 from math import floor
 from typing import TYPE_CHECKING, Literal, get_args
-import scipy
+
 import numpy as np
 import pandas as pd
-from scipy.sparse import issparse, vstack
-
+import scipy
 from scanpy import _utils
 from scanpy import logging as logg
 from scanpy._compat import old_positionals
@@ -21,6 +19,7 @@ from scanpy._utils import (
 )
 from scanpy.get import _check_mask
 from scanpy.preprocessing._utils import _get_mean_var
+from scipy.sparse import issparse, vstack
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable
@@ -50,6 +49,7 @@ def _redo_logspace(input_data):
         input_data = np.log1p(input_data)
     return input_data
 
+
 def _select_top_n(scores: NDArray, n_top: int):
     n_from = scores.shape[0]
     reference_indices = np.arange(n_from, dtype=int)
@@ -61,9 +61,9 @@ def _select_top_n(scores: NDArray, n_top: int):
 
 
 def _ranks(
-        X: np.ndarray | sparse.csr_matrix | sparse.csc_matrix,
-        mask_obs: NDArray[np.bool_] | None = None,
-        mask_obs_rest: NDArray[np.bool_] | None = None,
+    X: np.ndarray | sparse.csr_matrix | sparse.csc_matrix,
+    mask_obs: NDArray[np.bool_] | None = None,
+    mask_obs_rest: NDArray[np.bool_] | None = None,
 ):
     CONST_MAX_SIZE = 10000000
 
@@ -80,9 +80,7 @@ def _ranks(
 
     if masked:
         n_cells = np.count_nonzero(mask_obs) + np.count_nonzero(mask_obs_rest)
-        get_chunk = lambda X, left, right: merge(
-            (X[mask_obs, left:right], X[mask_obs_rest, left:right])
-        )
+        get_chunk = lambda X, left, right: merge((X[mask_obs, left:right], X[mask_obs_rest, left:right]))
     else:
         n_cells = X.shape[0]
         get_chunk = lambda X, left, right: adapt(X[:, left:right])
@@ -112,7 +110,6 @@ def _tiecorrect(ranks):
     return 1.0 - (cnt**3 - cnt).sum(axis=0) / (size**3 - size)
 
 
-
 class _RankGenes:
     def __init__(
         self,
@@ -132,9 +129,7 @@ class _RankGenes:
         else:
             self.expm1_func = np.expm1
 
-        self.groups_order, self.groups_masks_obs = _utils.select_groups(
-            adata, groups, groupby
-        )
+        self.groups_order, self.groups_masks_obs = _utils.select_groups(adata, groups, groupby)
 
         # Singlet groups cause division by zero errors
         invalid_groups_selected = set(self.groups_order) & set(
@@ -143,8 +138,9 @@ class _RankGenes:
 
         if len(invalid_groups_selected) > 0:
             raise ValueError(
-                "Could not calculate statistics for groups {} since they only "
-                "contain one sample.".format(", ".join(invalid_groups_selected))
+                "Could not calculate statistics for groups {} since they only contain one sample.".format(
+                    ", ".join(invalid_groups_selected)
+                )
             )
 
         adata_comp = adata
@@ -190,7 +186,6 @@ class _RankGenes:
         self.grouping_mask = adata.obs[groupby].isin(self.groups_order)
         self.grouping = adata.obs.loc[self.grouping_mask, groupby]
 
-
     def _basic_stats(self) -> None:
         """Set self.{means,vars,pts}{,_rest} depending on X."""
         n_genes = self.X.shape[1]
@@ -211,8 +206,7 @@ class _RankGenes:
             # X_rest has logcounts, undo the log space
             X_rest = _undo_logspace(X_rest)
 
-            self.means[self.ireference], self.vars[self.ireference] = _get_mean_var(
-                X_rest)
+            self.means[self.ireference], self.vars[self.ireference] = _get_mean_var(X_rest)
 
             # Redo the log for the mean
             self.means[self.ireference] = _redo_logspace(self.means[self.ireference])
@@ -241,7 +235,6 @@ class _RankGenes:
             # Redo the log for the mean
             self.means[group_index] = _redo_logspace(self.means[group_index])
 
-
             if self.ireference is None:
                 mask_rest = ~mask_obs
                 X_rest = self.X[mask_rest]
@@ -268,7 +261,7 @@ class _RankGenes:
         self._basic_stats()
 
         for group_index, (mask_obs, mean_group, var_group) in enumerate(
-            zip(self.groups_masks_obs, self.means, self.vars)
+            zip(self.groups_masks_obs, self.means, self.vars, strict=False)
         ):
             if self.ireference is not None and group_index == self.ireference:
                 continue
@@ -337,10 +330,7 @@ class _RankGenes:
                 m_active = np.count_nonzero(mask_obs_rest)
 
                 if n_active <= 25 or m_active <= 25:
-                    logg.hint(
-                        "Few observations in a group for "
-                        "normal approximation (<=25). Lower test accuracy."
-                    )
+                    logg.hint("Few observations in a group for normal approximation (<=25). Lower test accuracy.")
 
                 # Calculate rank sums for each chunk for the current mask
                 for ranks, left, right in _ranks(self.X, mask_obs, mask_obs_rest):
@@ -348,13 +338,9 @@ class _RankGenes:
                     if tie_correct:
                         T[left:right] = _tiecorrect(ranks)
 
-                std_dev = np.sqrt(
-                    T * n_active * m_active * (n_active + m_active + 1) / 12.0
-                )
+                std_dev = np.sqrt(T * n_active * m_active * (n_active + m_active + 1) / 12.0)
 
-                scores = (
-                    scores - (n_active * ((n_active + m_active + 1) / 2.0))
-                ) / std_dev
+                scores = (scores - (n_active * ((n_active + m_active + 1) / 2.0))) / std_dev
                 scores[np.isnan(scores)] = 0
                 pvals = 2 * stats.distributions.norm.sf(np.abs(scores))
 
@@ -372,9 +358,7 @@ class _RankGenes:
             for ranks, left, right in _ranks(self.X):
                 # sum up adjusted_ranks to calculate W_m,n
                 for group_index, mask_obs in enumerate(self.groups_masks_obs):
-                    scores[group_index, left:right] = ranks.iloc[mask_obs, :].sum(
-                        axis=0
-                    )
+                    scores[group_index, left:right] = ranks.iloc[mask_obs, :].sum(axis=0)
                     if tie_correct:
                         T[group_index, left:right] = _tiecorrect(ranks)
 
@@ -383,21 +367,15 @@ class _RankGenes:
 
                 T_i = T[group_index] if tie_correct else 1
 
-                std_dev = np.sqrt(
-                    T_i * n_active * (n_cells - n_active) * (n_cells + 1) / 12.0
-                )
+                std_dev = np.sqrt(T_i * n_active * (n_cells - n_active) * (n_cells + 1) / 12.0)
 
-                scores[group_index, :] = (
-                    scores[group_index, :] - (n_active * (n_cells + 1) / 2.0)
-                ) / std_dev
+                scores[group_index, :] = (scores[group_index, :] - (n_active * (n_cells + 1) / 2.0)) / std_dev
                 scores[np.isnan(scores)] = 0
                 pvals = 2 * stats.distributions.norm.sf(np.abs(scores[group_index, :]))
 
                 yield group_index, scores[group_index], pvals
 
-    def logreg(
-        self, **kwds
-    ) -> Generator[tuple[int, NDArray[np.floating], None], None, None]:
+    def logreg(self, **kwds) -> Generator[tuple[int, NDArray[np.floating], None], None, None]:
         # if reference is not set, then the groups listed will be compared to the rest
         # if reference is set, then the groups listed will be compared only to the other groups listed
         from sklearn.linear_model import LogisticRegression
@@ -474,9 +452,7 @@ class _RankGenes:
                     from statsmodels.stats.multitest import multipletests
 
                     pvals[np.isnan(pvals)] = 1
-                    _, pvals_adj, _, _ = multipletests(
-                        pvals, alpha=0.05, method="fdr_bh"
-                    )
+                    _, pvals_adj, _, _ = multipletests(pvals, alpha=0.05, method="fdr_bh")
                 elif corr_method == "bonferroni":
                     pvals_adj = np.minimum(pvals * n_genes, 1.0)
                 self.stats[group_name, "pvals_adj"] = pvals_adj[global_indices]
@@ -490,9 +466,7 @@ class _RankGenes:
                 foldchanges = (self.expm1_func(mean_group) + 1e-9) / (
                     self.expm1_func(mean_rest) + 1e-9
                 )  # add small value to remove 0's
-                self.stats[group_name, "logfoldchanges"] = np.log2(
-                    foldchanges[global_indices]
-                )
+                self.stats[group_name, "logfoldchanges"] = np.log2(foldchanges[global_indices])
 
         if n_genes_user is None:
             self.stats.index = self.var_names
@@ -668,9 +642,7 @@ def rank_genes_groups(
             groups_order += [reference]
     if reference != "rest" and reference not in adata.obs[groupby].cat.categories:
         cats = adata.obs[groupby].cat.categories.tolist()
-        raise ValueError(
-            f"reference = {reference} needs to be one of groupby = {cats}."
-        )
+        raise ValueError(f"reference = {reference} needs to be one of groupby = {cats}.")
 
     if key_added is None:
         key_added = "rank_genes_groups"
@@ -722,9 +694,7 @@ def rank_genes_groups(
 
     if test_obj.pts is not None:
         groups_names = [str(name) for name in test_obj.groups_order]
-        adata.uns[key_added]["pts"] = pd.DataFrame(
-            test_obj.pts.T, index=test_obj.var_names, columns=groups_names
-        )
+        adata.uns[key_added]["pts"] = pd.DataFrame(test_obj.pts.T, index=test_obj.var_names, columns=groups_names)
     if test_obj.pts_rest is not None:
         adata.uns[key_added]["pts_rest"] = pd.DataFrame(
             test_obj.pts_rest.T, index=test_obj.var_names, columns=groups_names
@@ -741,9 +711,7 @@ def rank_genes_groups(
     }
 
     for col in test_obj.stats.columns.levels[0]:
-        adata.uns[key_added][col] = test_obj.stats[col].to_records(
-            index=False, column_dtypes=dtypes[col]
-        )
+        adata.uns[key_added][col] = test_obj.stats[col].to_records(index=False, column_dtypes=dtypes[col])
 
     logg.info(
         "    finished",
@@ -896,12 +864,8 @@ def filter_rank_genes_groups(
             X_out = sub_X[~in_group]
 
         if use_fraction:
-            fraction_in_cluster_matrix.loc[:, cluster] = (
-                adata.uns[key]["pts"][cluster].loc[var_names].values
-            )
-            fraction_out_cluster_matrix.loc[:, cluster] = (
-                adata.uns[key]["pts_rest"][cluster].loc[var_names].values
-            )
+            fraction_in_cluster_matrix.loc[:, cluster] = adata.uns[key]["pts"][cluster].loc[var_names].values
+            fraction_out_cluster_matrix.loc[:, cluster] = adata.uns[key]["pts_rest"][cluster].loc[var_names].values
         else:
             fraction_in_cluster_matrix.loc[:, cluster] = _calc_frac(X_in)
             fraction_out_cluster_matrix.loc[:, cluster] = _calc_frac(X_out)
@@ -912,8 +876,7 @@ def filter_rank_genes_groups(
             mean_out_cluster = np.ravel(X_out.mean(0))
             # compute fold change
             fold_change_matrix.loc[:, cluster] = np.log2(
-                (expm1_func(mean_in_cluster) + 1e-9)
-                / (expm1_func(mean_out_cluster) + 1e-9)
+                (expm1_func(mean_in_cluster) + 1e-9) / (expm1_func(mean_out_cluster) + 1e-9)
             )
 
     if compare_abs:
@@ -927,6 +890,3 @@ def filter_rank_genes_groups(
     # create new structured array using 'key_added'.
     adata.uns[key_added] = adata.uns[key].copy()
     adata.uns[key_added]["names"] = gene_names.to_records(index=False)
-
-
-

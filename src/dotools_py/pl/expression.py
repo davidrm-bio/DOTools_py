@@ -1,49 +1,46 @@
-from pathlib import Path
-from typing import Union
-import scanpy as sc
 import sys
+from pathlib import Path
+
 import anndata as ad
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
-import matplotlib.patheffects as path_effects
-import matplotlib.patches as patches
-import matplotlib.colorbar
-from matplotlib.cm import ScalarMappable
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 from adjustText import adjust_text
+
 from .. import logger
-from ..utils import sanitize_anndata, convert_path, make_grid_spec, format_terms_gsea
-from ..tl import get_expr
+from ..utils import convert_path, format_terms_gsea, make_grid_spec, sanitize_anndata
 
 
-def cell_props(adata: ad.AnnData,
-               annot_key: str,
-               cond_key: str,
-               batch_key: str,
-               annot_order: list = None,
-               cond_order: list = None,
-               covariates: list = None,
-               subset_cells: list = None,
-               pval_cutoff: float = 0.05,
-               figsize: tuple = (5, 6),
-               axis: plt.Axes = None,
-               path: Union[Path, str] = None,
-               filename: str = 'Proportions.svg',
-               legend_cols: int = 1,
-               sep: float = 0.5,
-               bar_width: float = 0.2,
-               title: str = '',
-               title_fontsize: int = 15,
-               legend_fontsize: int = 12,
-               legend_fontweight: Union[float, str] = None,
-               show: bool = True,
-               legend_title: str = '',
-               add_total_ncell: bool = True,
-               transform: str = 'logit',
-               linewidth: float = 0.9,
-               get_props: bool = False,
-               **kwargs) -> Union[None, pd.DataFrame, plt.Axes]:
+def cell_props(
+    adata: ad.AnnData,
+    annot_key: str,
+    cond_key: str,
+    batch_key: str,
+    annot_order: list = None,
+    cond_order: list = None,
+    covariates: list = None,
+    subset_cells: list = None,
+    pval_cutoff: float = 0.05,
+    figsize: tuple = (5, 6),
+    axis: plt.Axes = None,
+    path: Path | str = None,
+    filename: str = "Proportions.svg",
+    legend_cols: int = 1,
+    sep: float = 0.5,
+    bar_width: float = 0.2,
+    title: str = "",
+    title_fontsize: int = 15,
+    legend_fontsize: int = 12,
+    legend_fontweight: float | str = None,
+    show: bool = True,
+    legend_title: str = "",
+    add_total_ncell: bool = True,
+    transform: str = "logit",
+    linewidth: float = 0.9,
+    get_props: bool = False,
+    **kwargs,
+) -> None | pd.DataFrame | plt.Axes:
     """Generate a stacked barplot showing changes in the proportions of cell populations
     in single cell data.
 
@@ -79,28 +76,36 @@ def cell_props(adata: ad.AnnData,
     :param kwargs: additional arguments pass to scanpro()
     :return: None, matplolib axis or dataframe with results of scanpro
     """
-
     ########################
     # Test for changes in cell population
     ########################
     from scanpro import scanpro
 
-    transform = transform if batch_key is not None else 'arcsin'
+    transform = transform if batch_key is not None else "arcsin"
     adata = adata.copy()  # Do not modify input
     sanitize_anndata(adata)
 
     if annot_order is not None:
-        assert all(x in annot_order for x in
-                   list(adata.obs[annot_key].cat.categories)), 'annotation  order is missing categories'
+        assert all(x in annot_order for x in list(adata.obs[annot_key].cat.categories)), (
+            "annotation  order is missing categories"
+        )
         adata.obs[annot_key] = pd.Categorical(adata.obs[annot_key], categories=annot_order, ordered=True)
 
     if cond_order is not None:
-        assert all(
-            x in cond_order for x in list(adata.obs[cond_key].cat.categories)), 'condition order is missing categories'
+        assert all(x in cond_order for x in list(adata.obs[cond_key].cat.categories)), (
+            "condition order is missing categories"
+        )
         adata.obs[cond_key] = pd.Categorical(adata.obs[cond_key], categories=cond_order, ordered=True)
 
-    out = scanpro(adata, clusters_col=annot_key, conds_col=cond_key, samples_col=batch_key, covariates=covariates,
-                  transform=transform, **kwargs)
+    out = scanpro(
+        adata,
+        clusters_col=annot_key,
+        conds_col=cond_key,
+        samples_col=batch_key,
+        covariates=covariates,
+        transform=transform,
+        **kwargs,
+    )
 
     ########################
     # Set-Up, Get Data for plotting
@@ -108,72 +113,89 @@ def cell_props(adata: ad.AnnData,
     subset_cells = subset_cells if subset_cells is not None else adata.obs[annot_key].cat.categories
 
     df = out.results.copy()
-    pval_col = 'adjusted_p_values' if 'adjusted_p_values' in df.columns else 'p_values'
+    pval_col = "adjusted_p_values" if "adjusted_p_values" in df.columns else "p_values"
     n_sig = len(df[df[pval_col] < 0.05])
-    logger.info(f'There are {n_sig} populations with a significant change')
+    logger.info(f"There are {n_sig} populations with a significant change")
 
     df = df.loc[subset_cells, :]
 
     try:
-        colors_dict = dict(zip(adata.obs[annot_key].cat.categories, adata.uns[annot_key + '_colors']))
+        colors_dict = dict(zip(adata.obs[annot_key].cat.categories, adata.uns[annot_key + "_colors"], strict=False))
     except KeyError:
         tab20_colors = plt.cm.tab20.colors
         if len(adata.obs[annot_key].cat.categories) > 20:
             tab20_colors = tab20_colors * 3
-        colors_dict = dict(zip(adata.obs[annot_key].cat.categories, tab20_colors))
+        colors_dict = dict(zip(adata.obs[annot_key].cat.categories, tab20_colors, strict=False))
     colors_list = [colors_dict[ct] for ct in df.index]
 
-    cond_keys = [f'mean_props_{cond}' for cond in adata.obs[cond_key].cat.categories]
-    data_dict = {'bar_bottom': {}, 'bar_height': {}, 'pvals': list(df[pval_col])}
+    cond_keys = [f"mean_props_{cond}" for cond in adata.obs[cond_key].cat.categories]
+    data_dict = {"bar_bottom": {}, "bar_height": {}, "pvals": list(df[pval_col])}
 
     for cond in cond_keys:
         tmp = np.zeros(len(df))
         for idx, prop in enumerate(list(df[cond])[:-1]):
             tmp[idx + 1] = prop + tmp[idx]
-        data_dict['bar_bottom'][cond] = tmp
-        data_dict['bar_height'][cond] = list(df[cond])
+        data_dict["bar_bottom"][cond] = tmp
+        data_dict["bar_height"][cond] = list(df[cond])
 
     ########################
     # Plotting
     ########################
     width, height = figsize  # Define figure layout
-    fig, gs = make_grid_spec(axis or (width, height), nrows=1, ncols=2, wspace=0.7 / width,
-                             width_ratios=[width - (1.5 + 0) + 0, 1.5])
+    fig, gs = make_grid_spec(
+        axis or (width, height), nrows=1, ncols=2, wspace=0.7 / width, width_ratios=[width - (1.5 + 0) + 0, 1.5]
+    )
 
     # Main Axis
     axs = fig.add_subplot(gs[0])
     xtick, xtext = [], []
     for x_pos, c in enumerate(cond_keys):
-
         x_pos = x_pos - sep * x_pos
-        bars_obj = axs.bar(x_pos, data_dict['bar_height'][c], width=bar_width, bottom=data_dict['bar_bottom'][c],
-                           align='edge', zorder=2, color=colors_list)
+        bars_obj = axs.bar(
+            x_pos,
+            data_dict["bar_height"][c],
+            width=bar_width,
+            bottom=data_dict["bar_bottom"][c],
+            align="edge",
+            zorder=2,
+            color=colors_list,
+        )
         xtick.append(x_pos + bar_width / 2)
-        xtext.append(c.split('mean_props_')[-1])
+        xtext.append(c.split("mean_props_")[-1])
 
-        for i, padj in enumerate(data_dict['pvals']):
+        for i, padj in enumerate(data_dict["pvals"]):
             if padj < pval_cutoff:
                 if x_pos / sep + 1 < len(cond_keys):
                     cond1 = c
                     cond2 = cond_keys[int(cond_keys.index(c) + 1)]
-                    axs.plot([x_pos + bar_width, x_pos + 1 - sep],
-                             [data_dict['bar_bottom'][cond1][i],
-                              data_dict['bar_bottom'][cond2][i]],
-                             color='k', linestyle='--', zorder=1,
-                             linewidth=linewidth)
+                    axs.plot(
+                        [x_pos + bar_width, x_pos + 1 - sep],
+                        [data_dict["bar_bottom"][cond1][i], data_dict["bar_bottom"][cond2][i]],
+                        color="k",
+                        linestyle="--",
+                        zorder=1,
+                        linewidth=linewidth,
+                    )
 
-                    axs.plot([x_pos + bar_width, x_pos + 1 - sep],
-                             [data_dict['bar_height'][cond1][i] + data_dict['bar_bottom'][cond1][i],
-                              data_dict['bar_height'][cond2][i] + data_dict['bar_bottom'][cond2][i]],
-                             color='k', linestyle='--', zorder=1, linewidth=linewidth)
+                    axs.plot(
+                        [x_pos + bar_width, x_pos + 1 - sep],
+                        [
+                            data_dict["bar_height"][cond1][i] + data_dict["bar_bottom"][cond1][i],
+                            data_dict["bar_height"][cond2][i] + data_dict["bar_bottom"][cond2][i],
+                        ],
+                        color="k",
+                        linestyle="--",
+                        zorder=1,
+                        linewidth=linewidth,
+                    )
 
                 for j, b in enumerate(bars_obj):
                     if i == j:
-                        b.set_edgecolor('black')
+                        b.set_edgecolor("black")
                         b.set_linewidth(1)
                         b.set_zorder(3)
-    axs.set_xticks(xtick, xtext, fontweight='bold')
-    axs.set_title(title, fontsize=title_fontsize, fontweight='bold')
+    axs.set_xticks(xtick, xtext, fontweight="bold")
+    axs.set_title(title, fontsize=title_fontsize, fontweight="bold")
 
     # Legend Axis
     axs_legend = fig.add_subplot(gs[1])
@@ -191,37 +213,49 @@ def cell_props(adata: ad.AnnData,
             else:
                 if pval == 0:
                     pval = sys.float_info.min
-                pval = '{:0.2e}'.format(pval)
-            txt = 'FDR' if pval_col == 'adjusted_p_values' else 'p'
-            lab = lab + f' ({txt} = ' + str(pval) + ')'
+                pval = f"{pval:0.2e}"
+            txt = "FDR" if pval_col == "adjusted_p_values" else "p"
+            lab = lab + f" ({txt} = " + str(pval) + ")"
 
-        handles.append(mlines.Line2D([0], [0],
-                                     marker=".", color=c,
-                                     lw=0, label=lab,
-                                     markerfacecolor=c, markeredgecolor=None,
-                                     markersize=18))
+        handles.append(
+            mlines.Line2D(
+                [0], [0], marker=".", color=c, lw=0, label=lab, markerfacecolor=c, markeredgecolor=None, markersize=18
+            )
+        )
     if add_total_ncell:
-        handles.append(mlines.Line2D([0], [0],
-                                     marker=".", color='white',
-                                     lw=0, label=f'nCells = {adata.n_obs:,}',
-                                     markerfacecolor='white', markeredgecolor=None,
-                                     markersize=18))
+        handles.append(
+            mlines.Line2D(
+                [0],
+                [0],
+                marker=".",
+                color="white",
+                lw=0,
+                label=f"nCells = {adata.n_obs:,}",
+                markerfacecolor="white",
+                markeredgecolor=None,
+                markersize=18,
+            )
+        )
 
-    legend = axs_legend.legend(handles=handles, frameon=False, loc='center left', ncols=legend_cols,
-                               title=legend_title,
-                               prop={'size': legend_fontsize, 'weight': legend_fontweight})
-    legend.get_title().set_fontweight('bold')
+    legend = axs_legend.legend(
+        handles=handles,
+        frameon=False,
+        loc="center left",
+        ncols=legend_cols,
+        title=legend_title,
+        prop={"size": legend_fontsize, "weight": legend_fontweight},
+    )
+    legend.get_title().set_fontweight("bold")
     legend.get_title().set_fontsize(legend_fontsize + 2)
 
     # Remove Ticks, Grid, Spines
-    axs_legend.tick_params(axis="both", left=False, labelleft=False, labelright=False,
-                           bottom=False, labelbottom=False)
-    axs_legend.spines[["right", 'left', 'top', 'bottom']].set_visible(False)
+    axs_legend.tick_params(axis="both", left=False, labelleft=False, labelright=False, bottom=False, labelbottom=False)
+    axs_legend.spines[["right", "left", "top", "bottom"]].set_visible(False)
     axs_legend.grid(visible=False)
 
     # Save if specified
     if path is not None:
-        plt.savefig(convert_path(path) / filename, bbox_inches='tight')
+        plt.savefig(convert_path(path) / filename, bbox_inches="tight")
 
     if show is True and get_props is False:  # True and False
         plt.tight_layout()
@@ -230,30 +264,32 @@ def cell_props(adata: ad.AnnData,
         plt.tight_layout()
         return df
     elif show is False and get_props is True:  # False and True
-        return df, {'mainplot_ax': axs, 'legend_ax': axs_legend}
+        return df, {"mainplot_ax": axs, "legend_ax": axs_legend}
     else:  # False and False
-        return {'mainplot_ax': axs, 'legend_ax': axs_legend}
+        return {"mainplot_ax": axs, "legend_ax": axs_legend}
 
 
-def volcano_plot(dge: pd.DataFrame,
-                 lfc_col: str = 'logfoldchanges',
-                 pval_col: str = 'pvals_adj',
-                 gene_col: str = 'names',
-                 fig_path: str = None,
-                 filename: str = 'Volcano.svg',
-                 pval_lim: float = 2e-10,
-                 lfc_lim: tuple = (-10, 10),
-                 title: str = '',
-                 figsize: tuple = (18, 9),
-                 mygenes: list = None,
-                 lfc_cut: float = 0.25,
-                 pval_cut: float = 0.05,
-                 clean: bool = True,
-                 dot_size: float = 2.5,
-                 topn: int = 10,
-                 textprops: dict = {'weight': 'bold', 'size': 13},
-                 show: bool = False,
-                 **kwargs):
+def volcano_plot(
+    dge: pd.DataFrame,
+    lfc_col: str = "logfoldchanges",
+    pval_col: str = "pvals_adj",
+    gene_col: str = "names",
+    fig_path: str = None,
+    filename: str = "Volcano.svg",
+    pval_lim: float = 2e-10,
+    lfc_lim: tuple = (-10, 10),
+    title: str = "",
+    figsize: tuple = (18, 9),
+    mygenes: list = None,
+    lfc_cut: float = 0.25,
+    pval_cut: float = 0.05,
+    clean: bool = True,
+    dot_size: float = 2.5,
+    topn: int = 10,
+    textprops: dict = {"weight": "bold", "size": 13},
+    show: bool = False,
+    **kwargs,
+):
     """Generate a volcano plot.
 
     Genes will be colored differently depending on the p-value (Pval) and logfoldchange (LFC)
@@ -289,7 +325,7 @@ def volcano_plot(dge: pd.DataFrame,
     # Replace Pvals & LFC greater than limit to the limit
     dge[pval_col][dge[pval_col] < pval_lim] = pval_lim
 
-    assert lfc_lim[0] < lfc_lim[1], f'{lfc_lim[0]} cannot be greater than {lfc_lim[1]}'
+    assert lfc_lim[0] < lfc_lim[1], f"{lfc_lim[0]} cannot be greater than {lfc_lim[1]}"
     dge[lfc_col][dge[lfc_col] < lfc_lim[0]] = lfc_lim[0]
     dge[lfc_col][dge[lfc_col] > lfc_lim[1]] = lfc_lim[1]
 
@@ -310,69 +346,81 @@ def volcano_plot(dge: pd.DataFrame,
     # Generate Plot
     # Create scatter Plot
     fig, axs = plt.subplots(1, 1, figsize=figsize)
-    axs.scatter(lfcs, -np.log10(pvals), color='gray', alpha=0.7, label='NS', s=dot_size, rasterized=True)
-    axs.scatter(lfcs[cat1], -np.log10(pvals[cat1]), color='tomato', alpha=0.7, label='FDR & log2FC', s=dot_size,
-                rasterized=True)
-    axs.scatter(lfcs[cat2], -np.log10(pvals[cat2]), color='cornflowerblue', alpha=0.7, label='FDR', s=dot_size,
-                rasterized=True)
-    axs.scatter(lfcs[cat3], -np.log10(pvals[cat3]), color='limegreen', alpha=0.7, label='log2FC', s=dot_size,
-                rasterized=True)
-    axs.spines[['top', 'right']].set_visible(False)
+    axs.scatter(lfcs, -np.log10(pvals), color="gray", alpha=0.7, label="NS", s=dot_size, rasterized=True)
+    axs.scatter(
+        lfcs[cat1], -np.log10(pvals[cat1]), color="tomato", alpha=0.7, label="FDR & log2FC", s=dot_size, rasterized=True
+    )
+    axs.scatter(
+        lfcs[cat2], -np.log10(pvals[cat2]), color="cornflowerblue", alpha=0.7, label="FDR", s=dot_size, rasterized=True
+    )
+    axs.scatter(
+        lfcs[cat3], -np.log10(pvals[cat3]), color="limegreen", alpha=0.7, label="log2FC", s=dot_size, rasterized=True
+    )
+    axs.spines[["top", "right"]].set_visible(False)
     axs.grid(False)
 
     # Add significant lines
-    axs.axhline(-np.log10(pval_cut), color='black', linestyle='--', alpha=0.8)
-    axs.axvline(-lfc_cut, color='black', linestyle='--', alpha=0.8)
-    axs.axvline(lfc_cut, color='black', linestyle='--', alpha=0.8)
+    axs.axhline(-np.log10(pval_cut), color="black", linestyle="--", alpha=0.8)
+    axs.axvline(-lfc_cut, color="black", linestyle="--", alpha=0.8)
+    axs.axvline(lfc_cut, color="black", linestyle="--", alpha=0.8)
 
-    topPos = dge[(dge[pval_col] < pval_cut) & (dge[lfc_col] > lfc_cut)].sort_values(lfc_col, ascending=False)[
-        gene_col].head(topn).tolist()
-    topNeg = dge[(dge[pval_col] < pval_cut) & (dge[lfc_col] < -lfc_cut)].sort_values(lfc_col, ascending=True)[
-        gene_col].head(topn).tolist()
+    topPos = (
+        dge[(dge[pval_col] < pval_cut) & (dge[lfc_col] > lfc_cut)]
+        .sort_values(lfc_col, ascending=False)[gene_col]
+        .head(topn)
+        .tolist()
+    )
+    topNeg = (
+        dge[(dge[pval_col] < pval_cut) & (dge[lfc_col] < -lfc_cut)]
+        .sort_values(lfc_col, ascending=True)[gene_col]
+        .head(topn)
+        .tolist()
+    )
     texts = []
-    for x, y, l in zip(lfcs, pvals, genes):
+    for x, y, l in zip(lfcs, pvals, genes, strict=False):
         if mygenes is None:
             if l in topPos:
-                texts.append(plt.text(x, -np.log10(y), l, ha='center', va='center', fontdict=textprops))
+                texts.append(plt.text(x, -np.log10(y), l, ha="center", va="center", fontdict=textprops))
             if l in topNeg:
-                texts.append(plt.text(x, -np.log10(y), l, ha='center', va='center', fontdict=textprops))
+                texts.append(plt.text(x, -np.log10(y), l, ha="center", va="center", fontdict=textprops))
         else:
             if l in mygenes:
-                texts.append(plt.text(x, -np.log10(y), l, ha='center', va='center', fontdict=textprops))
-    adjust_text(texts,
-                arrowprops=dict(arrowstyle="-", color='k', lw=0.5), **kwargs)
+                texts.append(plt.text(x, -np.log10(y), l, ha="center", va="center", fontdict=textprops))
+    adjust_text(texts, arrowprops=dict(arrowstyle="-", color="k", lw=0.5), **kwargs)
 
     # Add Axis labels, Legend, & Title
-    axs.set_xlabel('Log2FC')
-    axs.set_ylabel(f'-log10(FDR)')
+    axs.set_xlabel("Log2FC")
+    axs.set_ylabel("-log10(FDR)")
     axs.set_title(title)
-    axs.legend(loc='upper center', bbox_to_anchor=(0.5, -0.13), fancybox=True, ncols=2)
+    axs.legend(loc="upper center", bbox_to_anchor=(0.5, -0.13), fancybox=True, ncols=2)
 
     if fig_path is not None:
-        plt.savefig(convert_path(fig_path) / filename, bbox_inches='tight')
+        plt.savefig(convert_path(fig_path) / filename, bbox_inches="tight")
     if show:
         return axs
     else:
         return None
 
 
-def split_bar_gsea(df: pd.DataFrame,
-                   term_col: str,
-                   col_split: str,
-                   cond_col: str,
-                   pos_cond: str,
-                   cutoff: int = 40,
-                   log10_transform: bool = True,
-                   figsize: tuple = (12, 8),
-                   topn: float = 10,
-                   colors_pairs: list = ['sandybrown', 'royalblue'],
-                   alpha_colors: float = 0.3,
-                   path: str = None,
-                   spacing: float = 5,
-                   txt_size: float = 12,
-                   filename: str = 'SplitBar.svg',
-                   title: str = 'Top 10 GO Terms in each Condition',
-                   show: bool = True) -> Union[None, plt.axis]:
+def split_bar_gsea(
+    df: pd.DataFrame,
+    term_col: str,
+    col_split: str,
+    cond_col: str,
+    pos_cond: str,
+    cutoff: int = 40,
+    log10_transform: bool = True,
+    figsize: tuple = (12, 8),
+    topn: float = 10,
+    colors_pairs: list = ["sandybrown", "royalblue"],
+    alpha_colors: float = 0.3,
+    path: str = None,
+    spacing: float = 5,
+    txt_size: float = 12,
+    filename: str = "SplitBar.svg",
+    title: str = "Top 10 GO Terms in each Condition",
+    show: bool = True,
+) -> None | plt.axis:
     """Split BarPlot for GO terms
 
     This function generates a split barplot. This is a plot where the top 10 Go terms
@@ -402,16 +450,15 @@ def split_bar_gsea(df: pd.DataFrame,
     :param show: if False, the axis is return
     :return: None or the axis
     """
-
     if len(df[cond_col].unique()) != 2:
         if len(df[cond_col].unique()) > 2:
-            assert len(df[cond_col].unique()) == 2, 'Not implement - Only 1 or 2 conditions can be used'
+            assert len(df[cond_col].unique()) == 2, "Not implement - Only 1 or 2 conditions can be used"
         elif len(df[cond_col].unique()) == 1:
-            logger.warn('!!! WARNING - There are no terms for one of the conditions')
+            logger.warn("!!! WARNING - There are no terms for one of the conditions")
         else:
-            assert len(df[cond_col].unique()) == 2, 'Not implement - Only 1 or 2 conditions can be used'
+            assert len(df[cond_col].unique()) == 2, "Not implement - Only 1 or 2 conditions can be used"
 
-    logger.warn('!!! Assuming GO Terms are preprocessed (Only Significant terms included)')
+    logger.warn("!!! Assuming GO Terms are preprocessed (Only Significant terms included)")
 
     df = df.copy()  # Ensure we do not modify the input
     jdx = list(df.columns).index(cond_col)  # Get index of the condition column
@@ -421,12 +468,13 @@ def split_bar_gsea(df: pd.DataFrame,
     min_val, max_val = df[col_split].min(), df[col_split].max()
     is_pval = True if (min_val >= 0) and (max_val <= 1) else False
     if is_pval and log10_transform:
-        logger.warn('Assuming col_split contains Pvals, apply -log10 transformation')
-        df['-log10(Padj)'] = -np.log10(df[col_split])
-        col_split = '-log10(Padj)'
-        spacing = .5  # Correct spacing in case it was not specified
-    df[col_split] = [val if df.iloc[idx, jdx] == pos_cond else -val for idx, val in
-                     enumerate(df[col_split])]  # Set negative and positive values for each condition
+        logger.warn("Assuming col_split contains Pvals, apply -log10 transformation")
+        df["-log10(Padj)"] = -np.log10(df[col_split])
+        col_split = "-log10(Padj)"
+        spacing = 0.5  # Correct spacing in case it was not specified
+    df[col_split] = [
+        val if df.iloc[idx, jdx] == pos_cond else -val for idx, val in enumerate(df[col_split])
+    ]  # Set negative and positive values for each condition
 
     # Format the Terms
     df[term_col] = df[term_col].str.capitalize()  # Capitalise
@@ -438,12 +486,12 @@ def split_bar_gsea(df: pd.DataFrame,
 
     # Check that the size of the dataframes is equal
     if len(df_pos) != len(df_neg):
-        logger.warn('Different number of GO Terms in positive and negative axis, adding empty rows')
-        logger.warn(f'Positive side has {len(df_pos)} and Negative side has {len(df_neg)}')
+        logger.warn("Different number of GO Terms in positive and negative axis, adding empty rows")
+        logger.warn(f"Positive side has {len(df_pos)} and Negative side has {len(df_neg)}")
         missing_rows = topn - len(df_pos) if len(df_pos) < len(df_neg) else topn - len(df_neg)
         missing_rows_data = [np.nan for val in range(len(df_pos.columns))]
         missing_df = pd.DataFrame([missing_rows_data] * missing_rows, columns=list(df_pos.columns))
-        missing_df[term_col] = ''
+        missing_df[term_col] = ""
         missing_df[col_split] = 0
         if len(df_pos) > len(df_neg):
             df_neg = pd.concat([df_neg, missing_df])
@@ -456,42 +504,64 @@ def split_bar_gsea(df: pd.DataFrame,
     y_pos = range(int(topn))
 
     # Plot bars for "Down" condition (positive values) on the left side
-    bars_down = axs.barh(y_pos,
-                         df_neg[col_split].sort_values(ascending=False),
-                         left=-spacing_unit, color=colors_pairs[0],
-                         align='center', alpha=alpha_colors)
+    bars_down = axs.barh(
+        y_pos,
+        df_neg[col_split].sort_values(ascending=False),
+        left=-spacing_unit,
+        color=colors_pairs[0],
+        align="center",
+        alpha=alpha_colors,
+    )
 
     # Plot bars for "Up" condition (negative values) on the right side
-    bars_up = axs.barh(y_pos,
-                       df_pos[col_split].sort_values(),
-                       left=spacing_unit, color=colors_pairs[1],
-                       align='center', alpha=alpha_colors)
+    bars_up = axs.barh(
+        y_pos,
+        df_pos[col_split].sort_values(),
+        left=spacing_unit,
+        color=colors_pairs[1],
+        align="center",
+        alpha=alpha_colors,
+    )
 
     # Layout
-    axs.spines[['left', 'top', 'right']].set_visible(False)
+    axs.spines[["left", "top", "right"]].set_visible(False)
     axs.set_yticks([])
     axs.set_xlim(-np.abs(df[col_split]).max(), np.abs(df[col_split]).max())
     axs.set_xlabel(col_split, fontsize=18)
     axs.set_title(title, fontsize=20)
     axs.grid(False)
-    plt.vlines(0, -1, float(topn) - .5, color='k', lw=1)
-    axs.set_ylim(-.5, float(topn))
+    plt.vlines(0, -1, float(topn) - 0.5, color="k", lw=1)
+    axs.set_ylim(-0.5, float(topn))
 
     # Add text labels for each bar (GO term name)
     for i, bar in enumerate(bars_up):
         # Add the GO term for "Up" bars (positive)
-        axs.text(spacing_unit * 2, bar.get_y() + bar.get_height() / 2,
-                 df_pos.sort_values(col_split)[term_col].iloc[i],
-                 va='center', ha='left', color='k', fontweight='bold', fontsize=txt_size)
+        axs.text(
+            spacing_unit * 2,
+            bar.get_y() + bar.get_height() / 2,
+            df_pos.sort_values(col_split)[term_col].iloc[i],
+            va="center",
+            ha="left",
+            color="k",
+            fontweight="bold",
+            fontsize=txt_size,
+        )
 
     for i, bar in enumerate(bars_down):
         # Add the GO term for "Down" bars (negative)
-        axs.text(-spacing_unit * 2, bar.get_y() + bar.get_height() / 2,
-                 df_neg.sort_values(col_split, ascending=False)[term_col].iloc[i],
-                 va='center', ha='right', color='k', fontweight='bold', fontsize=txt_size)
+        axs.text(
+            -spacing_unit * 2,
+            bar.get_y() + bar.get_height() / 2,
+            df_neg.sort_values(col_split, ascending=False)[term_col].iloc[i],
+            va="center",
+            ha="right",
+            color="k",
+            fontweight="bold",
+            fontsize=txt_size,
+        )
     # Save Plot
     if path is not None:
-        plt.savefig(convert_path(path) / filename, bbox_inches='tight')
+        plt.savefig(convert_path(path) / filename, bbox_inches="tight")
 
     # If show is False, return axs
     if not show:

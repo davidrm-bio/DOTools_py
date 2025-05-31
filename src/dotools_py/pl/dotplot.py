@@ -1,48 +1,43 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Union
-import scanpy as sc
+from typing import TYPE_CHECKING
+
 import anndata as ad
-import matplotlib.gridspec as gridspec
-import matplotlib.patheffects as path_effects
-import matplotlib.patches as patches
 import matplotlib.colorbar
-from matplotlib.cm import ScalarMappable
-from .. import logger
-from ..utils import sanitize_anndata, convert_path
-from ..tl import get_expr
-
-
+import matplotlib.gridspec as gridspec
+import matplotlib.patches as patches
+import matplotlib.patheffects as path_effects
 import numpy as np
 import pandas as pd
-
-from scanpy.plotting._anndata import _prepare_dataframe
-
-from typing import TYPE_CHECKING
-from scanpy.plotting._baseplot_class import BasePlot
+import scanpy as sc
 from matplotlib import pyplot as plt
+from matplotlib.cm import ScalarMappable
 from scanpy._compat import old_positionals
-from scanpy.plotting._docs import doc_common_plot_args, doc_show_save_ax, doc_vboundnorm
 from scanpy._settings import settings
 from scanpy._utils import _doc_params, _empty
+from scanpy.plotting._anndata import _prepare_dataframe
+from scanpy.plotting._baseplot_class import BasePlot, doc_common_groupby_plot_args
+from scanpy.plotting._docs import doc_common_plot_args, doc_show_save_ax, doc_vboundnorm
 from scanpy.plotting._utils import (
     check_colornorm,
     fix_kwds,
     make_grid_spec,
     savefig_or_show,
 )
-from scanpy.plotting._baseplot_class import doc_common_groupby_plot_args
+
+from .. import logger
+from ..tl import get_expr
+from ..utils import convert_path, sanitize_anndata
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Sequence
     from typing import Literal, Self
 
     import pandas as pd
     from anndata import AnnData
     from matplotlib.axes import Axes
     from matplotlib.colors import Colormap, Normalize
-
     from scanpy._utils import Empty
     from scanpy.plotting._utils import ColorLike, _AxesSubplot
 
@@ -52,6 +47,7 @@ if TYPE_CHECKING:
 #     CORRECTION FOR THE DOTPLOT CLASS TO CONSIDER LOGCOUNTS
 #
 ########################################################################################################################
+
 
 def _dk(dendrogram: bool | str | None) -> str | None:
     """Convert the `dendrogram` parameter to a `dendrogram_key` parameter."""
@@ -98,7 +94,7 @@ class DotPlot(BasePlot):
     kwds
         Are passed to :func:`matplotlib.pyplot.scatter`.
 
-    See also
+    See Also
     --------
     :func:`~scanpy.pl.dotplot`: Simpler way to call DotPlot but with less options.
     :func:`~scanpy.pl.rank_genes_groups_dotplot`: to plot marker
@@ -106,7 +102,6 @@ class DotPlot(BasePlot):
 
     Examples
     --------
-
     >>> import scanpy as sc
     >>> adata = sc.datasets.pbmc68k_reduced()
     >>> markers = ['C1QA', 'PSAP', 'CD79A', 'CD79B', 'CST3', 'LYZ']
@@ -118,6 +113,7 @@ class DotPlot(BasePlot):
     >>> sc.pl.DotPlot(adata, markers, groupby='bulk_labels').show()
 
     """
+
     DEFAULT_SAVE_PREFIX = "dotplot_"
 
     # default style parameters
@@ -161,56 +157,59 @@ class DotPlot(BasePlot):
         "vcenter",
         "norm",
     )
-    def __init__(self,
-                 adata: AnnData,
-                 var_names,
-                 groupby: str | Sequence[str],
-                 *,
-                 use_raw: bool | None = None,
-                 log: bool = False,
-                 num_categories: int = 7,
-                 categories_order: Sequence[str] | None = None,
-                 title: str | None = None,
-                 figsize: tuple[float, float] | None = None,
-                 gene_symbols: str | None = None,
-                 var_group_positions: Sequence[tuple[int, int]] | None = None,
-                 var_group_labels: Sequence[str] | None = None,
-                 var_group_rotation: float | None = None,
-                 layer: str | None = None,
-                 expression_cutoff: float = 0.0,
-                 mean_only_expressed: bool = False,
-                 standard_scale: Literal["var", "group"] | None = None,
-                 dot_color_df: pd.DataFrame | None = None,
-                 dot_size_df: pd.DataFrame | None = None,
-                 ax: _AxesSubplot | None = None,
-                 vmin: float | None = None,
-                 vmax: float | None = None,
-                 vcenter: float | None = None,
-                 norm: Normalize | None = None,
-                 logcounts: bool = True,
-                 **kwds) -> None:
-        BasePlot.__init__(self,
-                          adata,
-                          var_names,
-                          groupby,
-                          use_raw=use_raw,
-                          log=log,
-                          num_categories=num_categories,
-                          categories_order=categories_order,
-                          title=title,
-                          figsize=figsize,
-                          gene_symbols=gene_symbols,
-                          var_group_positions=var_group_positions,
-                          var_group_labels=var_group_labels,
-                          var_group_rotation=var_group_rotation,
-                          layer=layer,
-                          ax=ax,
-                          vmin=vmin,
-                          vmax=vmax,
-                          vcenter=vcenter,
-                          norm=norm,
-                          **kwds,
-                          )
+    def __init__(
+        self,
+        adata: AnnData,
+        var_names,
+        groupby: str | Sequence[str],
+        *,
+        use_raw: bool | None = None,
+        log: bool = False,
+        num_categories: int = 7,
+        categories_order: Sequence[str] | None = None,
+        title: str | None = None,
+        figsize: tuple[float, float] | None = None,
+        gene_symbols: str | None = None,
+        var_group_positions: Sequence[tuple[int, int]] | None = None,
+        var_group_labels: Sequence[str] | None = None,
+        var_group_rotation: float | None = None,
+        layer: str | None = None,
+        expression_cutoff: float = 0.0,
+        mean_only_expressed: bool = False,
+        standard_scale: Literal["var", "group"] | None = None,
+        dot_color_df: pd.DataFrame | None = None,
+        dot_size_df: pd.DataFrame | None = None,
+        ax: _AxesSubplot | None = None,
+        vmin: float | None = None,
+        vmax: float | None = None,
+        vcenter: float | None = None,
+        norm: Normalize | None = None,
+        logcounts: bool = True,
+        **kwds,
+    ) -> None:
+        BasePlot.__init__(
+            self,
+            adata,
+            var_names,
+            groupby,
+            use_raw=use_raw,
+            log=log,
+            num_categories=num_categories,
+            categories_order=categories_order,
+            title=title,
+            figsize=figsize,
+            gene_symbols=gene_symbols,
+            var_group_positions=var_group_positions,
+            var_group_labels=var_group_labels,
+            var_group_rotation=var_group_rotation,
+            layer=layer,
+            ax=ax,
+            vmin=vmin,
+            vmax=vmax,
+            vcenter=vcenter,
+            norm=norm,
+            **kwds,
+        )
 
         # Prepare the plotting dataframe
         var_names = [var_names] if isinstance(var_names, str) else var_names
@@ -223,8 +222,7 @@ class DotPlot(BasePlot):
 
         if dot_size_df is None:
             dot_size_df = (
-                obs_bool.groupby(level=0, observed=True).sum() /
-                obs_bool.groupby(level=0, observed=True).count()
+                obs_bool.groupby(level=0, observed=True).sum() / obs_bool.groupby(level=0, observed=True).count()
             )
 
         # 2. compute mean expression value
@@ -232,9 +230,7 @@ class DotPlot(BasePlot):
             if logcounts:  # Correction in case logcounts are provided
                 obs_matrix = np.expm1(obs_matrix)
             if mean_only_expressed:
-                dot_color_df = np.log1p((
-                    obs_matrix.mask(~obs_bool).groupby(level=0, observed=True).mean().fillna(0)
-                ))
+                dot_color_df = np.log1p(obs_matrix.mask(~obs_bool).groupby(level=0, observed=True).mean().fillna(0))
             else:
                 dot_color_df = np.log1p(obs_matrix.groupby(level=0, observed=True).mean())
 
@@ -248,14 +244,12 @@ class DotPlot(BasePlot):
             elif standard_scale is None:
                 pass
             else:
-                logger.warning('Unknown type for standard_scale, ignored')
+                logger.warning("Unknown type for standard_scale, ignored")
         else:
-            assert dot_color_df.shape != dot_size_df.shape, 'The dot_color_df and dot_size_df have different shape'
+            assert dot_color_df.shape != dot_size_df.shape, "The dot_color_df and dot_size_df have different shape"
 
             # Correction in case of duplicate genes
-            unique_var_names, unique_idx = np.unique(
-                dot_color_df.columns, return_index=True
-            )
+            unique_var_names, unique_idx = np.unique(dot_color_df.columns, return_index=True)
             if len(unique_var_names) != len(self.var_names):
                 dot_color_df = dot_color_df.iloc[:, unique_idx]
 
@@ -379,8 +373,7 @@ class DotPlot(BasePlot):
         :class:`~scanpy.pl.DotPlot`
 
         Examples
-        -------
-
+        --------
         >>> import scanpy as sc
         >>> adata = sc.datasets.pbmc68k_reduced()
         >>> markers = ['C1QA', 'PSAP', 'CD79A', 'CD79B', 'CST3', 'LYZ']
@@ -460,7 +453,6 @@ class DotPlot(BasePlot):
 
         Examples
         --------
-
         Set color bar title:
 
         >>> import scanpy as sc
@@ -469,7 +461,6 @@ class DotPlot(BasePlot):
         >>> dp = sc.pl.DotPlot(adata, markers, groupby='bulk_labels')
         >>> dp.legend(colorbar_title='log(UMI counts + 1)').show()
         """
-
         if not show:
             # turn of legends by setting width to 0
             self.legends_width = 0
@@ -500,7 +491,7 @@ class DotPlot(BasePlot):
         else:
             size_values = size_range
 
-        size = size_values ** self.size_exponent
+        size = size_values**self.size_exponent
         size = size * (self.largest_dot - self.smallest_dot) + self.smallest_dot
 
         # plot size bar
@@ -518,9 +509,7 @@ class DotPlot(BasePlot):
         size_legend_ax.set_xticklabels(labels, fontsize="small")
 
         # remove y ticks and labels
-        size_legend_ax.tick_params(
-            axis="y", left=False, labelleft=False, labelright=False
-        )
+        size_legend_ax.tick_params(axis="y", left=False, labelleft=False, labelright=False)
 
         # remove surrounding lines
         size_legend_ax.spines["right"].set_visible(False)
@@ -556,9 +545,7 @@ class DotPlot(BasePlot):
             spacer_height,
             cbar_legend_height,
         ]
-        fig, legend_gs = make_grid_spec(
-            legend_ax, nrows=4, ncols=1, height_ratios=height_ratios
-        )
+        fig, legend_gs = make_grid_spec(legend_ax, nrows=4, ncols=1, height_ratios=height_ratios)
 
         if self.show_size_legend:
             size_legend_ax = fig.add_subplot(legend_gs[1])
@@ -681,16 +668,15 @@ class DotPlot(BasePlot):
 
         """
         assert dot_size.shape == dot_color.shape, (
-            "please check that dot_size " "and dot_color dataframes have the same shape"
+            "please check that dot_size and dot_color dataframes have the same shape"
         )
 
         assert list(dot_size.index) == list(dot_color.index), (
-            "please check that dot_size " "and dot_color dataframes have the same index"
+            "please check that dot_size and dot_color dataframes have the same index"
         )
 
         assert list(dot_size.columns) == list(dot_color.columns), (
-            "please check that the dot_size "
-            "and dot_color dataframes have the same columns"
+            "please check that the dot_size and dot_color dataframes have the same columns"
         )
 
         if standard_scale == "group":
@@ -735,7 +721,7 @@ class DotPlot(BasePlot):
             # re-scale frac between 0 and 1
             frac = (frac - dot_min) / old_range
 
-        size = frac ** size_exponent
+        size = frac**size_exponent
         # rescale size to match smallest_dot and largest_dot
         size = size * (largest_dot - smallest_dot) + smallest_dot
         normalize = check_colornorm(vmin, vmax, vcenter, norm)
@@ -784,9 +770,7 @@ class DotPlot(BasePlot):
 
         y_ticks = np.arange(dot_color.shape[0]) + 0.5
         dot_ax.set_yticks(y_ticks)
-        dot_ax.set_yticklabels(
-            [dot_color.index[idx] for idx, _ in enumerate(y_ticks)], minor=False
-        )
+        dot_ax.set_yticklabels([dot_color.index[idx] for idx, _ in enumerate(y_ticks)], minor=False)
 
         x_ticks = np.arange(dot_color.shape[1]) + 0.5
         dot_ax.set_xticks(x_ticks)
@@ -878,7 +862,7 @@ def dotplot_scanpy(
     vcenter: float | None = None,
     norm: Normalize | None = None,
     # Style parameters
-    cmap: Colormap | str | None = 'Reds',
+    cmap: Colormap | str | None = "Reds",
     dot_max: float | None = None,
     dot_min: float | None = None,
     smallest_dot: float = 0.0,
@@ -939,7 +923,7 @@ def dotplot_scanpy(
     If `return_fig` is `True`, returns a :class:`~scanpy.pl.DotPlot` object,
     else if `show` is false, return axes dict
 
-    See also
+    See Also
     --------
     :class:`~scanpy.pl.DotPlot`: The DotPlot class can be used to control
         several visual parameters not available in this function.
@@ -948,7 +932,6 @@ def dotplot_scanpy(
 
     Examples
     --------
-
     Create a dot plot using the given markers and the PBMC example dataset grouped by
     the category 'bulk_labels'.
 
@@ -984,7 +967,6 @@ def dotplot_scanpy(
         print(axes_dict)
 
     """
-
     # backwards compatibility: previous version of dotplot used `color_map`
     # instead of `cmap`
     cmap = kwds.pop("color_map", cmap)
@@ -1040,42 +1022,43 @@ def dotplot_scanpy(
             return dp.get_axes()
 
 
-def dotplot(adata: ad.AnnData,
-            x_axis: str,
-            features: Union[str, list],
-            y_axis: str = None,
-            layer: Union[str, None] = None,
-            x_categories_order: list = None,
-            y_categories_order: list = None,
-            subset_adata: bool = False,
-            logcounts: bool = True,
-            expression_cutoff: float = 0.0,
-            mean_only_expressed: bool = False,
-            z_score: Union[str, None] = None,
-            cmap: str = 'Reds',
-            vmax: float = None,
-            vmin: float = None,
-            vcenter: float = None,
-            size_legend_title: str = 'Fraction of cells\nin group (%)',
-            color_legend_title: str = 'LogMean(nUMI)\nin group',
-            feature_fontsize: float = 15,
-            xticks_rotation: float = 90,
-            ax: plt.Axes = None,
-            figsize: tuple = (8, 4),
-            path: Union[str, Path] = None,
-            filename: str = 'Dotplot.svg',
-            smallest_dot: float = 0.0,
-            largest_dot: float = 200.0,
-            show: bool = True,
-            swap_axes: bool = True,
-            rect_height: float = None,
-            size_exponent: float = 1.5,
-            edge_lw: float = 0.2,
-            edge_color: str = 'black',
-            dot_max=None,
-            dot_min=None,
-            **kwargs
-            ) -> plt.Axes:
+def dotplot(
+    adata: ad.AnnData,
+    x_axis: str,
+    features: str | list,
+    y_axis: str = None,
+    layer: str | None = None,
+    x_categories_order: list = None,
+    y_categories_order: list = None,
+    subset_adata: bool = False,
+    logcounts: bool = True,
+    expression_cutoff: float = 0.0,
+    mean_only_expressed: bool = False,
+    z_score: str | None = None,
+    cmap: str = "Reds",
+    vmax: float = None,
+    vmin: float = None,
+    vcenter: float = None,
+    size_legend_title: str = "Fraction of cells\nin group (%)",
+    color_legend_title: str = "LogMean(nUMI)\nin group",
+    feature_fontsize: float = 15,
+    xticks_rotation: float = 90,
+    ax: plt.Axes = None,
+    figsize: tuple = (8, 4),
+    path: str | Path = None,
+    filename: str = "Dotplot.svg",
+    smallest_dot: float = 0.0,
+    largest_dot: float = 200.0,
+    show: bool = True,
+    swap_axes: bool = True,
+    rect_height: float = None,
+    size_exponent: float = 1.5,
+    edge_lw: float = 0.2,
+    edge_color: str = "black",
+    dot_max=None,
+    dot_min=None,
+    **kwargs,
+) -> plt.Axes:
     """**Creates a dotplot or 3d dotplot**
 
     * Dotplot: X_axis shows ``x_axis`` categories and Y_axis the ``features``. The color represents the LogMean(nUMI)
@@ -1131,14 +1114,16 @@ def dotplot(adata: ad.AnnData,
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #  Helper functions
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    def make_grid_spec(ax_or_figsize, *,
-                       nrows: int,
-                       ncols: int,
-                       wspace: float = None,
-                       hspace: float = None,
-                       width_ratios: float = None,
-                       height_ratios: float = None
-                       ):
+    def make_grid_spec(
+        ax_or_figsize,
+        *,
+        nrows: int,
+        ncols: int,
+        wspace: float = None,
+        hspace: float = None,
+        width_ratios: float = None,
+        height_ratios: float = None,
+    ):
         # Taken from Scanpy
         kw = dict(wspace=wspace, hspace=hspace, width_ratios=width_ratios, height_ratios=height_ratios)
 
@@ -1172,12 +1157,19 @@ def dotplot(adata: ad.AnnData,
         else:
             size_values = size_range
 
-        size = size_values ** size_exponent
+        size = size_values**size_exponent
         size = size * (largest_dot - smallest_dot) + smallest_dot
 
         # plot size bar
-        ax_size_legend.scatter(np.arange(len(size)) + 0.5, np.repeat(0, len(size)),
-                               s=size, color="gray", edgecolor="black", linewidth=0.2, zorder=100)
+        ax_size_legend.scatter(
+            np.arange(len(size)) + 0.5,
+            np.repeat(0, len(size)),
+            s=size,
+            color="gray",
+            edgecolor="black",
+            linewidth=0.2,
+            zorder=100,
+        )
         ax_size_legend.set_xticks(np.arange(len(size)) + 0.5)
         labels = [f"{np.round((x * 100), decimals=0).astype(int)}" for x in size_range]
         ax_size_legend.set_xticklabels(labels, fontsize="small")
@@ -1186,7 +1178,7 @@ def dotplot(adata: ad.AnnData,
         ax_size_legend.tick_params(axis="y", left=False, labelleft=False, labelright=False)
 
         # remove surrounding lines
-        ax_size_legend.spines[["right", 'left', 'top', 'bottom']].set_visible(False)
+        ax_size_legend.spines[["right", "left", "top", "bottom"]].set_visible(False)
         ax_size_legend.grid(visible=False)
 
         ymax = ax_size_legend.get_ylim()[1]
@@ -1201,17 +1193,19 @@ def dotplot(adata: ad.AnnData,
 
         if height is None:
             height = len(adata.obs[y_axis].cat.categories) * 0.37
-            width = (len(features) * len(x_axis) * 0.37 + 0.8)
+            width = len(features) * len(x_axis) * 0.37 + 0.8
 
         min_figure_height = max([0.35, height])
         cbar_legend_height = min_figure_height * 0.08
         size_legend_height = min_figure_height * 0.27
         spacer_height = min_figure_height * 0.3
 
-        height_ratios = [height - size_legend_height - cbar_legend_height - spacer_height,
-                         size_legend_height,
-                         spacer_height,
-                         cbar_legend_height]
+        height_ratios = [
+            height - size_legend_height - cbar_legend_height - spacer_height,
+            size_legend_height,
+            spacer_height,
+            cbar_legend_height,
+        ]
 
         # Create the legend axis
         fig, legend_gs = make_grid_spec(legend_ax, nrows=4, ncols=1, height_ratios=height_ratios)
@@ -1233,6 +1227,7 @@ def dotplot(adata: ad.AnnData,
 
     def check_colornorm(vmin=None, vmax=None, vcenter=None, norm=None):
         from matplotlib.colors import Normalize
+
         try:
             from matplotlib.colors import TwoSlopeNorm as DivNorm
         except ImportError:
@@ -1275,10 +1270,7 @@ def dotplot(adata: ad.AnnData,
         # rect.set_y(dot_ax.get_ylim()[1] + required_height)  # Reposition
 
         # Center the text vertically
-        text_obj.set_position((
-            text_obj.get_position()[0],
-            rect.get_y() + rect.get_height() / 4
-        ))
+        text_obj.set_position((text_obj.get_position()[0], rect.get_y() + rect.get_height() / 4))
 
         return rect
 
@@ -1295,65 +1287,72 @@ def dotplot(adata: ad.AnnData,
         # if not all categories are provided, subset
         if x_categories_order is not None:
             adata = adata[adata.obs[x_axis].isin(x_categories_order)]
-            logger.warn(f'Subsetting anndata for {x_categories_order}')
+            logger.warn(f"Subsetting anndata for {x_categories_order}")
         if y_categories_order is not None:
             adata = adata[adata.obs[y_axis].isin(y_categories_order)]
-            logger.warn(f'Subsetting anndata for {x_categories_order}')
+            logger.warn(f"Subsetting anndata for {x_categories_order}")
     else:
         if x_categories_order is not None:
-            assert len(x_categories_order) == len(adata.obs[
-                                                      x_axis].cat.categories), f'Not all {x_axis} categories provided. Specify all or use subset_adata = True'
+            assert len(x_categories_order) == len(adata.obs[x_axis].cat.categories), (
+                f"Not all {x_axis} categories provided. Specify all or use subset_adata = True"
+            )
         if y_categories_order is not None:
-            assert len(y_categories_order) == len(adata.obs[
-                                                      y_axis].cat.categories), f'Not all {y_axis} categories provided. Specify all or use subset_adata = True'
+            assert len(y_categories_order) == len(adata.obs[y_axis].cat.categories), (
+                f"Not all {y_axis} categories provided. Specify all or use subset_adata = True"
+            )
 
     # If no y_axis is provided, then use base dotplot from scanpy
     if y_axis is None:
         try:  # Use my modification to account for logcounts
-            axis_dict = dotplot_scanpy(adata,
-                                       groupby=x_axis,
-                                       var_names=features,
-                                       categories_order=x_categories_order,
-                                       figsize=figsize,
-                                       expression_cutoff=expression_cutoff,
-                                       mean_only_expressed=mean_only_expressed,
-                                       ax=ax,
-                                       vmin=vmin,
-                                       size_title=size_legend_title,
-                                       colorbar_title=color_legend_title,
-                                       cmap=cmap,
-                                       vmax=vmax,
-                                       layer=layer,
-                                       vcenter=vcenter,
-                                       show=False,
-                                       smallest_dot=smallest_dot,
-                                       logcounts=logcounts,
-                                       swap_axes=swap_axes,
-                                       **kwargs)
+            axis_dict = dotplot_scanpy(
+                adata,
+                groupby=x_axis,
+                var_names=features,
+                categories_order=x_categories_order,
+                figsize=figsize,
+                expression_cutoff=expression_cutoff,
+                mean_only_expressed=mean_only_expressed,
+                ax=ax,
+                vmin=vmin,
+                size_title=size_legend_title,
+                colorbar_title=color_legend_title,
+                cmap=cmap,
+                vmax=vmax,
+                layer=layer,
+                vcenter=vcenter,
+                show=False,
+                smallest_dot=smallest_dot,
+                logcounts=logcounts,
+                swap_axes=swap_axes,
+                **kwargs,
+            )
         except:  # Fallback to scanpy
-            axis_dict = sc.pl.dotplot(adata,
-                                      groupby=x_axis,
-                                      var_names=features,
-                                      categories_order=x_categories_order,
-                                      figsize=figsize,
-                                      expression_cutoff=expression_cutoff,
-                                      mean_only_expressed=mean_only_expressed,
-                                      ax=ax,
-                                      vmin=vmin,
-                                      size_title=size_legend_title,
-                                      colorbar_title=color_legend_title,
-                                      cmap=cmap,
-                                      vmax=vmax,
-                                      layer=layer,
-                                      vcenter=vcenter,
-                                      show=False,  # Always return axis to modify layout
-                                      smallest_dot=smallest_dot,
-                                      swap_axes=swap_axes,
-                                      **kwargs)
+            axis_dict = sc.pl.dotplot(
+                adata,
+                groupby=x_axis,
+                var_names=features,
+                categories_order=x_categories_order,
+                figsize=figsize,
+                expression_cutoff=expression_cutoff,
+                mean_only_expressed=mean_only_expressed,
+                ax=ax,
+                vmin=vmin,
+                size_title=size_legend_title,
+                colorbar_title=color_legend_title,
+                cmap=cmap,
+                vmax=vmax,
+                layer=layer,
+                vcenter=vcenter,
+                show=False,  # Always return axis to modify layout
+                smallest_dot=smallest_dot,
+                swap_axes=swap_axes,
+                **kwargs,
+            )
 
-        axis_dict['mainplot_ax'].spines[['top', 'right']].set_visible(True)
-        axis_dict['mainplot_ax'].set_xticklabels(axis_dict['mainplot_ax'].get_xticklabels(),
-                                                 fontweight='bold', rotation=xticks_rotation)
+        axis_dict["mainplot_ax"].spines[["top", "right"]].set_visible(True)
+        axis_dict["mainplot_ax"].set_xticklabels(
+            axis_dict["mainplot_ax"].get_xticklabels(), fontweight="bold", rotation=xticks_rotation
+        )
     # </editor-fold>
 
     else:  # Yaxis is provided, we made a 3d dotplot
@@ -1368,11 +1367,7 @@ def dotplot(adata: ad.AnnData,
         # TODO account for cases where features are in .obs and .var_names
         # TODO sometimes there are weird cases that are not plotted
         try:
-            df_expr = get_expr(adata,
-                               features=features,
-                               groups=[x_axis, y_axis],
-                               layer=layer,
-                               out_format='wide')
+            df_expr = get_expr(adata, features=features, groups=[x_axis, y_axis], layer=layer, out_format="wide")
         except KeyError:  # Assume features are in .obs
             df_expr = adata.obs[features + [x_axis, y_axis]]
 
@@ -1385,8 +1380,10 @@ def dotplot(adata: ad.AnnData,
         #  Compute fraction of cells having value > expression_cutoff
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
         obs_bool = df_expr > expression_cutoff
-        dot_size_df = (obs_bool.groupby(level=[x_axis, y_axis], observed=True).sum() /
-                       obs_bool.groupby(level=[x_axis, y_axis], observed=True).count())
+        dot_size_df = (
+            obs_bool.groupby(level=[x_axis, y_axis], observed=True).sum()
+            / obs_bool.groupby(level=[x_axis, y_axis], observed=True).count()
+        )
 
         # </editor-fold>
 
@@ -1399,7 +1396,8 @@ def dotplot(adata: ad.AnnData,
             df_expr = np.expm1(df_expr)
         if mean_only_expressed:  # Compute mean only considering cells expressing the gene
             dot_color_df = np.log1p(
-                (df_expr.mask(~obs_bool).groupby(level=[x_axis, y_axis], observed=True).mean().fillna(0)))
+                df_expr.mask(~obs_bool).groupby(level=[x_axis, y_axis], observed=True).mean().fillna(0)
+            )
         else:
             dot_color_df = np.log1p(df_expr.groupby(level=[x_axis, y_axis], observed=True).mean())
 
@@ -1411,24 +1409,30 @@ def dotplot(adata: ad.AnnData,
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
         if z_score == "x_axis":
-            dot_color_df = dot_color_df.groupby(level=x_axis).apply(
-                lambda x: (x - x.mean(axis=0)) / x.std(axis=0, ddof=0)).fillna(0)
+            dot_color_df = (
+                dot_color_df.groupby(level=x_axis)
+                .apply(lambda x: (x - x.mean(axis=0)) / x.std(axis=0, ddof=0))
+                .fillna(0)
+            )
             dot_color_df = dot_color_df.reset_index(level=0, drop=True)
 
         elif z_score == "y_axis":
-            dot_color_df = dot_color_df.groupby(level=y_axis).apply(
-                lambda x: (x - x.mean(axis=0)) / x.std(axis=0, ddof=0)).fillna(0)
+            dot_color_df = (
+                dot_color_df.groupby(level=y_axis)
+                .apply(lambda x: (x - x.mean(axis=0)) / x.std(axis=0, ddof=0))
+                .fillna(0)
+            )
             dot_color_df = dot_color_df.reset_index(level=0, drop=True)
 
         elif z_score is None:
             pass
         else:
-            logger.warn('Option not recognise, Zscore not applied')
+            logger.warn("Option not recognise, Zscore not applied")
 
         # Correction for the legend
-        if z_score is not None and color_legend_title == 'LogMean(nUMI)\nin group':
-            text = x_axis if z_score == 'x_axis' else y_axis
-            color_legend_title = f'Zscore over\n{text}'
+        if z_score is not None and color_legend_title == "LogMean(nUMI)\nin group":
+            text = x_axis if z_score == "x_axis" else y_axis
+            color_legend_title = f"Zscore over\n{text}"
 
         # </editor-fold>
 
@@ -1449,8 +1453,7 @@ def dotplot(adata: ad.AnnData,
             print(_color_df)
 
         if x_categories_order is not None:
-            idx = pd.MultiIndex.from_product(
-                [_color_df.index.get_level_values(0).unique(), x_categories_order])
+            idx = pd.MultiIndex.from_product([_color_df.index.get_level_values(0).unique(), x_categories_order])
             _color_df = _color_df.reindex(index=idx)
             _size_df = _size_df.reindex(index=idx)
 
@@ -1474,7 +1477,7 @@ def dotplot(adata: ad.AnnData,
         if z_score is not None:
             vmin = round(_color_df.min().min() * 20) / 20
             vcenter = vcenter if vcenter is not None else 0.0  # For Zscore values can be negative, set center to 0
-            cmap = cmap if cmap is not 'Reds' else 'RdBu_r'  # Because we have neg and pos, we use a divergent colormap
+            cmap = cmap if cmap != "Reds" else "RdBu_r"  # Because we have neg and pos, we use a divergent colormap
 
         vmax = round(_color_df.max().max() * 20) / 20 if vmax is None else vmax  # Normalise to round to 5 or 0
         normalize = check_colornorm(vmin=vmin, vmax=vmax, vcenter=vcenter)
@@ -1496,7 +1499,7 @@ def dotplot(adata: ad.AnnData,
         width, height = figsize if figsize is not None else (None, None)
         if height is None:
             height = len(adata.obs[y_axis].cat.categories) * 0.37
-            width = (len(features) * len(adata.obs[y_axis].cat.categories) * 0.37 + 0.8)
+            width = len(features) * len(adata.obs[y_axis].cat.categories) * 0.37 + 0.8
 
         legends_width_spacer = 0.7 / width
         mainplot_width = width - (1.5 + 0)
@@ -1507,8 +1510,9 @@ def dotplot(adata: ad.AnnData,
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
         # Create Plot
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-        fig, gs = make_grid_spec(ax or (width, height), nrows=1, ncols=2, wspace=legends_width_spacer,
-                                 width_ratios=[mainplot_width + 0, 1.5])
+        fig, gs = make_grid_spec(
+            ax or (width, height), nrows=1, ncols=2, wspace=legends_width_spacer, width_ratios=[mainplot_width + 0, 1.5]
+        )
 
         # Add Legends Axis
         size_legend_ax = fig.add_subplot(gs[1])
@@ -1517,13 +1521,13 @@ def dotplot(adata: ad.AnnData,
         # Add Main Axis
         dot_ax = fig.add_subplot(gs[0])
 
-        size = frac ** size_exponent
+        size = frac**size_exponent
         size = size * (largest_dot - smallest_dot) + smallest_dot
 
         edge_color = "none" if edge_color is None else edge_color
         edge_lw = 0.0 if edge_lw is None else edge_lw
 
-        kwas = {'s': size, 'color': color, 'linewidth': edge_lw, 'edgecolor': edge_color}
+        kwas = {"s": size, "color": color, "linewidth": edge_lw, "edgecolor": edge_color}
         dot_ax.axes.scatter(x, y, **kwas)
 
         # Layout for Axis
@@ -1532,12 +1536,12 @@ def dotplot(adata: ad.AnnData,
         dot_ax.set_xlim(-x_padding, (len(_color_df.index) + x_padding))
 
         dot_ax.set_xticks(list(np.unique(x)))
-        ticks_kws = {} if xticks_rotation == 90 else {'ha': 'right', 'va': 'top'}
+        ticks_kws = {} if xticks_rotation == 90 else {"ha": "right", "va": "top"}
 
         xticklabels = list(_color_df.index.get_level_values(1).unique()) * len(features)
         yticklabels = list(_color_df.columns)
 
-        dot_ax.set_xticklabels(xticklabels, fontweight='bold', rotation=xticks_rotation, **ticks_kws)
+        dot_ax.set_xticklabels(xticklabels, fontweight="bold", rotation=xticks_rotation, **ticks_kws)
         dot_ax.set_yticks(list(np.unique(y)))
         dot_ax.set_yticklabels(yticklabels)
 
@@ -1545,51 +1549,69 @@ def dotplot(adata: ad.AnnData,
         labels = list(_color_df.index.get_level_values(level=0).unique())
         xticks = np.sort(list(np.unique(x)))
         rect_width = len(xticks) / len(features)
-        rectangle_positions = [(start, start + rect_width + x_padding) for start in
-                               np.arange(dot_ax.get_xlim()[0], dot_ax.get_xlim()[-1], rect_width)]
-        rectangle_positions = rectangle_positions[:len(features)]
+        rectangle_positions = [
+            (start, start + rect_width + x_padding)
+            for start in np.arange(dot_ax.get_xlim()[0], dot_ax.get_xlim()[-1], rect_width)
+        ]
+        rectangle_positions = rectangle_positions[: len(features)]
 
-        rect_height = rect_height if rect_height is not None else np.min((np.max([height * 0.25, 0.6]), .9))
+        rect_height = rect_height if rect_height is not None else np.min((np.max([height * 0.25, 0.6]), 0.9))
         if feature_fontsize is None:
             feature_fontsize = 10 * (rect_height / 0.5)  # Adjust the divisor as needed
             feature_fontsize = max(min(feature_fontsize, 20), 10)  # Limit the font size between 10 and 20
 
-        for (i, (x_start, x_end)) in enumerate(rectangle_positions):
+        for i, (x_start, x_end) in enumerate(rectangle_positions):
             if i == 0:
                 x_start -= x_padding  # Special case
             if len(features) == 1:
                 rect_width += x_padding  # Special case
 
-            rect = patches.Rectangle((x_start + x_padding, dot_ax.get_ylim()[1]), rect_width + x_padding,
-                                     rect_height, linewidth=1.5, edgecolor='black', facecolor='gainsboro', )
+            rect = patches.Rectangle(
+                (x_start + x_padding, dot_ax.get_ylim()[1]),
+                rect_width + x_padding,
+                rect_height,
+                linewidth=1.5,
+                edgecolor="black",
+                facecolor="gainsboro",
+            )
             rect.set_clip_on(False)  # Prevent clipping
             dot_ax.add_patch(rect)
 
             # Add line to split features in groups
             if i < len(features) - 1:
-                dot_ax.axvline(x=x_end, color='k')
+                dot_ax.axvline(x=x_end, color="k")
 
             # Control the size of the features
             range_ticks = xticks[np.where((xticks > x_start) & (xticks < x_end))]
-            text = dot_ax.text(np.median(range_ticks),
-                               dot_ax.get_ylim()[1] + 0.2, labels[i], ha='center', va='bottom',
-                               fontsize=feature_fontsize, fontweight='bold', color='black')
+            text = dot_ax.text(
+                np.median(range_ticks),
+                dot_ax.get_ylim()[1] + 0.2,
+                labels[i],
+                ha="center",
+                va="bottom",
+                fontsize=feature_fontsize,
+                fontweight="bold",
+                color="black",
+            )
             # Apply path effects for outlining
-            text.set_path_effects([path_effects.Stroke(linewidth=2.5, foreground='white'),  # Outline
-                                   path_effects.Normal()  # Inner text
-                                   ])
+            text.set_path_effects(
+                [
+                    path_effects.Stroke(linewidth=2.5, foreground="white"),  # Outline
+                    path_effects.Normal(),  # Inner text
+                ]
+            )
             rect = adjust_rect_height_to_text(dot_ax, rect, text)
 
         # Adjust layout for the main axis
-        dot_ax.spines[['top', 'right']].set_visible(True)
+        dot_ax.spines[["top", "right"]].set_visible(True)
         for spine in dot_ax.spines.values():
             spine.set_linewidth(1.5)
 
-        axis_dict['mainplot_ax'] = dot_ax
+        axis_dict["mainplot_ax"] = dot_ax
         # </editor-fold>
 
     if path is not None:
-        plt.savefig(convert_path(path) / filename, bbox_inches='tight')
+        plt.savefig(convert_path(path) / filename, bbox_inches="tight")
 
     if show:
         plt.tight_layout()

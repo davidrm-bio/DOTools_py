@@ -6,7 +6,6 @@ from datetime import date
 from pathlib import Path
 
 import anndata as ad
-from .. import logger
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -14,6 +13,7 @@ import polars
 import scanpy as sc
 import seaborn as sns
 
+from .. import logger
 from ..utils import convert_path, get_paths_utils
 
 
