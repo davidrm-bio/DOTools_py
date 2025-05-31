@@ -10,8 +10,8 @@ Functions for sc/snRNAseq Analysis and Visualisation
 
 ## Getting started
 
-Please refer to the [documentation][https://dotools-py.readthedocs.io/en/latest/],
-in particular, the [API documentation][https://dotools-py.readthedocs.io/en/latest/api.html].
+Please refer to the [documentation](https://dotools-py.readthedocs.io/en/latest/),
+in particular, the [API documentation](https://dotools-py.readthedocs.io/en/latest/api.html).
 
 ## Installation
 
