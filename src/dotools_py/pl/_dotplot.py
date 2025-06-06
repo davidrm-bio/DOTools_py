@@ -1623,6 +1623,6 @@ def dotplot(
 
     if show:
         plt.tight_layout()
-        return None
+        return plt.show()
     else:
         return axis_dict

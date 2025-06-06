@@ -14,7 +14,7 @@ from dotools_py.utils import convert_path, get_centroids, get_subplot_shape, rem
 
 def umap(
     adata: ad.AnnData,
-    color: str,
+    color: Union[str, list],
     split_by: str | None = None,
     order_catgs: list = None,
     ncols: int = 4,
@@ -91,8 +91,7 @@ def umap(
         labels_fontoutline = labels_fontproporties["outline"] if "outline" in labels_fontproporties else 1.5
 
     # We consider that the input is always a list;
-    if isinstance(color, str):  # If we only provide a string, convert to list
-        color = [color]
+    color = [color] if isinstance(color, str) else color
 
     # When plotting only one thing, we can define the title
     if title is None and len(color) == 1:
@@ -102,8 +101,6 @@ def umap(
         txt_basis = "UMAP"
     elif basis == "X_spatial" or basis == "spatial":
         txt_basis = "SP"
-    elif "X_" in basis:
-        txt_basis = basis.split("X_")[-1]
     else:
         txt_basis = basis
 
@@ -157,7 +154,7 @@ def umap(
     if ncatgs == 1:
         if len(color) == 1:
             color = color[0]  # Color is always a list
-            sc.pl.embedding(adata, basis=basis, color=color, ax=axs, vmax=vmax, **kwargs)  # Use embedding to generalise
+            sc.pl.embedding(adata, basis=basis, color=color, ax=axs, vmax=vmax, show=False, **kwargs)  # Use embedding to generalise
             axs.set_title(title, fontdict=title_font)
             spine_format(axs, txt_basis)
             if labels is not None:
@@ -188,7 +185,7 @@ def umap(
                 # If value to plot is a gene, update vmax (if common legend true) otherwise use the vmax provided by user
                 vmax = vmax_genes if val in adata.var_names else vmax
                 sc.pl.embedding(
-                    adata, color=val, ax=axs[idx], colorbar_loc=cb_loc, basis=basis, vmax=vmax, **kwargs
+                    adata, color=val, ax=axs[idx], colorbar_loc=cb_loc, basis=basis, vmax=vmax, show=False, **kwargs
                 )  # use embedding to generalise
                 spine_format(axs[idx], txt_basis)
                 axs[idx].set_title(val, fontdict=title_font)
@@ -230,7 +227,7 @@ def umap(
             vmax = vmax_genes if color in adata.var_names else vmax
 
             sc.pl.embedding(
-                adata_subset, basis=basis, color=color, ax=axs[idx], colorbar_loc=cb_loc, vmax=vmax, **kwargs
+                adata_subset, basis=basis, color=color, ax=axs[idx], colorbar_loc=cb_loc, vmax=vmax, show=False, **kwargs
             )  # embedding to generalise
             spine_format(axs[idx], txt_basis)
             remove_extra(nExtra, nrows, ncols, axs)
@@ -254,7 +251,7 @@ def umap(
         plt.savefig(os.path.join(path, filename), bbox_inches="tight")
     if show:
         plt.tight_layout()
-        return None
+        return plt.show()
     else:
         return axs
 
@@ -332,7 +329,7 @@ def embedding(
 
     if show:
         plt.tight_layout()
-        return None
+        return plt.show()
     else:
         return axis
 
@@ -348,7 +345,7 @@ def split_embeddding(
     basis: str = "X_umap",
     visium: bool = False,
     sp_size: float = 1.5,
-    show: bool = False,
+    show: bool = True,
     **kwargs,
 ) -> Union[plt.axes, None]:
     """Plot categorical data splited in an embedding.
@@ -382,9 +379,9 @@ def split_embeddding(
     axs = axs.flatten()
     for idx, cat in enumerate(categories):
         if visium:
-            sc.pl.spatial(adata, ax=axs[idx], groups=[cat], size=sp_size, **kwargs)
+            sc.pl.spatial(adata, ax=axs[idx], groups=[cat], size=sp_size, show=False,  **kwargs)
         else:
-            sc.pl.embedding(adata, basis=basis, color=split_by, groups=[cat], ax=axs[idx], title=str(cat), **kwargs)
+            sc.pl.embedding(adata, basis=basis, color=split_by, groups=[cat], ax=axs[idx], title=str(cat), show=False, **kwargs)
         axs[idx].set_title(cat, fontdict=title_font)
         axs[idx].get_legend().remove()
         spine_format(axs[idx])
