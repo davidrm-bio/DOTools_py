@@ -261,9 +261,10 @@ def cell_props(
 
     if show is True and get_props is False:  # True and False
         plt.tight_layout()
-        return None
+        return plt.show()
     elif show is True and get_props is True:  # True and True
         plt.tight_layout()
+        plt.show()
         return df
     elif show is False and get_props is True:  # False and True
         return df, {"mainplot_ax": axs, "legend_ax": axs_legend}
@@ -401,7 +402,7 @@ def volcano_plot(
     if not show:
         return axs
     else:
-        return None
+        return plt.show()
 
 
 def split_bar_gsea(
@@ -568,4 +569,4 @@ def split_bar_gsea(
     if not show:
         return axs
     else:
-        return None
+        return plt.show()
