@@ -8,7 +8,7 @@ import pandas as pd
 import scanpy as sc
 from adjustText import adjust_text
 from typing import  Union
-from dotools_py.tl.get_stats import get_expr
+from dotools_py.tl import get_expr
 from dotools_py.utils import convert_path, get_centroids, get_subplot_shape, remove_extra, sanitize_anndata, spine_format
 
 
@@ -33,32 +33,31 @@ def umap(
     basis: str = "X_umap",
     **kwargs,
 ) -> Union[plt.Axes, None]:
-    """Create UMAP Plot
+    """Make UMAP Plot.
 
     This function builds on `sc.pl.umap()` and add extra functionalities like splitting by a categorical column in obs.
 
-    :param adata: anndata object
-    :param color: .obs column or .var_names value
-    :param split_by: categorical .obs column
-    :param order_catgs: order of the categories when splitting by a categorical column
-    :param ncols: number of columns per row
-    :param figsize: figure size (width, heigh) in Inches
+    :param adata: annotated data matrix.
+    :param color: `.obs` column or `.var_names` value.
+    :param split_by: categorical `.obs` column.
+    :param order_catgs: order of the categories when splitting by a categorical column.
+    :param ncols: number of columns per row.
+    :param figsize: figure size (width, heigh) in inches.
     :param common_legend: set a common legend when plotting multiple values, it will automatically scale if plotting continuous values like
-                          gene expression if vmax is not specified
+                          gene expression if vmax is not specified.
     :param title: title of the plot. Only used when 1 value is plotted. If 1 value is plotted splitting by categories, the title
-                  will be the categories. If several values are plotted the title will be each value
-    :param title_font: font properties of the title for each subplot
-    :param vmax: maximum value for continuos data
-    :param spacing: spacing between subplots (height, width) padding between plots
-    :param show: when set to False the matplotlib axes will be returned
-    :param labels: .obs column name with categorical values to add to the plot. If a gene is plotted, you can add the celltype
-                   labels
-    :param labels_fontproporties: fontproperties for the labels
-    :param labels_repel: additional arguments pass to adjust_text
-    :param basis: embedding to use, default UMAP
-    :param path: path to save plot
-    :param filename: filename of the plot
-    :param kwargs: additional parameters pass to ``sc.pl.umap()``
+                  will be the categories. If several values are plotted the title will be each value.
+    :param title_font: font properties of the title for each subplot.
+    :param vmax: maximum value for continuos data.
+    :param spacing: spacing between subplots (height, width) padding between plots.
+    :param show: when set to False the matplotlib axes will be returned.
+    :param labels: `.obs` column name with categorical values to add to the plot.
+    :param labels_fontproporties: fontproperties for the labels.
+    :param labels_repel: additional arguments pass to adjust_text.
+    :param basis: embedding to use, default UMAP.
+    :param path: path to save plot.
+    :param filename: filename of the plot.
+    :param kwargs: additional parameters pass to ``sc.pl.umap()``.
     :return: matplotlib axis
     """
     # TODO for some reason it does not work in jupyter notebook?
@@ -281,33 +280,32 @@ def embedding(
     basis: str = "X_umap",
     **kwargs,
 ) -> Union[None, plt.Axes]:
-    """**Create Embedding Plot**
+    """Make Embedding Plot.
 
     This function builds on `sc.pl.embedding()` and add extra functionalities like
-    splitting by a categorical column in .obs
+    splitting by a categorical column in `.obs`.
 
-    :param adata: anndata object
-    :param color: .obs column or .var_names value
-    :param split_by: categorical .obs column
-    :param order_catgs: order of the categories when splitting by a categorical column
-    :param ncols: number of columns per row
-    :param figsize: figure size (width, heigh) in Inches
+    :param adata: annotated data matrix.
+    :param color: `.obs` column or `.var_names` value.
+    :param split_by: categorical `.obs` column.
+    :param order_catgs: order of the categories when splitting by a categorical column.
+    :param ncols: number of columns per row.
+    :param figsize: figure size (width, heigh) in Inches.
     :param common_legend: set a common legend when plotting multiple values, it will automatically scale if plotting continuous values like
-                          gene expression if vmax is not specified
+                          gene expression if vmax is not specified.
     :param title: title of the plot. Only used when 1 value is plotted. If 1 value is plotted splitting by categories, the title
-                  will be the categories. If several values are plotted the title will be each value
-    :param title_font: font properties of the title for each subplot
-    :param vmax: maximum value for continuos data
-    :param spacing: spacing between subplots (height, width) padding between plots
-    :param show: when set to False the matplotlib axes will be returned
-    :param labels: .obs column name with categorical values to add to the plot. If a gene is plotted, you can add the celltype
-                   labels
-    :param labels_fontproporties: fontproperties for the labels
-    :param labels_repel: additional arguments pass to adjust_text
-    :param basis: embedding to use, default UMAP
-    :param path: path to save plot
-    :param filename: filename of the plot
-    :param kwargs: additional parameters pass to ``sc.pl.umap()``
+                  will be the categories. If several values are plotted the title will be each value.
+    :param title_font: font properties of the title for each subplot.
+    :param vmax: maximum value for continuos data.
+    :param spacing: spacing between subplots (height, width) padding between plots.
+    :param show: when set to False the matplotlib axes will be returned.
+    :param labels: `.obs` column name with categorical values to add to the plot.
+    :param labels_fontproporties: fontproperties for the labels.
+    :param labels_repel: additional arguments pass to adjust_text.
+    :param basis: embedding to use.
+    :param path: path to save plot.
+    :param filename: filename of the plot.
+    :param kwargs: additional parameters pass to ``sc.pl.embedding()``
     :return: matplotlib axis
     """
     axis = umap(
@@ -353,24 +351,24 @@ def split_embeddding(
     show: bool = False,
     **kwargs,
 ) -> Union[plt.axes, None]:
-    """Plot categorical values splited in an embedding.
+    """Plot categorical data splited in an embedding.
 
     This function takes an AnnData and a categorical column in obs and generate a plot of subplots  highlighting the
     different categories of the obs column.
 
-    :param adata: anndata object
-    :param split_by: obs column with categorical values
-    :param ncols: number of subplots per row
-    :param title_font:  properties of the title font for each subplot
-    :param path: path to save the plot
-    :param filename: filename of the plot
-    :param figsize: size of the figure
-    :param basis: embedding to use. Default is X_umap
-    :param visium: set to True if you anndata has visium data
-    :param sp_size: spot size when plotting visium data
-    :param show: if set to True returns axes
-    :param kwargs: additional arguments for ``sc.pl.embedding()`` or ``sc.pl.spatial()`` if visium is True
-    :return: None
+    :param adata: annotated data matrix object.
+    :param split_by: obs column with categorical values.
+    :param ncols: number of subplots per row.
+    :param title_font: properties of the title font for each subplot.
+    :param path: path to save the plot.
+    :param filename: filename of the plot.
+    :param figsize: size of the figure.
+    :param basis: embedding to use.
+    :param visium: set to True if you anndata has visium data.
+    :param sp_size: spot size when plotting visium data.
+    :param show: if set to True returns axes.
+    :param kwargs: additional arguments for ``sc.pl.embedding()`` or ``sc.pl.spatial()`` if visium is True.
+    :return: matplotlib axis
     """
     assert adata.obs[split_by].dtypes == "category", "Not a categorical column"
     sanitize_anndata(adata)
