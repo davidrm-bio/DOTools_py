@@ -61,23 +61,29 @@ if (opt$version == 'v4') {
     batch.list <- SplitObject(Seu.hvg, split.by = opt$name)
     anchors <- FindIntegrationAnchors(object.list = batch.list, anchor.features = rownames(Seu.hvg))
     integrated <- IntegrateData(anchors)
+    integrated_expr <- GetAssayData(integrated)
+    integrated_expr <- integrated_expr[rownames(Seu.hvg), colnames(Seu.hvg)]
+    df_integrated_expr <- as.data.frame(integrated_expr)
+    df_integrated_expr <- t(df_integrated_expr)
+
 } else if (opt$version == 'v5') {
     message("Run CCA with v5")
+    Seu.hvg[['originalexp']] <- split(Seu.hvg[['originalexp']], f = Seu.hvg@meta.data[[opt$name]])
+    Seu.hvg <- ScaleData(Seu.hvg)
+    Seu.hvg <- RunPCA(Seu.hvg, features = rownames(Seu.hvg))
     Seu.hvg <- IntegrateLayers(object = Seu.hvg, method = CCAIntegration, orig.reduction = "pca", new.reduction = "integrated.cca",
-    verbose = TRUE)
-    # TODO - Check how it is
+                               verbose = TRUE)
+    CCAEmbeddings <- Seu.hvg@reduction$integrated.cca
+    CCAEmbeddings <- CCAEmbeddings@cell.embeddings
+    df_integrated_expr <- as.data.frame(CCAEmbeddings)
 } else {
     stop("Specify v4 or v5 for the CCA approach to use")
 }
 
+
 # Prepare to export to python
 message('Preparing to export to python...')
-integrated_expr <- GetAssayData(integrated)
-integrated_expr <- integrated_expr[rownames(Seu.hvg), colnames(Seu.hvg)]
-df_integrated_expr <- as.data.frame(integrated_expr)
-df_integrated_expr <- t(df_integrated_expr)
 message(df_integrated_expr[1:3, 1:3])
-
 
 message('Saving data in ')
 message(paste0(opt$out, 'adata_hvg_seurat_AnchorIntegration.csv'))
