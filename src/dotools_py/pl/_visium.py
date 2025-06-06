@@ -23,13 +23,13 @@ def layers(
 
     Plot different layers in subplots. Useful for deconvolution analysis with celltype counts in layers.
 
-    :param adata: anndata object
-    :param color: var_names or obs column to plot
-    :param layers: layers to plot
-    :param ncols:  number of columns in the plot
-    :param normalise: do log-normalisation on the layers
-    :param show: if set to False, return axis
-    :param kwargs: additional arguments for sc.pl.spatial
+    :param adata: annotated data matrix.
+    :param color: var_names or obs column to plot.
+    :param layers: layers to plot.
+    :param ncols:  number of columns in the plot.
+    :param normalise: do log-normalisation on the layers.
+    :param show: if set to False, return axis.
+    :param kwargs: additional arguments for sc.pl.spatial.
     :return:  None or plt.axis
     """
 
@@ -80,35 +80,34 @@ def slides(
 
     Plot a feature in var_names or a column from obs in multiple visium slides.
 
-    :param adata: anndata object
-    :param color:  .var_names or .obs column to plot
-    :param obs_col: .obs column containing Batch/Sample Information. This column should have the same names system use
-                    to save the spatial images in ``adata.uns['Spatial'].keys()``. (Default is **sample**)
-    :param ncols:  number of subplots per row. (Default is **4**)
-    :param sp_size: size of the dots. (Default is **1.5**)
+    :param adata: annotated data matrix.
+    :param color:  var_names or obs column to plot.
+    :param obs_col: obs column containing Batch/Sample Information. This column should have the same names system use
+                    to save the spatial images in `adata.uns['spatial'].keys()`.
+    :param ncols: number of subplots per row.
+    :param sp_size: size of the dots.
     :param fig_path: path to save the plot.
-    :param filename: filename of the plot. Specify also the file format (E.g., .png, .svg, .pdf, etc.)
+    :param filename: filename of the plot.
     :param common_legend: if set to true only the legend of the last column will be shown. Otherwise, the legend of
-                          all the subplots will be shown. (Default is **True**)
-    :param order: provide a list with the order of the slides to show. If not set the ``obs_col`` will be sorted
-    :param figsize: size of the subplots
-    :param layer: layer to use to plot data. If not specified, '.X' will be used.
-    :param img_key: image key to use for plotting (hires or lowres). (Default is **hires**)
-    :param title_fontsize: fontsize of the title for the subplots
-    :param title_fontweight: change fontweight of the title
-    :param select_samples: list with a subset of samplename that want to be plotted
-    :param show: if False, return axs
+                          all the subplots will be shown.
+    :param order: provide a list with the order of the slides to show. If not set the `obs_col` will be sorted.
+    :param figsize: size of the subplots.
+    :param layer: layer to use to plot dt. If not specified, `.X` will be used.
+    :param img_key: image key to use for plotting (hires or lowres).
+    :param title_fontsize: fontsize of the title for the subplots.
+    :param title_fontweight: change fontweight of the title.
+    :param select_samples: list with a subset of samplename that want to be plotted.
+    :param show: if False, return axs.
     :param minimal_title: if set to true only the sample name will be shown as title, otherwise title + color
     :param vmax: maximum value for continus values (e.g., expression). If common legend is set to True and vmax
                  is not specified, it will be automatically computed taking the p99.2 expression value across
-                 all subplots
-    :param verbose: show a progress bar when plotting multiple slides
-    :param kwargs: additional arguments for the function ``scanpy.pl.spatial()``
+                 all subplots.
+    :param verbose: show a progress bar when plotting multiple slides.
+    :param kwargs: additional arguments for the function `scanpy.pl.spatial()`.
     :param spacing: spacing between subplots (height, width) padding between plots
     :return: a matplotlib axes object
     """
     # TODO Consider the case where we only have 1 sample
-    # TODO change the minimal text as default (i.e, remove the option and set it as in pl_umap)
     sanitize_anndata(adata)
 
     if select_samples is not None:
