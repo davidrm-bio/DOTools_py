@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Union
 
 import anndata as ad
 import matplotlib.gridspec as gridspec
@@ -7,7 +8,9 @@ import numpy as np
 import pandas as pd
 
 
-def get_paths_utils(script: str):
+def get_paths_utils(
+    script: str
+):
     """Get path for a script within the project.
 
     :param script:
@@ -17,7 +20,9 @@ def get_paths_utils(script: str):
     return (module_dir / "util_scripts" / script).resolve()
 
 
-def convert_path(path: Path | str) -> Path:
+def convert_path(
+    path: Union[Path, str]
+) -> Path:
     """Convert to Path format if string is provided.
 
     :param path: string or Path variable
@@ -29,7 +34,9 @@ def convert_path(path: Path | str) -> Path:
         return path
 
 
-def sanitize_anndata(adata: ad.AnnData) -> None:
+def sanitize_anndata(
+    adata: ad.AnnData
+) -> None:
     """Transform string annotations to categorical.
 
     :param adata: AnnData
@@ -39,7 +46,11 @@ def sanitize_anndata(adata: ad.AnnData) -> None:
     return None
 
 
-def get_centroids(adata: ad.AnnData, cluster_key: str, basis: str = "X_umap"):
+def get_centroids(
+    adata: ad.AnnData,
+    cluster_key: str,
+    basis: str = "X_umap"
+)->pd.DataFrame:
     """Get centroids for clusters in anndata object.
 
     :param adata: anndata
@@ -52,7 +63,10 @@ def get_centroids(adata: ad.AnnData, cluster_key: str, basis: str = "X_umap"):
     return all_pos.groupby("group", observed=True).median().sort_index()
 
 
-def get_subplot_shape(n_samples: int, ncols: int) -> tuple:
+def get_subplot_shape(
+    n_samples: int,
+    ncols: int
+) -> tuple:
     """Compute the number of rows and columns to use for defining the figure base on a desired number of samples and columns.
 
     :param n_samples: number of samples to plot
@@ -66,7 +80,11 @@ def get_subplot_shape(n_samples: int, ncols: int) -> tuple:
     return nrows, ncols, extras
 
 
-def spine_format(axis: plt.axis, txt: str = "UMAP", fontsize: int = 10) -> None:
+def spine_format(
+    axis: plt.axis,
+    txt: str = "UMAP",
+    fontsize: int = 10
+) -> None:
     """Formatting the spines for Embeddings.
 
     :param axis: axis object
@@ -80,7 +98,12 @@ def spine_format(axis: plt.axis, txt: str = "UMAP", fontsize: int = 10) -> None:
     return
 
 
-def remove_extra(extras: int, nrows: int, ncols: int, axs: plt.Axes) -> None:
+def remove_extra(
+    extras: int,
+    nrows: int,
+    ncols: int,
+    axs: plt.Axes
+) -> None:
     """Hide the last "extras" subplots.
 
     :param extras: number of subplots to remove
@@ -107,7 +130,17 @@ def make_grid_spec(
     width_ratios: float = None,
     height_ratios: float = None,
 ):
-    # Taken from Scanpy
+    """Modified from Scanpy.
+
+    :param ax_or_figsize:
+    :param nrows:
+    :param ncols:
+    :param wspace:
+    :param hspace:
+    :param width_ratios:
+    :param height_ratios:
+    :return:
+    """
     kw = dict(wspace=wspace, hspace=hspace, width_ratios=width_ratios, height_ratios=height_ratios)
 
     if isinstance(ax_or_figsize, tuple):
@@ -122,13 +155,17 @@ def make_grid_spec(
         return ax.figure, ax.get_subplotspec().subgridspec(nrows, ncols, **kw)
 
 
-def format_terms_gsea(df: pd.DataFrame, term_col: str, cutoff: int = 35):
+def format_terms_gsea(
+    df: pd.DataFrame,
+    term_col: str,
+    cutoff: int = 35
+)->pd.DataFrame:
     """Format Terms from Gene Set Enrichment Analysis.
 
-    :param df:
-    :param term_col:
-    :param cutoff:
-    :return:
+    :param df: dataframe with GSEA terms.
+    :param term_col: column with terms.
+    :param cutoff: maximum number of characters per line.
+    :return: dataframe with modified terms
     """
     import re
 
@@ -156,15 +193,15 @@ def format_terms_gsea(df: pd.DataFrame, term_col: str, cutoff: int = 35):
     return df
 
 
-
-
-def transfer_labels(adata_original: ad.AnnData,
-                    adata_subset: ad.AnnData,
-                    col_original: str,
-                    col_subset: str,
-                    labels_original: list,
-                    copy: bool = False):
-    """ Transfer annotation from a subset of an anndata.
+def transfer_labels(
+    adata_original: ad.AnnData,
+    adata_subset: ad.AnnData,
+    col_original: str,
+    col_subset: str,
+    labels_original: list,
+    copy: bool = False
+)-> Union[ad.AnnData, None]:
+    """Transfer annotation from a subset of an anndata.
 
     :param adata_original: original anndata
     :param adata_subset: subsetted anndata
@@ -174,12 +211,13 @@ def transfer_labels(adata_original: ad.AnnData,
     :param copy: if copy is True, returns the updated anndata, else changes are inplace
     :return: Nothing, changes are saved inplace
     """
+
     if copy:
         adata_original = adata_original.copy()
         adata_subset = adata_subset.copy()
-
     assert adata_subset.n_obs < adata_original.n_obs, 'adata_subset is not a subset of adata_original'
 
+    labels_original = [labels_original] if isinstance(labels_original, str) else labels_original
     adata_original.obs[col_original] = adata_original.obs[col_original].astype(str)
     adata_original.obs[col_original] = adata_original.obs[col_original].where(
         ~adata_original.obs[col_original].isin(labels_original),
@@ -187,5 +225,4 @@ def transfer_labels(adata_original: ad.AnnData,
 
     if copy:
         return adata_original
-    return
-
+    return None
