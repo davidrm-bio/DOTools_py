@@ -4,15 +4,17 @@ import pandas as pd
 import scipy as sp
 
 from dotools_py import logger
+from typing import Union
 
+def _expm1_anndata(
+    adata: ad.AnnData
+) -> None:
+    """Apply expm1 transformation for the X dt.
 
-def _expm1_anndata(adata: ad.AnnData) -> None:
-    """Apply expm1 transformation for the X data.
-
-    :param adata: anndata object
+    :param adata: annotated dt matrix
     :return: None, changes are inplace
     """
-    if sp.issparse(adata.X):
+    if sp.sparse.issparse(adata.X):
         adata.X = adata.X.copy()
         adata.X.data = np.expm1(adata.X.data)
     else:
@@ -22,21 +24,21 @@ def _expm1_anndata(adata: ad.AnnData) -> None:
 def mean_expr(
     adata: ad.AnnData,
     group_by: str,
-    features: list or str = None,
+    features: Union[list, str, None] = None,
     out_format: str = "long",
-    layer: str = None,
+    layer: Union[str, None] = None,
 ) -> pd.DataFrame:
     """Calculate Average Expression in AnnData Objects for features
 
     This function calculates the average expression of a set of features grouping by one
     or several categories.
 
-    :param adata: anndata object
-    :param group_by: .obs column name or list of names to group by
-    :param features: list of features of .var to use. (Default is **all genes**)
-    :param out_format: format of the dataframe returned. This can be wide or long format. (Default  is **long**)
-    :param layer: layer of the anndata to use. (Default uses **.X**)
-    :return: panda DataFrame in long (or wide) format with average expression
+    :param adata: annotated dt matrix
+    :param group_by: `.obs` column or list of columns to group by.
+    :param features: list of features in `.var` to use. If not set, it will be calculated over all the genes.
+    :param out_format: format of the dataframe returned. This can be wide or long format.
+    :param layer: layer of the anndata to use. If not set use `.X`.
+    :return: DataFrame in long (or wide) format with average expression
     """
     features = [features] if isinstance(features, str) else features
     group_by = [group_by] if isinstance(group_by, str) else group_by
@@ -51,7 +53,7 @@ def mean_expr(
     data = adata.copy()
     _expm1_anndata(data)
 
-    # Group data by the specified values
+    # Group dt by the specified values
     group_obs = adata.obs.groupby(group_by, as_index=False)
 
     # Compute AverageExpression
@@ -83,20 +85,24 @@ def mean_expr(
 
 
 def get_expr(
-    adata: ad.AnnData, features: str, groups: str = None, out_format: str = "long", layer: str = None
+    adata: ad.AnnData,
+    features: str,
+    groups: Union[str, None] = None,
+    out_format: str = "long",
+    layer: Union[str, None] = None
 ) -> pd.DataFrame:
     """Extract the expression of features.
 
     This function extract the expression from an AnnData object and returns a dataframe. If layer
-    is not specified the expression in X will be extracted. Additionally, metadata from obs can be added
+    is not specified the expression in `.X` will be extracted. Additionally, metadata from `.obs` can be added
     to the dataframe.
 
-    :param adata: AnnData object
-    :param groups: obs metadata column to include in the dataframe
-    :param features: var_names to include
-    :param out_format: format of the dataframe (wide or long)
-    :param layer: layer in the anndata object to extract the expression from
-    :return: dataframe with expression values
+    :param adata: annotated dt matrix.
+    :param groups: `.obs` metadata column to include in the dataframe.
+    :param features: var_names to include.
+    :param out_format: format of the dataframe (wide or long).
+    :param layer: layer in the anndata object to extract the expression from.
+    :return: dataframe with expression values.
     """
     # Set-up configuration
     if features is not None:
