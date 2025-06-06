@@ -140,8 +140,10 @@ for SAMPLENAME in ${SAMPLENAMES[*]}; do
     echo ''
   fi
 
+    input_file="$(find "${cellRanger_out}/${SAMPLENAME}/outs/"*raw_feature_bc_matrix.h5 | head -n 1)"
+
 	cellbender_cmd="cellbender remove-background \
-	--input=${cellRanger_out}/${SAMPLENAME}/outs/raw_feature_bc_matrix.h5 \
+	--input=${input_file} \
 	--output=${outPath}/${SAMPLENAME}_out.h5 \
 	--cpu-threads=${cpu_threads} \
 	--epochs=${epochs} \
