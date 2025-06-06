@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Union
 
 import anndata as ad
+import doubletdetection
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -23,7 +24,7 @@ def _qc_vln(
     title: str = "ViolinPlots - Quality Metrics",
     path: [str, None] = None,
     filename: str = "ViolinPlots.png",
-    stats: list = ("total_counts", "n_genes", "pct_counts_mt"),
+    stats: list = ("total_counts", "n_genes_by_counts", "pct_counts_mt"),
     colors: Union[str, list] = "lightsteelblue",
 ) -> None:
     """Violin Plots showing basic QC stats.
@@ -49,10 +50,10 @@ def _qc_vln(
     if len(colors) == 1:
         colors = colors * 3
 
-    fig, axs = plt.subplots(1, 3, figsize=(5, 6))
+    fig, axs = plt.subplots(1, 3, figsize=(10, 6))
     for idx in range(3):
         vln = sns.violinplot(adata.obs[stats[idx]], ax=axs[idx], color=colors[idx])
-        vln.set_xticklabels([f"Median = {np.round(np.median(adata.obs[stats[idx]]), 1)}"], fontweight="bold")
+        vln.set_xticklabels([f"Median = {np.floor(np.median(adata.obs[stats[idx]]))}"], fontweight="bold")
         vln.set_title("")
     plt.suptitle(title, fontsize=30, fontweight="bold")
 
@@ -103,7 +104,7 @@ def _run_scdblfinder(
     logger.info("Running scDblFinder")
     cmd = ["Rscript", rscript, "--input=" + str(tmpdir_path) + "/adata_tmp.h5ad", "--out=" + str(tmpdir_path) + "/"]
     if batch_key:
-        cmd = cmd["--name=" + batch_key]
+        cmd +=["--name=" + batch_key]
     subprocess.call(cmd)
 
     doublets = polars.read_csv(tmpdir_path / "scDblFinder_inference.csv", infer_schema_length=0)
@@ -151,7 +152,7 @@ def _normalise(
 def _qc_scrna(
     adata: ad.AnnData,
     ids: str,
-    qc_path: Union[str, None] = None,
+    qc_path: Union[str, Path, None] = None,
     batch_key: Union[str, None] = None,
     min_genes_in_cell: int = 300,
     min_cells_with_genes: int = 5,
@@ -164,6 +165,7 @@ def _qc_scrna(
     high_quantile: Union[int, None] = None,
     include_rbs: bool = True,
     remove_doublets: bool = False,
+    doublet_tool: str = 'scDblFinder',
     metrics: bool = True,
 ) -> ad.AnnData:
     """Basic QC.
@@ -182,6 +184,7 @@ def _qc_scrna(
     :param high_quantile: upper quantile to filter genes and counts.
     :param include_rbs: calculate stats for ribosomal genes.
     :param remove_doublets: remove doublets.
+    :param doublet_tool: doublet tool to use. Available scDblFinder, Scrublet and DoubletDetection.
     :param metrics: whether to generate a metrics file or not.
     :return: annotated dt matrix
     """
@@ -252,8 +255,30 @@ def _qc_scrna(
 
     # Step 5 -
     if remove_doublets:
-        adata.layers["counts"] = adata.X.copy()  # needed for scDblFinder
-        _run_scdblfinder(adata, batch_key)
+        if doublet_tool == 'scDblFinder':
+            adata.layers["counts"] = adata.X.copy()  # needed for scDblFinder
+            _run_scdblfinder(adata, batch_key)
+        elif doublet_tool == 'Scrublet':
+            sc.pp.scrublet(adata)
+            adata.obs['doublet_class'] = adata.obs['predicted_doublet'].map({False: 'singlet', True: 'doublet'})
+            del adata.obs['predicted_doublet']
+        elif doublet_tool == 'DoubletDetection':
+            clf = doubletdetection.BoostClassifier(
+                n_iters=10,
+                clustering_algorithm="leiden",
+                standard_scaling=True,
+                pseudocount=0.1,
+                n_jobs=-1,
+            )
+            doublets = clf.fit(adata.X).predict()
+            doublet_score = clf.doublet_score()
+            mapped = np.full(doublets.shape, 'singlet', dtype=object)
+            mapped[doublets == 1.0] = 'doublet'
+            adata.obs["doublet_class"] = pd.Categorical(mapped, categories=['singlet', 'doublet'])
+            adata.obs["doublet_score"] = doublet_score
+        else:
+            raise Exception('Doublet detection tool available: scDblFinder, Scrublet and DoubletDetection')
+
         n_doublets = adata.obs["doublet_class"].value_counts()["doublet"]
         adata = adata[adata.obs["doublet_class"] == "singlet"].copy()
         logger.info(f"Remove {n_doublets} doublets")
@@ -292,6 +317,7 @@ def importer_py(
     metadata: Union[dict, None] = None,
     batch_key: str = "batch",
     remove_doublets: bool = True,
+    doublet_tool: str = 'scDblFinder',
     min_genes_in_cell: int = 300,
     min_cells_with_genes: int = 5,
     cut_mt: int = 5,
@@ -330,6 +356,7 @@ def importer_py(
     :param metadata: dictionary with metadata information.
     :param batch_key: key in `.obs` for the batch information.
     :param remove_doublets: if set to True, neotypic doublets will be removed.
+    :param doublet_tool: doublet tool to use. Available scDblFinder, Scrublet and DoubletDetection.
     :param min_genes_in_cell: minimum number of genes per cell.
     :param min_cells_with_genes: minimum cells expressing a genes.
     :param n_reads: target sum after normalisation per cell.
@@ -404,6 +431,7 @@ def importer_py(
             high_quantile=high_quantile,
             include_rbs=True,
             remove_doublets=remove_doublets,
+            doublet_tool=doublet_tool,
         )
 
         # Vln Plots showing Metrics before qc
