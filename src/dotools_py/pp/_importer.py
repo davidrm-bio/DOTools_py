@@ -4,6 +4,7 @@ import subprocess
 import uuid
 from datetime import date
 from pathlib import Path
+from typing import Union
 
 import anndata as ad
 import matplotlib.pyplot as plt
@@ -20,21 +21,21 @@ from dotools_py.utils import convert_path, get_paths_utils
 def _qc_vln(
     adata: ad.AnnData,
     title: str = "ViolinPlots - Quality Metrics",
-    path: str = None,
+    path: [str, None] = None,
     filename: str = "ViolinPlots.png",
     stats: list = ("total_counts", "n_genes", "pct_counts_mt"),
-    colors: str | list = "lightsteelblue",
+    colors: Union[str, list] = "lightsteelblue",
 ) -> None:
     """Violin Plots showing basic QC stats.
 
     Generate ViolinPlots to show the distribution of total counts, number of genes and percentage of mitochondrial genes.
 
-    :param adata: anndata object
-    :param title: Title of the Plot. Default ViolinPlot
-    :param path: path to figure folder. Default ./ (current folder)
-    :param filename: name of the file with the plot. Default ViolinPlot.png
-    :param stats: obs column name to plot
-    :param colors: colors for the violinplots
+    :param adata: annotated dt matrix.
+    :param title: zitle of the Plot.
+    :param path: path to figure folder.
+    :param filename: name of the file.
+    :param stats: `.obs` column name to plot.
+    :param colors: colors for the violinplots.
     :return:
     """
     if isinstance(stats, tuple):
@@ -62,15 +63,15 @@ def _qc_vln(
 
 def _filter_quantiles(
     adata: ad.AnnData,
-    low: int = None,
-    high: int = None,
+    low: Union[int, None] = None,
+    high: Union[int, None] = None,
 ) -> ad.AnnData:
     """Filter cells based on total nUMI counts using quantiles.
 
-    :param adata: anndata object
+    :param adata: annotated dt matrix
     :param low: lower quantile
     :param high: upper qauntile
-    :return: anndata object
+    :return: annotated dt matrix
     """
     counts = adata.obs["total_counts"]
     mask = np.ones(adata.n_obs, dtype=bool)
@@ -83,15 +84,15 @@ def _filter_quantiles(
 
 def _run_scdblfinder(
     adata: ad.AnnData,
-    batch_key: str = None,
+    batch_key: Union[str, None] = None,
 ) -> None:
     """Find doublets.
 
     The inference is performed using `scDblFinder <https://github.com/plger/scDblFinder>`_ in R.
 
-    :param adata: annndata object
-    :param batch_key: .obs column name with batch information. Required if the anndata contain more than 1 sample
-    :return: None
+    :param adata: annotated anndata matrix
+    :param batch_key: `.obs` column name with batch information. Required if the anndata contain more than 1 sample.
+    :return:
     """
     logger.info("Finding Neotypic doublets")
     rscript = get_paths_utils("_run_scDblFinder.R")
@@ -113,10 +114,15 @@ def _run_scdblfinder(
     return
 
 
-def _normalise(adata: ad.AnnData, n_reads: int = 10_000, max_val: float = None, scale: bool = True):
+def _normalise(
+    adata: ad.AnnData,
+    n_reads: int = 10_000,
+    max_val: Union[float, None] = None,
+    scale: bool = True
+) -> None:
     """Normalise raw counts.
 
-    The input is an unnormalise anndata object. The data in X will be log-normalise to 10,000 reads per cell.
+    The input is an unnormalise anndata object. The dt in X will be log-normalise to 10,000 reads per cell.
     The returned anndata object will contain 3 layers:
     * counts: contains the raw unnormalised counts
     * logcounts: contains the log-normalise counts
@@ -126,7 +132,7 @@ def _normalise(adata: ad.AnnData, n_reads: int = 10_000, max_val: float = None, 
     :param adata: annData object
     :param n_reads: target number of reads per cell to normalise to. (Default  is **10,000**)
     :param max_val: maximum expression value after scaling. (Default is **None**)
-    :param scale: whether to scale or not the data. (Default is **True**)
+    :param scale: whether to scale or not the dt. (Default is **True**)
     :return: log-normalise anndata object
     """
     adata.layers["counts"] = adata.X.copy()  # Save raw counts
@@ -135,7 +141,7 @@ def _normalise(adata: ad.AnnData, n_reads: int = 10_000, max_val: float = None, 
     adata.layers["logcounts"] = adata.X.copy()
 
     if scale:
-        logger.info("Scaling data")
+        logger.info("Scaling dt")
         sc.pp.scale(adata, zero_center=True, max_value=max_val)
         adata.layers["scaled"] = adata.X.copy()
         adata.X = adata.layers["logcounts"].copy()
@@ -145,51 +151,39 @@ def _normalise(adata: ad.AnnData, n_reads: int = 10_000, max_val: float = None, 
 def _qc_scrna(
     adata: ad.AnnData,
     ids: str,
-    qc_path: str = None,
-    batch_key=None,
+    qc_path: Union[str, None] = None,
+    batch_key: Union[str, None] = None,
     min_genes_in_cell: int = 300,
     min_cells_with_genes: int = 5,
     cut_mt: int = 5,
-    min_counts: int = None,
-    max_counts: int = None,
-    min_genes: int = None,
-    max_genes: int = None,
-    low_quantile: int = None,
-    high_quantile: int = None,
+    min_counts: Union[int, None] = None,
+    max_counts: Union[int, None] = None,
+    min_genes: Union[int, None] = None,
+    max_genes: Union[int, None] = None,
+    low_quantile: Union[int, None] = None,
+    high_quantile: Union[int, None] = None,
     include_rbs: bool = True,
     remove_doublets: bool = False,
     metrics: bool = True,
 ) -> ad.AnnData:
     """Basic QC.
 
-    The following filtering steps are applied:
-    * Filter genes express in low number of cells
-    * Filter cells with low number of genes
-    * Filter cells with high mitochondrial content. Recommendation: 5 % for scRNA and 3 % for snRNA
-    There are two modes for filtering cells based on UMI and Feature counts:
-    * Absolute filtering: set absolute values for the maximum and minimum number of UMI and features
-    * Quantile filtering: filter out the top and bottom quantile
-    Optionally, you can also remove doublets (recommended).
-    A ExcelSheet will be generated by default with stats on how many cells and features were removed in
-    each step. Additionally, a violin plot showing the distribution of total_counts, n_genes and mt_content
-    per cell before and after the quatily control will be generated.
-
-    :param adata: anndata object
-    :param ids: id or name for the data
-    :param qc_path: path where to save the metric and the violin plots
-    :param min_genes_in_cell: minimum number of genes in a cell
-    :param min_cells_with_genes:  minimum number of cells expressing a gene
-    :param cut_mt: maximum number of mitochondrial content for cells
-    :param min_counts: minimum number of counts per cell
-    :param max_counts: maximum number of counts per cell
-    :param min_genes: minimum number of genes per cell
-    :param max_genes: maxinum number of genes per cell
-    :param low_quantile: low quantile to filter genes and counts
-    :param high_quantile: upper quantile to filter genes and counts
-    :param include_rbs: calculate stats for ribosomal genes
-    :param remove_doublets: remove doublets
-    :param metrics: whether to generate a metrics file or not
-    :return: processed anndata
+    :param adata: annotated dt matrix.
+    :param ids: id or name for the dt.
+    :param qc_path: path where to save the metric and the violin plots.
+    :param min_genes_in_cell: minimum number of genes in a cell.
+    :param min_cells_with_genes:  minimum number of cells expressing a gene.
+    :param cut_mt: maximum number of mitochondrial content for cells.
+    :param min_counts: minimum number of counts per cell.
+    :param max_counts: maximum number of counts per cell.
+    :param min_genes: minimum number of genes per cell.
+    :param max_genes: maxinum number of genes per cell.
+    :param low_quantile: low quantile to filter genes and counts.
+    :param high_quantile: upper quantile to filter genes and counts.
+    :param include_rbs: calculate stats for ribosomal genes.
+    :param remove_doublets: remove doublets.
+    :param metrics: whether to generate a metrics file or not.
+    :return: annotated dt matrix
     """
     # Create a metrics file
     today = date.today().strftime("%y%m%d")
@@ -295,65 +289,79 @@ def _qc_scrna(
 def importer_py(
     paths: list,
     ids: list,
-    metadata: dict = None,
+    metadata: Union[dict, None] = None,
     batch_key: str = "batch",
     remove_doublets: bool = True,
     min_genes_in_cell: int = 300,
     min_cells_with_genes: int = 5,
     cut_mt: int = 5,
     n_reads: int = 10_000,
-    min_counts: int = None,
-    max_counts: int = None,
-    min_genes: int = None,
-    max_genes: int = None,
-    low_quantile: int = None,
-    high_quantile: int = None,
+    min_counts: Union[int, None] = None,
+    max_counts: Union[int, None] = None,
+    min_genes: Union[int, None] = None,
+    max_genes: Union[int, None] = None,
+    low_quantile: Union[int, None] = None,
+    high_quantile: Union[int, None] = None,
 ) -> ad.AnnData:
-    """QC Analysis for sc/snRNA.
+    """Quality control analysis for sc/snRNA.
 
-    The input is a list with the paths to the h5 files generated with CellRanger, CellBender or StarSolo and
-    a list with the ids (batch name) for each sample. You can provide a dictionary with extra metadata to be added to
-    the AnnData in the following format:
-    ```{python}
+    The input is a list with paths to H5 files generated with CellRanger, CellBender or STARsolo and a list with
+    the batch name for each sample. A dictionary with extra metadata information can be provided. The order
+    should always be mainted.
 
-    paths = ['/path/sample1,h5', '/path/sample2,h5']
+    For each sample a several quality and filtering steps are applied:
+        * Filter genes express in low number of cells.
+        * Filter cells with low number of genes.
+        * Filter cells with high mitochondrial content. Recommended to use 5% for scRNA and 3% for snRNA.
+        * Filter cells based on UMI and features. There are two modes:
+            * Absolute filtering: set absolute values for the maximum and minimum number of UMI and features.
+            * Quantile filtering: filter the top and/or quantile.
+        * Remove doublets using `scDblFinder <https://github.com/plger/scDblFinder>`_.
 
-    ids = ['sample1', 'sample2']
+    An ExcelSheet with stats on how many cells and features were removed in each step, and violin plots showing the
+    distribution of `total_counts`, `n_genes` and `pct_mt_content` per  cell before and after the quality control will
+    be generated. These files will be saved under the folder containing the H5 files.
 
-    metadata = {'condition': ['wt', 'disease'],
-                'age': ['20m', '20m']}
-    ```
-    The order should always be kept. For each sample a quality control will be applied that includes:
-    * Filter genes express in low number of cells
-    * Filter cells with low number of genes
-    * Filter cells with high mitochondrial content. Recommendation: 5 % for scRNA and 3 % for snRNA
-    * Filter cells based on UMI and Features. There are two modes:
-        * Absolute filtering: set absolute values for the maximum and minimum number of UMI and features
-        * Quantile filtering: filter out the top and bottom quantile
-    * Remove doublets using scDblFinder
-    A ExcelSheet will be generated by default with stats on how many cells and features were removed in
-    each step. Additionally, a violin plot showing the distribution of total_counts, n_genes and mt_content
-    per cell before and after the quatily control will be generated. This files will be saved under the folder
-    containing the .h5 files.
-    After QC, the data will be normalised and scaled (optional) and the highly variable genes will be
-    calculated.
+    After the quality control, the dt will be log-normalised and scaled. Adiitionaly, the highly variable genes and PCA
+    will be calculated.
 
-    :param paths: list of paths of the .h5 files
-    :param ids: list of ids (batch name) for each .h5 file
-    :param metadata: dictionary with metadata information
-    :param batch_key: column name in .obs for the batch information
-    :param remove_doublets: remove doublets with scDblFinder
-    :param min_genes_in_cell: minimum number of genes per cell
-    :param min_cells_with_genes: minimum cells expressing a genes
-    :param n_reads: target sum after normalisation per cell
-    :param cut_mt: maximum percentage of mitochondrial genes per cell
-    :param min_counts:  minimum number of counts per cell
-    :param max_counts: maximum number of counts per cell
-    :param min_genes: minimum number of genes per cell
-    :param max_genes: maximum number of genes per cell
-    :param low_quantile: low quantile to filter cells based on counts and genes
-    :param high_quantile: upper quantile to filter cells based on counts and genes
-    :return: anndata object with samples concatenated
+    :param paths: list with the path to the H5 files.
+    :param ids: list with the batch name for each sample.
+    :param metadata: dictionary with metadata information.
+    :param batch_key: key in `.obs` for the batch information.
+    :param remove_doublets: if set to True, neotypic doublets will be removed.
+    :param min_genes_in_cell: minimum number of genes per cell.
+    :param min_cells_with_genes: minimum cells expressing a genes.
+    :param n_reads: target sum after normalisation per cell.
+    :param cut_mt: maximum percentage of mitochondrial genes per cell.
+    :param min_counts:  minimum number of counts per cell.
+    :param max_counts: maximum number of counts per cell.
+    :param min_genes: minimum number of genes per cell.
+    :param max_genes: maximum number of genes per cell.
+    :param low_quantile: low quantile to filter cells based on counts.
+    :param high_quantile: upper quantile to filter cells based on counts.
+    :return: annotated dt matrix of shape `n_obs` x `n_vars` with all the samples concatenated.
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> paths = ['/path/sample1', '/path/sample2']
+    >>> batchname = ['sample1', 'sample2']
+    >>> metadata = {'condition': ['WT', 'KO'],
+    ...             'age': ['3m', '3m'],
+    ...             }
+    >>> adata = do.pp.importer_py(paths=paths,
+    ...                           ids=batchname,
+    ...                           metadata=metadata,
+    ...                           batch_key='batch',
+    ...                           remove_doublets=True,
+    ...                           min_genes_in_cell=300,
+    ...                           min_cells_with_genes=5,
+    ...                           n_reads=10_000,
+    ...                           cut_mt=5,
+    ...                           high_quantile=95,
+    ...                           min_counts=500
+    ...                           )
     """
     # Checks
     assert isinstance(paths, list) and isinstance(ids, list), "Please provide a list of paths and ids"
@@ -361,7 +369,7 @@ def importer_py(
 
     adata_dict = {}
     for idx, path in enumerate(paths):
-        # Save QC Plots in the folder with raw data
+        # Save QC Plots in the folder with raw dt
         qc_path = convert_path("/".join(path.split("/")[:-1]))
 
         logger.info(f"Reading {ids[idx]}")
@@ -414,5 +422,5 @@ def importer_py(
     sc.pp.highly_variable_genes(adata_concat, batch_key=batch_key)
 
     logger.info("Run PCA")
-    sc.pp.pca(adata_concat)
+    sc.pp.pca(adata_concat, layer='scaled')
     return adata_concat
