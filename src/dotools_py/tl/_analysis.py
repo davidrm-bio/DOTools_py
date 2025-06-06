@@ -172,7 +172,7 @@ def integrate_data(
     logger.info("Computing HVGs")
     hvg_batch = batch_key if hvg_batch else None
     sc.pp.highly_variable_genes(adata, batch_key=hvg_batch)
-    hvg = adata[:, adata.var_highly_variable].copy()
+    hvg = adata[:, adata.var.highly_variable].copy()
     sc.pp.scale(hvg)
     sc.pp.pca(hvg)
 
@@ -296,7 +296,7 @@ def auto_annot(
             f"The model {model} is not available. Please specify a valid model \n\n{celltypist.models.models_description()}"
         )
 
-    adata = adata.copy()
+    adata_copy = adata.copy()
     steps = ["Setting-up", "Predicting", "Saving predictions", "Updating labels"]
     total_steps = len(steps) if update_label else len(steps) - 1
 
@@ -306,13 +306,13 @@ def auto_annot(
         model_loaded = celltypist.models.Model.load(model=model)
         if convert:
             model_loaded.convert()
-        adata.X = adata.X.toarray()  # Leads to high memory usage
+        adata_copy.X = adata_copy.X.toarray()  # Leads to high memory usage
         pbar.update(1)
 
         # Do the prediction
         pbar.set_description(steps.pop(0))
         predictions_cells = celltypist.annotate(
-            adata, model=model_loaded, majority_voting=majority, over_clustering=cluster_key
+            adata_copy, model=model_loaded, majority_voting=majority, over_clustering=cluster_key
         )
         pbar.update(1)
 
