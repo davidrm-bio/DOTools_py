@@ -302,8 +302,9 @@ class TestData:
 
         assert isinstance(data, ad.AnnData) or isinstance(data, pd.DataFrame), 'Provide a DataFrame in long format or AnnData'
         self.data = data
+        feature = [feature] if isinstance(feature, str) else feature
         assert len(feature) == 1, f'{len(feature)} features provided. Please provide only 1'
-        self.key = feature  # We only plot 1 feature
+        self.key = feature[0]  # We only plot 1 feature
         assert (cond_key in list(data.obs.columns)) or (cond_key in list(data.columns)), f'{cond_key} not in adata.obs or df.columns'
         self.cond_key = cond_key
         self.ctrl = ctrl
@@ -322,7 +323,7 @@ class TestData:
         :return: Self
         """
         pvals = []
-        if self.key in self.data.obs.columns:
+        if self.key in self.data.var_names:
             sc.tl.rank_genes_groups(self.data, groupby=self.cond_key, method=self.test, tie_correct=True,
                                     reference=self.ctrl, groups=self.groups, corr_method=self.test_corr)
             df = sc.get.rank_genes_groups_df(self.data, group=None)
@@ -335,7 +336,7 @@ class TestData:
                 for group in self.groups:
                     pvals.append(df.loc[group, 'pvals_adj'])
 
-        elif self.key in self.data.var_names:
+        elif self.key in self.data.obs.columns:
             df_tmp = self.data.obs[[self.cond_key, self.key]]
             for group in self.groups:
                 _, p = mannwhitneyu(df_tmp[df_tmp[self.cond_key] == self.ctrl],
@@ -361,7 +362,7 @@ class TestData:
             for group in self.groups + [self.ctrl]:
                 _, p = shapiro(self.data[self.cond_key == group])
                 if p > 0.05:
-                    new_test = 'wilcoxon' if self.test is 't-test' else 'anova'
+                    new_test = 'wilcoxon' if self.test == 't-test' else 'anova'
                     logger.warn(f'Data does not follow normality but {self.test} was set, changing to {new_test}')
                     self.test = new_test
                     break

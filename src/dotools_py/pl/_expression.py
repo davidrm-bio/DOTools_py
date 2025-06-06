@@ -75,7 +75,9 @@ def barplot(adata: ad.AnnData,
     sanitize_anndata(adata)
     groups_cond = [groups_cond] if isinstance(groups_cond, str) else groups_cond
     groups_pvals = [groups_pvals] if isinstance(groups_pvals, float) else groups_pvals
+    feature = [feature] if isinstance(feature, str) else feature
     assert len(feature) == 1, 'Only 1 feature can be plotted'
+    feature = feature[0]
 
     def log_estimator(values):
         return np.log1p(np.mean(np.expm1(values)))
@@ -145,7 +147,7 @@ def barplot(adata: ad.AnnData,
         return bp
     else:
         plt.tight_layout()
-        return None
+        return plt.show()
 
 
 def boxplot(adata: ad.AnnData,
@@ -206,7 +208,9 @@ def boxplot(adata: ad.AnnData,
     sanitize_anndata(adata)
     groups_cond = [groups_cond] if isinstance(groups_cond, str) else groups_cond
     groups_pvals = [groups_pvals] if isinstance(groups_pvals, float) else groups_pvals
+    feature = [feature] if isinstance(feature, str) else feature
     assert len(feature) == 1, 'Only 1 feature can be plotted'
+    feature = feature[0]
 
     if feature in adata.var_names:
         df = get_expr(adata, feature, groups=x_axis, layer=layer)
@@ -256,7 +260,7 @@ def boxplot(adata: ad.AnnData,
         return bx
     else:
         plt.tight_layout()
-        return None
+        return plt.show()
 
 
 def violin(adata: ad.AnnData,
@@ -318,7 +322,9 @@ def violin(adata: ad.AnnData,
     sanitize_anndata(adata)
     groups_cond = [groups_cond] if isinstance(groups_cond, str) else groups_cond
     groups_pvals = [groups_pvals] if isinstance(groups_pvals, float) else groups_pvals
+    feature = [feature] if isinstance(feature, str) else feature
     assert len(feature) == 1, 'Only 1 feature can be plotted'
+    feature = feature[0]
 
     if feature in adata.var_names:
         df = get_expr(adata, feature, groups=x_axis, layer=layer)
@@ -368,4 +374,4 @@ def violin(adata: ad.AnnData,
         return vln
     else:
         plt.tight_layout()
-        return None
+        return plt.show()
