@@ -17,6 +17,10 @@ warnings.filterwarnings("default", category=CustomWarning)
 
 
 def set_plt_theme():
+    """Set matplotlib theme
+
+    :return: None
+    """
     # Scanpy Settings
     sc.settings.set_figure_params(
         dpi=100, dpi_save=300, facecolor="white", color_map="Reds", frameon=True, transparent=False
@@ -58,7 +62,10 @@ def set_plt_theme():
 
 
 def iOn():
-    """Activate interactive plotting (TkAgg backend), if available."""
+    """Activate interactive plotting if avaialble
+
+    :return:
+    """
     import matplotlib as mpl
     import matplotlib.pyplot as plt
     import os
@@ -76,7 +83,10 @@ def iOn():
 
 
 def iOff():
-    """Deactivate Interactive plotting (agg backed)"""
+    """Deactivate Interactive plotting.
+
+    :return: None
+    """
     plt.ioff()
     mpl.use("Agg")
     return
