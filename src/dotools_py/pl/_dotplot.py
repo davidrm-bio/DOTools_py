@@ -32,8 +32,8 @@ from dotools_py.utils import convert_path, sanitize_anndata
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-    from typing import Literal, Self
-
+    from typing import Literal
+    from typing_extensions import Self
     import pandas as pd
     from anndata import AnnData
     from matplotlib.axes import Axes
@@ -65,7 +65,7 @@ class DotPlot(BasePlot):
     Each dot represents two values: mean expression within each category
     (visualized by color) and fraction of cells expressing the `var_name` in the
     category (visualized by the size of the dot). If `groupby` is not given,
-    the dotplot assumes that all data belongs to a single category.
+    the dotplot assumes that all dt belongs to a single category.
 
     .. note::
        A gene is considered expressed if the expression value in the `adata` (or
@@ -234,7 +234,7 @@ class DotPlot(BasePlot):
             else:
                 dot_color_df = np.log1p(obs_matrix.groupby(level=0, observed=True).mean())
 
-            # Scale the data
+            # Scale the dt
             if standard_scale == "group":
                 dot_color_df = dot_color_df.sub(dot_color_df.min(1), axis=0)
                 dot_color_df = dot_color_df.div(dot_color_df.max(1), axis=0).fillna(0)
@@ -560,7 +560,7 @@ class DotPlot(BasePlot):
 
     def _mainplot(self, ax: Axes):
         # work on a copy of the dataframes. This is to avoid changes
-        # on the original data frames after repetitive calls to the
+        # on the original dt frames after repetitive calls to the
         # DotPlot object, for example once with swap_axes and other without
 
         _color_df = self.dot_color_df.copy()
@@ -631,9 +631,9 @@ class DotPlot(BasePlot):
         **kwds,
     ):
         """\
-        Makes a *dot plot* given two data frames, one containing
+        Makes a *dot plot* given two dt frames, one containing
         the doc size and other containing the dot color. The indices and
-        columns of the data frame are used to label the output image
+        columns of the dt frame are used to label the output image
 
         The dots are plotted using :func:`matplotlib.pyplot.scatter`. Thus, additional
         arguments can be passed.
@@ -876,7 +876,7 @@ def dotplot_scanpy(
     Each dot represents two values: mean expression within each category
     (visualized by color) and fraction of cells expressing the `var_name` in the
     category (visualized by the size of the dot). If `groupby` is not given,
-    the dotplot assumes that all data belongs to a single category.
+    the dotplot assumes that all dt belongs to a single category.
 
     note::
        A gene is considered expressed if the expression value in the `adata` (or
@@ -1059,51 +1059,59 @@ def dotplot(
     dot_min=None,
     **kwargs,
 ) -> plt.Axes:
-    """**Creates a dotplot or 3d dotplot**
+    """Makes a 2d dotplot or 3d dotplot.
 
-    * Dotplot: X_axis shows ``x_axis`` categories and Y_axis the ``features``. The color represents the LogMean(nUMI)
-               and the size of the dots the fractions of cells expressing the feature. Uses a modified implementation of
-               the ``sc.pl.dotplot()`` function of scanpy. It may fall back to scanpy in case of missing implementation
-               features
-    * 3d dotplot: X_axis shows ``x_axis`` categories and Y_axis shows ``y_axis`` categories. For each feature the ``x_axis``
-                  categories will be duplicated, to show how is the expressing across 2 categorical columns in .obs.
-                  The color represents the LogMean(nUMI) and the size the fraction of cells expressing the feature.
+    There are two type of visualisation:
+        * 2d dotplot: X_axis shows ``x_axis`` categories and Y_axis the ``features``. The color represents the LogMean(nUMI)
+                   and the size of the dots the fractions of cells expressing the feature. Uses a modified implementation of
+                   the ``sc.pl.dotplot()`` function of scanpy. It may fall back to scanpy in case of missing implementation
+                   features.
+        * 3d dotplot: X_axis shows ``x_axis`` categories and Y_axis shows ``y_axis`` categories. For each feature the
+                      ``x_axis`` categories will be duplicated, to show how is the expressing across 2 categorical columns
+                      in `.obs`. The color represents the LogMean(nUMI) and the size the fraction of cells expressing the
+                      feature.
 
-    :param adata: anndata object
-    :param x_axis: .obs columnname to groupby (sc.pl.dotplot argument --> groupby)
-    :param features: .var_names to show mean values  (sc.pl.dotplot argument --> var_names)
-    :param y_axis: .obs columname to groupby in the other axis
-    :param layer: layer of the anndata to use
-    :param x_categories_order: order of the categories in x_axis
-    :param y_categories_order: order of the categories in y_axis
-    :param subset_adata: subset anndata if less x_categories_order and y_categories_order are provided
-    :param logcounts: the expression values provided are logcounts
+    .. note::
+        The 2d dotplot implementation allows for standard scaling while the 3d implementation allows for Z-score
+        scaling.
+
+    :param adata: annotated data matrix
+    :param x_axis: `.obs` column to groupby, same as groupby  in sc.pl.dotplot argument.
+    :param features: `.var_names` to show mean values, same as var_names  in sc.pl.dotplot argument.
+    :param y_axis: `.obs` column to groupby in the other axis.
+    :param layer: layer of the AnnData to use.
+    :param x_categories_order: order of the categories in x_axis.
+    :param y_categories_order: order of the categories in y_axis.
+    :param subset_adata: subset anndata if less x_categories_order and y_categories_order are provided.
+    :param logcounts: the expression values provided are logcounts.
     :param expression_cutoff: expression cutoff used for binariying the gene expression and determining the fraction of
                               cells expressing a given feature. A gene is expressed only if the expression value is greater
-                              than this threshold
-    :param mean_only_expressed: if True, gene expression is averaged only over the cells expressing the given gene
+                              than this threshold.
+    :param mean_only_expressed: if True, gene expression is averaged only over the cells expressing the given gene.
     :param z_score: apply z_score transformation. Possible values: x_axis, y_axis or None. Only can be used when y_axis is provided.
-                    Use standard_scale (group or var) if only x_axis is specified
-    :param cmap: colormap
-    :param vmax: the value representing the upper limit of the color scale
-    :param vmin: the value representing the lower limit of the color scale
-    :param vcenter: the value representing the center of the color scale
-    :param size_legend_title: title for the size legend
-    :param color_legend_title: title for the colorbar
-    :param feature_fontsize: size of the feature names when yticks is specified
-    :param xticks_rotation: rotation of the xticks
-    :param ax: matplotlib axis
-    :param figsize: figure size
-    :param path: path to save plot
-    :param filename: filename of the plot
-    :param smallest_dot:
-    :param largest_dot:
+                    Use standard_scale (group or var) if only x_axis is specified.
+    :param cmap: colormap.
+    :param vmax: the value representing the upper limit of the color scale.
+    :param vmin: the value representing the lower limit of the color scale.
+    :param vcenter: the value representing the center of the color scale.
+    :param size_legend_title: title for the size legend.
+    :param color_legend_title: title for the colorbar.
+    :param feature_fontsize: size of the feature names when yticks is specified.
+    :param xticks_rotation: rotation of the xticks.
+    :param ax: matplotlib axis.
+    :param figsize: figure size.
+    :param path: path to save plot.
+    :param filename: filename of the plot.
+    :param smallest_dot: all expression levels with `dot_min` are plotted with this size.
+    :param largest_dot: all expression levels with `dot_max` are plotted with this size.
     :param show: return axis
-    :param size_exponent:
-    :param edge_lw:
-    :param edge_color:
-    :param dot_min:
-    :param dot_max:
+    :param size_exponent: control the increase of dots.
+    :param edge_lw: thickness of the dot edges.
+    :param edge_color: dot edge color.
+    :param dot_min: If `None`, the minimum dot size is set to 0. If given, the value should be a number between 0 and 1.
+                    All fractions smaller than dot_min are clipped to this value.
+    :param dot_max: If `None`, the maximum dot size is set to the maximum fraction value found. If given, the value
+                    should be a number between 0 and 1. All Fractions larger than dot_max are clipped to this value.
     :param swap_axes: swap axis, only used in sc.pl.dotplot(). Default is True to match the 3d dotplot arguments
     :param rect_height: height of the boxes of the features in 3d dotplot
     :param kwargs: additional arguments passed to sc.pl.dotplot
@@ -1252,14 +1260,14 @@ def dotplot(
         # Get bounding boxes in display coordinates
         text_bbox = text_obj.get_window_extent(renderer)
 
-        # Convert padding from display to data coordinates
+        # Convert padding from display to dt coordinates
         y_min, y_max = dot_ax.get_ylim()
         total_range = y_max - y_min
 
-        # Calculate padding in data coordinates
+        # Calculate padding in dt coordinates
         padding_data = padding * total_range
 
-        # Calculate height needed in data coordinates
+        # Calculate height needed in dt coordinates
         text_height_display = text_bbox.height
         text_height_data = (text_height_display / renderer.height) * total_range
 
