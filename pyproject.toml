@@ -50,6 +50,15 @@ optional-dependencies.doc = [
   "sphinx-tabs",
   "sphinxcontrib-bibtex>=1",
   "sphinxext-opengraph",
+  "bbknn",
+  "celltypist",
+  "matplotlib",
+  "polars",
+  "scipy",
+  "scvi-tools",
+  "seaborn",
+  "tqdm",
+  "doubletdetection"
 ]
 optional-dependencies.test = [
   "adjusttext",
