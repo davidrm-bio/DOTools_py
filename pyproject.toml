@@ -28,7 +28,8 @@ dependencies = [
   "session-info2",
   "tqdm",
   "requests",
-  "adjustText"
+  "adjustText",
+  "scanpy"
 ]
 optional-dependencies.dev = [
   "pre-commit",
