@@ -81,7 +81,7 @@ def get_subplot_shape(
 
 
 def spine_format(
-    axis: plt.axis,
+    axis: plt.Axes,
     txt: str = "UMAP",
     fontsize: int = 10
 ) -> None:

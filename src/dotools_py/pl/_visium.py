@@ -30,7 +30,7 @@ def layers(
     :param normalise: do log-normalisation on the layers.
     :param show: if set to False, return axis.
     :param kwargs: additional arguments for sc.pl.spatial.
-    :return:  None or plt.axis
+    :return:  None or plt.axes.
     """
 
     adata = adata.copy()
