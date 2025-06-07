@@ -26,7 +26,7 @@ def _run_cca(
     batch_key: str,
     version: str = "v4",
 ) -> np.array:
-    """Integrate AnnData using CCA from Seurat
+    """Integrate AnnData using CCA from Seurat.
 
     :param adata: anndata object.
     :param batch_key: column in obs with batch IDs.
@@ -77,12 +77,12 @@ def _run_scvi(
     dispersion: str = "gene-batch",
     gene_likelihood: str = "zinb",
     get_model: bool = False,
-    **kwargs,
+    **kwargs
 ) -> None:
-    """Run scVI
+    """Run scVI.
 
     Run scVI to integrate sc/snRNA more information on
-    `scvi-tools <https://docs.scvi-tools.org/en/stable/api/reference/scvi.model.SCVI.html>`_
+    `scvi-tools <https://docs.scvi-tools.org/en/stable/api/reference/scvi.model.SCVI.html>`_.
 
     :param adata: annotated dt matrix.
     :param batch_key: `.obs` column with batch information.
@@ -150,13 +150,14 @@ def integrate_data(
     cca5: bool = False,
     scvi: bool = False,
     resolution: float = 0.3,
-    **kwargs,
+    **kwargs
 ) -> None:
     """Integrate a concatenated AnnData.
 
-    Integrate and perform batch correction for an AnnData with several samples.
+    Integrate and perform batch correction for an AnnData with
+    several samples.
 
-    :param adata:annotated dt matrix.
+    :param adata: annotated data matrix.
     :param batch_key: column in `obs` with batch information.
     :param hvg_batch: if set to True, highly variable genes shared across samples will be used for the integration.
     :param harmony: integrate using harmony.
@@ -520,7 +521,7 @@ def full_recluster(
     :param majority: use majority voting for automatic annotation.
     :param convert: convert the gene format. Useful if using a human model in celltypist and input is mouse or viceverse.
     :param model: model name of celltypist to use.
-    :return: input AnnData with reclustering or subsetted anndata with reclusters
+    :return: input AnnData with reclustering or subsetted anndata with reclusters.
     """
 
     celltype = list(adata.obs[cluster_key].unique())

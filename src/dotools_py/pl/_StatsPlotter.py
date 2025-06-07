@@ -52,7 +52,7 @@ class StatsPlotter:
 
     See Also
     --------
-    :class: `dotools_py.pl.TestData` -- useful class to calculate statistics
+        :class:`dotools_py.pl.TestData` - useful class to calculate statistics
     """
     def __init__(self,
                  axis: plt.Axes,

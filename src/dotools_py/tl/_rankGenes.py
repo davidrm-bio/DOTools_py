@@ -557,7 +557,7 @@ def rank_genes_groups(
     copy
         Whether to copy `adata` or modify it inplace.
     kwds
-        Are passed to test methods. Currently this affects only parameters that
+        Are passed to test methods. Currently, this affects only parameters that
         are passed to :class:`sklearn.linear_model.LogisticRegression`.
         For instance, you can pass `penalty='l1'` to try to come up with a
         minimal set of genes that are good predictors (sparse solution meaning

@@ -18,7 +18,7 @@ def layers(
     normalise: bool = False,
     show: bool = True,
     **kwargs
-) -> Union[None, plt.axis]:
+) -> Union[None, plt.Axes]:
     """Plot several layers.
 
     Plot different layers in subplots. Useful for deconvolution analysis with celltype counts in layers.
