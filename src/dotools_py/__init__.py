@@ -1,6 +1,6 @@
 from importlib.metadata import version
 
-from . import pl, pp, tl, dt
+from dotools_py import pl, pp, tl, dt
 from ._settings import set_plt_theme, iOn
 
 __all__ = ["pl", "pp", "tl", "dt"]

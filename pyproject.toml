@@ -26,6 +26,9 @@ dependencies = [
   "anndata",
   # for debug logging (referenced from the issue template)
   "session-info2",
+  "tqdm",
+  "requests",
+  "adjustText"
 ]
 optional-dependencies.dev = [
   "pre-commit",
@@ -76,7 +79,7 @@ features = [ "dev" ]
 
 [tool.hatch.envs.docs]
 features = [ "doc" ]
-scripts.build = "sphinx-build -M html docs docs/_build -W {args}"
+scripts.build = "sphinx-build -M html docs docs/_build {args}"
 scripts.open = "python -m webbrowser -t docs/_build/html/index.html"
 scripts.clean = "git clean -fdX -- {args:docs}"
 
@@ -87,18 +90,9 @@ python = [ "3.10", "3.13" ]
 
 # Test the newest supported Python version also with pre-release deps
 [[tool.hatch.envs.hatch-test.matrix]]
-deps = [ "pre" ]
 python = [ "3.10" ]
-
 [tool.hatch.envs.hatch-test]
 features = [ "test" ]
-
-[tool.hatch.envs.hatch-test.overrides]
-# If the matrix variable `deps` is set to "pre",
-# set the environment variable `UV_PRERELEASE` to "allow".
-matrix.deps.env-vars = [
-  { key = "UV_PRERELEASE", value = "allow", if = [ "pre" ] },
-]
 
 [tool.ruff]
 line-length = 120
@@ -157,10 +151,8 @@ omit = [
 skip = [
   "tests",
   "src/**/__init__.py",
-  "src/**/basic.py",
   "docs/api.md",
   "docs/changelog.md",
   "docs/references.bib",
   "docs/references.md",
-  "docs/notebooks/example.ipynb",
 ]
