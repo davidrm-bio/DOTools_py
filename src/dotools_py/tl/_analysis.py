@@ -156,7 +156,7 @@ def integrate_data(
 
     Integrate and perform batch correction for an AnnData with several samples.
 
-    :param adata:annotated dt matrix
+    :param adata:annotated dt matrix.
     :param batch_key: column in `obs` with batch information.
     :param hvg_batch: if set to True, highly variable genes shared across samples will be used for the integration.
     :param harmony: integrate using harmony.
@@ -167,7 +167,7 @@ def integrate_data(
     :param scvi: integrate using scvi.
     :param resolution: resolution for the leiden clustering.
     :param kwargs: extra arguments for scVI integration.
-    :return:
+    :return: annotated data matrix integrated.
     """
     logger.info("Computing HVGs")
     hvg_batch = batch_key if hvg_batch else None

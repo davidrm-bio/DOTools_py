@@ -296,10 +296,12 @@ def volcano_plot(
     """Generate a volcano plot.
 
     Genes will be colored differently depending on the p-value (Pval) and logfoldchange (LFC):
-        * Genes Pval < pval_cut & LFC > lfc_cut: Red.
-        * Genes Pval < pval_cut & LFC < lfc_cut: Blue.
-        * Genes Pval > pval_cut & LFC > lfc_cut: Green.
-        * Genes Pval > pval_cut & LFC < lfc_cut: Gray.
+
+    * Genes Pval < pval_cut & LFC > lfc_cut: Red.
+    * Genes Pval < pval_cut & LFC < lfc_cut: Blue.
+    * Genes Pval > pval_cut & LFC > lfc_cut: Green.
+    * Genes Pval > pval_cut & LFC < lfc_cut: Gray.
+
     If no genes are provided (with the mygenes argument) the top 10 genes with highest and lowest LFC that are
     significant will be marked.
 
@@ -320,8 +322,8 @@ def volcano_plot(
     :param dot_size: size of the dots.
     :param topn: if mygenes is None. The top 10 positive and negative genes are plotted.
     :param textprops: properties of the gene labels (See `plt.text <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.text.html>`_)
-    :param show: if set to true, return axis
-    :return:
+    :param show: if set to true, return axis.
+    :return: Volcano plot.
     """
     dge = dge.copy()  # Do not Modify input
 

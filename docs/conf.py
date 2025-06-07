@@ -98,6 +98,7 @@ intersphinx_mapping = {
     "numpy": ("https://numpy.org/doc/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
+    "sklearn": ("https://scikit-learn.org/stable/", None),
 }
 
 # List of patterns, relative to source directory, that match files and
