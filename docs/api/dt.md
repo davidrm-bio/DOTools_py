@@ -8,4 +8,5 @@
 
     dt.heart_markers
     dt.standard_ct_labels_heart
+    dt.example_10x
 ```

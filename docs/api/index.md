@@ -8,7 +8,6 @@ import dotools_py as do
 ```{toctree}
 :maxdepth: 1
 
-dt
 pp
 ```
 
