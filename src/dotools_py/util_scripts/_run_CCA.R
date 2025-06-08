@@ -83,7 +83,7 @@ if (opt$version == 'v4') {
 
 # Prepare to export to python
 message('Preparing to export to python...')
-message(df_integrated_expr[1:3, 1:3])
+print(df_integrated_expr[1:3, 1:3])
 
 message('Saving data in ')
 message(paste0(opt$out, 'adata_hvg_seurat_AnchorIntegration.csv'))
