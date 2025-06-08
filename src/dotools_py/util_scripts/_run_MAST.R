@@ -10,7 +10,6 @@
 
 suppressWarnings(suppressMessages(library(optparse)))
 suppressWarnings(suppressMessages(library(zellkonverter)))
-suppressWarnings(suppressMessages(library(data.table)))
 suppressWarnings(suppressMessages(library(SingleCellExperiment)))
 suppressWarnings(suppressMessages(library(Biobase)))
 suppressWarnings(suppressMessages(library(MAST)))
@@ -25,13 +24,13 @@ option_list <- list(
     make_option(c("--key"), type = "character", default = NULL,
                 help = "Column name in .obs attribute in the anndata that contains the condition information",
                 metavar = "character"),
-    make_option(c("--ref"), type = "character", default = "v4",
+    make_option(c("--ref"), type = "character", default = NULL,
                 help = "Name of reference condition",
                 metavar = "character"),
-    make_option(c("--disease"), type = "character", default = "v4",
+    make_option(c("--disease"), type = "character", default = NULL,
                 help = "Name of alternative condition",
                 metavar = "character"),
-    make_option(c("--covariates"), type = "character", default = "v4",
+    make_option(c("--covariates"), type = "character", default = NULL,
                 help = "Extra column with covariates to consider",
                 metavar = "character")
 )
@@ -77,9 +76,7 @@ sca <- FromMatrix(exprsArray =  as.matrix(logcounts(sce)),
                   fData = as.data.frame(rowData(sce))
 )
 
-formula <- as.formula(
-    object = paste0(" ~ ", paste(latent.vars, collapse = "+"))
-  )
+formula <- as.formula(object = paste0(" ~ ", paste(latent.vars, collapse = "+")))
 
 
 # Run Test
@@ -92,13 +89,10 @@ summaryDt <- summaryCond$datatable
 p_val <- as.data.frame(summaryDt[summaryDt[["component"]] == "H", 'Pr(>Chisq)'])
 names(p_val) <- 'pvals'
 genes <- as.data.frame(summaryDt[summaryDt[["component"]] == "H", 1])
-names(genes) <- 'names'
 p_val[['padj']] <- p.adjust(p_val$pvals, method = 'fdr')
 
 
-counts.mean.fxn <- function(x) {
-    return(log(x = (rowSums(x = x) + 1)/NCOL(x), base = 2))
-  }
+counts.mean.fxn <- function(x) {return(log(x = (rowSums(x = x) + 1)/NCOL(x), base = 2))}
 
 counts_mat <- as.matrix(counts(sce))  # convert to dense matrix if sparse
 idx1 <- which(condition == opt$ref)
@@ -106,7 +100,6 @@ idx2 <- which(condition == opt$disease)
 mean1 <- counts.mean.fxn(counts_mat[,idx1])
 mean2 <-  counts.mean.fxn(counts_mat[,idx2])
 log2fc <- as.data.frame(mean2 - mean1)
-names(log2fc) <- 'log2fc'
 pct1 <- rowMeans(counts_mat[, idx1, drop=FALSE] > 0)
 pct2 <- rowMeans(counts_mat[, idx2, drop=FALSE] > 0)
 

@@ -2,9 +2,14 @@ import anndata as ad
 import numpy as np
 import pandas as pd
 import scipy as sp
+from pathlib import Path
+import os
+import subprocess
+import uuid
 
 from dotools_py import logger
 from typing import Union
+from dotools_py.utils import get_paths_utils
 
 def _expm1_anndata(
     adata: ad.AnnData
@@ -155,3 +160,52 @@ def free_memory():
     gc.collect()
     ctypes.CDLL("libc.so.6").malloc_trim(0)
     return
+
+
+
+# DGE Analysis
+
+def _run_mast(
+    adata: ad.AnnData,
+    cond_key: str,
+    reference: str,
+    disease: str,
+    covariates: Union[str, list, None] = None
+)-> pd.DataFrame:
+    """Run MAST Test in R.
+
+    :param adata: annotated data matrix.
+    :param cond_key: obs column with condition information.
+    :param reference: reference condition.
+    :param disease: disease condition.
+    :param covariates: extra covariates to account for.
+    :return: pandas dataframe with DGEs.
+    """
+
+    rscript = get_paths_utils("_Run_MAST.R")
+
+    tmpdir_path = Path("/tmp") / f"MAST_Test_{uuid.uuid4().hex}"
+    tmpdir_path.mkdir(parents=True, exist_ok=False)
+
+    logger.info("Preprocessing to R")
+    del adata.uns, adata.raw
+    adata.write(tmpdir_path / "adata.h5ad")
+
+    logger.info("Running MAST Integration")
+    in_path = os.path.join(tmpdir_path, "adata.h5ad")
+    cmd =  [
+            "Rscript",
+            rscript,
+            "--input=" + in_path,
+            "--out=" + str(tmpdir_path) + "/dge_mast.csv",
+            "--key=" + cond_key,
+            "--ref=" + reference,
+            "--disease=" + disease,
+        ]
+    cmd += ["--covariates=" + covariates] if covariates is not None else []
+    subprocess.call(cmd)
+
+    logger.info("Loading Results")
+    dge = pd.read_csv(os.path.join(tmpdir_path, "dge_mast.csv"))
+    return dge
+
