@@ -92,13 +92,13 @@ genes <- as.data.frame(summaryDt[summaryDt[["component"]] == "H", 1])
 p_val[['padj']] <- p.adjust(p_val$pvals, method = 'fdr')
 
 
-counts.mean.fxn <- function(x) {return(log(x = (rowSums(x = x) + 1)/NCOL(x), base = 2))}
-
+log1pdata.mean.fxn <- function(x) {return(log(x = (rowSums(x = expm1(x = x)) + 1)/NCOL(x), base = 2))}
 counts_mat <- as.matrix(counts(sce))  # convert to dense matrix if sparse
+logcounts_mat <- as.matrix(logcounts(sce))
 idx1 <- which(condition == opt$ref)
 idx2 <- which(condition == opt$disease)
-mean1 <- counts.mean.fxn(counts_mat[,idx1])
-mean2 <-  counts.mean.fxn(counts_mat[,idx2])
+mean1 <- log1pdata.mean.fxn(logcounts_mat[,idx1])
+mean2 <-  log1pdata.mean.fxn(logcounts_mat[,idx2])
 log2fc <- as.data.frame(mean2 - mean1)
 pct1 <- rowMeans(counts_mat[, idx1, drop=FALSE] > 0)
 pct2 <- rowMeans(counts_mat[, idx2, drop=FALSE] > 0)
