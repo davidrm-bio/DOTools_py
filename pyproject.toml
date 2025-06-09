@@ -58,7 +58,8 @@ optional-dependencies.doc = [
   "scvi-tools",
   "seaborn",
   "tqdm",
-  "doubletdetection"
+  "doubletdetection",
+  "gseapy"
 ]
 optional-dependencies.test = [
   "adjusttext",
@@ -76,7 +77,8 @@ optional-dependencies.test = [
   "scvi-tools",
   "seaborn",
   "tqdm",
-  "doubletdetection"
+  "doubletdetection",
+  "gseapy"
 ]
 # https://docs.pypi.org/project_metadata/#project-urls
 urls.Documentation = "https://DOTools_py.readthedocs.io/"
