@@ -1,11 +1,9 @@
 from importlib.metadata import version
 
-from . import pl, pp, tl, dt
-from ._settings import set_plt_theme, iOn
+from ._settings import settings
+from . import pl, pp, tl, dt, utility
 
-__all__ = ["pl", "pp", "tl", "dt"]
+__all__ = ["pl", "pp", "tl", "dt", "utility"]
 
 __version__ = version("DOTools_py")
 
-set_plt_theme()
-iOn()
