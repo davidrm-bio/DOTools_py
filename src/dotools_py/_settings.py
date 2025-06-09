@@ -3,7 +3,7 @@ import warnings
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import scanpy as sc
-from logger import set_verbosity
+from dotools_py.logger import set_verbosity
 
 
 class DeprecatedFunctionError(Exception):
@@ -92,7 +92,7 @@ def settings(
     :param font_family: font family to use.
     :return:
     """
-    verbosity = set_verbosity(verbosity)
+    set_verbosity(verbosity)
     if interactive:
         iOn()
     else:

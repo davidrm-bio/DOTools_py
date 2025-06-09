@@ -1,5 +1,4 @@
 import logging
-
 import scanpy as sc
 
 logger = logging.getLogger("dotools")
