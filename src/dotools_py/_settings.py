@@ -16,51 +16,6 @@ class CustomWarning(UserWarning):
 warnings.filterwarnings("default", category=CustomWarning)
 
 
-def set_plt_theme():
-    """Set matplotlib theme
-
-    :return: None
-    """
-    # Scanpy Settings
-    sc.settings.set_figure_params(
-        dpi=100, dpi_save=300, facecolor="white", color_map="Reds", frameon=True, transparent=False
-    )
-
-    # Set global font sizes and styles
-    plt.rcParams["font.size"] = 12
-    plt.rcParams["axes.labelsize"] = 18
-    plt.rcParams["axes.labelweight"] = "bold"
-
-    # Set title font size and style
-    plt.rcParams["axes.titlesize"] = 20
-    plt.rcParams["axes.titleweight"] = "bold"
-
-    # Set legends and xticks
-    plt.rcParams["legend.fontsize"] = 14
-    plt.rcParams["xtick.labelsize"] = 12
-    plt.rcParams["ytick.labelsize"] = 12
-
-    # Hide top and right spines
-    plt.rcParams["axes.spines.top"] = False
-    plt.rcParams["axes.spines.right"] = False
-
-    # Remove grid
-    plt.rcParams["axes.grid"] = False
-    plt.rcParams["axes.linewidth"] = 1.2  # Thicker axes lines
-    plt.rcParams["lines.linewidth"] = 2.0  # Thicker lines
-
-    # Set Font family
-    plt.rcParams["font.family"] = "sans-serif"
-    plt.rcParams["font.sans-serif"] = "DejaVu Sans"
-    plt.rcParams["text.usetex"] = False
-    plt.rcParams["svg.fonttype"] = "none"
-    mpl.rcParams["pdf.fonttype"] = 42
-
-    plt.rcParams["figure.autolayout"] = True  # Prevent overlapping
-    plt.rcParams["savefig.bbox"] = "tight"  # No unnecessary whitespace
-    return
-
-
 def iOn():
     """Activate interactive plotting if avaialble
 
@@ -91,3 +46,92 @@ def iOff():
     mpl.use("Agg")
     return
 
+
+
+def settings(interactive: bool = True,
+             dpi: int = 100,
+             dpi_save: int =  300,
+             facecolor: str ='white',
+             colormap: str = 'Reds',
+             frameon: bool = True,
+             transparent: bool = False,
+             fontsize: int = 12,
+             axes_fontsize: int =18,
+             axes_fontweight: str = 'bold',
+             title_fontsize: int =20,
+             title_fontweight: str = 'bold',
+             legend_fontsize: int =14,
+             ticks_fontsize: int = 12,
+             top_spine: bool =False,
+             right_spine: bool =False,
+             grid: bool =False,
+             font_family: str = 'sans-serif',
+             ):
+    """Set general settings.
+
+    :param interactive: if set to true, activate interactive plotting.
+    :param dpi: dpi for showing plots.
+    :param dpi_save: dpi for saving plots.
+    :param facecolor: Sets backgrounds via rcParams['figure.facecolor'] = facecolor and rcParams['axes.facecolor'] = facecolor.
+    :param colormap: Convenience method for setting the default color map.
+    :param frameon: Add frames and axes labels to scatter plots.
+    :param transparent: Save figures with transparent background.
+    :param fontsize: Set the fontsize.
+    :param axes_fontsize: Set the fontsize for the x and y labels.
+    :param axes_fontweight: Set the font-weight for the x and y labels.
+    :param title_fontsize:  Set the fontsize for the title.
+    :param title_fontweight: Set the font-weight for the title.
+    :param legend_fontsize: Set the fontsize for the legend.
+    :param ticks_fontsize: Set the fontsize for the x and y ticks.
+    :param top_spine: remove the top spine.
+    :param right_spine: remove the right spine.
+    :param grid: show the grid lines.
+    :param font_family: font family to use.
+    :return:
+    """
+
+    if interactive:
+        iOn()
+    else:
+        iOff()
+
+    # Scanpy Settings
+    sc.settings.set_figure_params(
+        dpi=dpi, dpi_save=dpi_save, facecolor=facecolor,
+        color_map=colormap, frameon=frameon, transparent=transparent
+    )
+
+    # Set global font sizes and styles
+    plt.rcParams["font.size"] = fontsize
+    plt.rcParams["axes.labelsize"] = axes_fontsize
+    plt.rcParams["axes.labelweight"] = axes_fontweight
+
+    # Set title font size and style
+    plt.rcParams["axes.titlesize"] = title_fontsize
+    plt.rcParams["axes.titleweight"] = title_fontweight
+
+    # Set legends and xticks
+    plt.rcParams["legend.fontsize"] = legend_fontsize
+    plt.rcParams["xtick.labelsize"] = ticks_fontsize
+    plt.rcParams["ytick.labelsize"] = ticks_fontsize
+
+    # Hide top and right spines
+    plt.rcParams["axes.spines.top"] = top_spine
+    plt.rcParams["axes.spines.right"] = right_spine
+
+    # Remove grid
+    plt.rcParams["axes.grid"] = grid
+    plt.rcParams["axes.linewidth"] = 1.2  # Thicker axes lines
+    plt.rcParams["lines.linewidth"] = 2.0  # Thicker lines
+
+    # Set Font family
+    plt.rcParams["font.family"] = font_family
+    if font_family == 'sans-serif':
+        plt.rcParams["font.sans-serif"] = "DejaVu Sans"
+    plt.rcParams["text.usetex"] = False
+    plt.rcParams["svg.fonttype"] = "none"
+    mpl.rcParams["pdf.fonttype"] = 42
+
+    plt.rcParams["figure.autolayout"] = True  # Prevent overlapping
+    plt.rcParams["savefig.bbox"] = "tight"  # No unnecessary whitespace
+    return

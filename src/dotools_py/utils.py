@@ -6,7 +6,10 @@ import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
+import functools
+import importlib
+import subprocess
+import sys
 
 def get_paths_utils(
     script: str
@@ -226,3 +229,32 @@ def transfer_labels(
     if copy:
         return adata_original
     return None
+
+
+
+
+def require_dependencies(required_packages):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            missing = []
+            for pkg in required_packages:
+                import_name = pkg.get('import', pkg['name'])
+                try:
+                    importlib.import_module(import_name)
+                except ImportError:
+                    missing.append(pkg['name'])
+
+            if missing:
+                print("The following packages are missing:")
+                for pkg in missing:
+                    print(f" - {pkg}")
+                choice = input("Do you want to install them now? [y/N]: ").strip().lower()
+                if choice == 'y':
+                    subprocess.check_call([sys.executable, '-m', 'pip', 'install', *missing])
+                else:
+                    raise ImportError("Missing required packages.")
+
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
