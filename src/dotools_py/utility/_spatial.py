@@ -5,6 +5,7 @@ import pandas as pd
 from tqdm import tqdm
 import scipy.sparse as sp
 import numpy as np
+from typing import TYPE_CHECKING
 
 try:
     import spatialdata as st
@@ -13,6 +14,8 @@ except ModuleNotFoundError:
     SPATIALDATA_AVAILABLE = False
     pass
 
+if TYPE_CHECKING:
+    from spatialdata import SpatialData  # only imported for type checkers
 
 from dotools_py.utils import convert_path, require_dependencies
 
@@ -36,7 +39,7 @@ def select_slide(adata: ad.AnnData,
     return slid
 
 
-def save_zarr(sdata: "st.SpatialData",
+def save_zarr(sdata: "SpatialData",
               path: str,
               filename: str) -> None:
     """Save changes from SpatialData object.

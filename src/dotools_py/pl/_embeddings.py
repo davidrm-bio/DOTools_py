@@ -347,7 +347,7 @@ def split_embeddding(
     sp_size: float = 1.5,
     show: bool = True,
     **kwargs,
-) -> Union[plt.axes, None]:
+) -> Union[plt.Axes, None]:
     """Plot categorical data splited in an embedding.
 
     This function takes an AnnData and a categorical column in obs and generate a plot of subplots  highlighting the
