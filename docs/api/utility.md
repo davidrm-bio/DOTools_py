@@ -1,4 +1,6 @@
-# Utility Functions
+# Utility
+The utility module is collection of functions useful for
+the analysis.
 
 ## General
 ```{eval-rst}

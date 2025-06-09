@@ -1,4 +1,8 @@
-# Tools
+# Tools `tl`
+
+The tools module {mod}`do.tl` contains funcstions for the downstream
+analysis and statistical methods.
+
 
 ## Downstream processing
 ```{eval-rst}

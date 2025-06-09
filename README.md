@@ -6,32 +6,51 @@
 [badge-tests]: https://img.shields.io/github/actions/workflow/status/davidrm-bio/DOTools_py/test.yaml?branch=main
 [badge-docs]:  https://img.shields.io/readthedocs/DOTools_py
 
-Functions for sc/snRNAseq Analysis and Visualisation
+Functions for sc/snRNA-seq Analysis and Visualisation
 
 ## Getting started
 
-Please refer to the [documentation](https://dotools-py.readthedocs.io/en/latest/),
-in particular, the [API documentation](https://dotools-py.readthedocs.io/en/latest/api.html).
+Please refer to the [documentation](https://dotools-py.readthedocs.io/en/latest/index.html),
+in particular, the [API documentation](https://dotools-py.readthedocs.io/en/latest/api/index.html).
 
 ## Installation
 
 You need to have Python 3.10 or newer installed on your system.
-If you don't have Python installed, we recommend installing [uv][].
 
 There are several alternative options to install DOTools_py:
 
-<!--
-1) Install the latest release of `DOTools_py` from [PyPI][]:
 
-```bash
-pip install DOTools_py
+1. Install the latest release of `DOTools_py` from [PyPI][]:
+    ```bash
+    pip install DOTools_py
+    ```
+
+2. Install the latest development version:
+    ```bash
+    pip install git+https://github.com/davidrm-bio/DOTools_py.git@main
+    ```
+
+We also have an R implementation of the  [DOTools](https://github.com/MarianoRuzJurado/DOtools). This can be
+installed with `devtools`:
+
+```R
+devtools::install_github("MarianoRuzJurado/DOtools")
 ```
--->
 
-1. Install the latest development version:
+## Requirements
 
-```bash
-pip install git+https://github.com/davidrm-bio/DOTools_py.git@main
+Some methods are run through R and require additional dependencies
+including: `Seurat`, `MAST`, `scDblFinder`, `zellkonverter` and `optparse`.
+
+```R
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+install.packages("optparse")
+remotes::install_github("satijalab/seurat", "seurat5", quiet = TRUE)  # Seurat
+BiocManager::install("MAST")
+BiocManager::install("scDblFinder")
+BiocManager::install("zellkonverter")
 ```
 
 ## Release notes
@@ -39,6 +58,10 @@ pip install git+https://github.com/davidrm-bio/DOTools_py.git@main
 See the [changelog][].
 
 ## Contact
+Raising up an issue in this Github repository might be the fastest way of submitting suggestions and bugs.
+Alternatively you can write to my email: [rodriguezmorales@med.uni-frankfurt.de](mailto:rodriguezmorales@med.uni-frankfurt.de).
+
+
 
 ## Citation
 
