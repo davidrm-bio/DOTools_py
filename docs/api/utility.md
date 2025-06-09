@@ -28,5 +28,4 @@
 
     utility.select_slide
     utility.add_smooth_kernel
-    utility.save_zarr
 ```
