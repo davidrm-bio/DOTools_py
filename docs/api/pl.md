@@ -10,6 +10,7 @@
 
     pl.dotplot
     pl.embedding
+    pl.split_embeddding
     pl.umap
     pl.cell_props
     pl.split_bar_gsea
