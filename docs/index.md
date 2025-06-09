@@ -8,7 +8,7 @@
 
 api/index
 notebooks/index
-release-notes/index
+changelog
 contributing
 references
 ```

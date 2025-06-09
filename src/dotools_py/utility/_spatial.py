@@ -7,16 +7,6 @@ import scipy.sparse as sp
 import numpy as np
 from typing import TYPE_CHECKING
 
-try:
-    import spatialdata as st
-    SPATIALDATA_AVAILABLE = True
-except ModuleNotFoundError:
-    SPATIALDATA_AVAILABLE = False
-    pass
-
-if TYPE_CHECKING:
-    from spatialdata import SpatialData  # only imported for type checkers
-
 from dotools_py.utils import convert_path, require_dependencies
 
 def select_slide(adata: ad.AnnData,
@@ -38,26 +28,6 @@ def select_slide(adata: ad.AnnData,
         del slid.uns['spatial'][val]
     return slid
 
-
-def save_zarr(sdata: "SpatialData",
-              path: str,
-              filename: str) -> None:
-    """Save changes from SpatialData object.
-
-    :param sdata: SpatialData Object.
-    :param path: path to the folder.
-    :param filename: filename.
-    :return:
-    """
-    if not SPATIALDATA_AVAILABLE:
-        raise ImportError('spatialdata is not installed, this function is unavailable')
-
-    path = convert_path(path)
-    tmpdir = TemporaryDirectory()
-    sdata.write(Path(tmpdir.name) / filename, overwrite=True)
-    sdata = st.read_zarr(Path(tmpdir.name) / filename)
-    sdata.write(path / filename, overwrite=True)
-    return
 
 
 
