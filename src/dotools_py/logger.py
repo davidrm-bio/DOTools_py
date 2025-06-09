@@ -16,11 +16,11 @@ def _setup_logger() -> None:
         handler.setFormatter(formatter)
         logger.addHandler(handler)
         logger.propagate = False
-    verbosity(2)
+    set_verbosity(2)
     return None
 
 
-def verbosity(level: int = 2) -> None:
+def set_verbosity(level: int = 2) -> None:
     """Set verbosity.
 
     :param level: 0 - Silent;
@@ -28,7 +28,6 @@ def verbosity(level: int = 2) -> None:
                   2 - Info/Warnings + Scanpy Info/Warnings;
                   3 - Debug mode
     :return: None
-
     """
     if level == 0:
         # Completely silent

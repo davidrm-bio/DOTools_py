@@ -7,3 +7,4 @@ __all__ = ["pl", "pp", "tl", "dt", "utility"]
 
 __version__ = version("DOTools_py")
 
+settings()

@@ -3,6 +3,7 @@ import warnings
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import scanpy as sc
+from logger import set_verbosity
 
 
 class DeprecatedFunctionError(Exception):
@@ -47,28 +48,30 @@ def iOff():
     return
 
 
-
-def settings(interactive: bool = True,
-             dpi: int = 100,
-             dpi_save: int =  300,
-             facecolor: str ='white',
-             colormap: str = 'Reds',
-             frameon: bool = True,
-             transparent: bool = False,
-             fontsize: int = 12,
-             axes_fontsize: int =18,
-             axes_fontweight: str = 'bold',
-             title_fontsize: int =20,
-             title_fontweight: str = 'bold',
-             legend_fontsize: int =14,
-             ticks_fontsize: int = 12,
-             top_spine: bool =False,
-             right_spine: bool =False,
-             grid: bool =False,
-             font_family: str = 'sans-serif',
-             ):
+def settings(
+    verbosity: int = 2,
+    interactive: bool = True,
+    dpi: int = 100,
+    dpi_save: int = 300,
+    facecolor: str = 'white',
+    colormap: str = 'Reds',
+    frameon: bool = True,
+    transparent: bool = False,
+    fontsize: int = 12,
+    axes_fontsize: int = 18,
+    axes_fontweight: str = 'bold',
+    title_fontsize: int = 20,
+    title_fontweight: str = 'bold',
+    legend_fontsize: int = 14,
+    ticks_fontsize: int = 12,
+    top_spine: bool = False,
+    right_spine: bool = False,
+    grid: bool = False,
+    font_family: str = 'sans-serif',
+) -> None:
     """Set general settings.
 
+    :param verbosity: set verbosity level. 0 for silent, 1 for Info/Warnings, 2 for Info/Warnings + Scanpy Info/Warnings and 3 for debug mode.
     :param interactive: if set to true, activate interactive plotting.
     :param dpi: dpi for showing plots.
     :param dpi_save: dpi for saving plots.
@@ -89,7 +92,7 @@ def settings(interactive: bool = True,
     :param font_family: font family to use.
     :return:
     """
-
+    verbosity = set_verbosity(verbosity)
     if interactive:
         iOn()
     else:
@@ -135,3 +138,4 @@ def settings(interactive: bool = True,
     plt.rcParams["figure.autolayout"] = True  # Prevent overlapping
     plt.rcParams["savefig.bbox"] = "tight"  # No unnecessary whitespace
     return
+
