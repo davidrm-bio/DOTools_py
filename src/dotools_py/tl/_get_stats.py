@@ -14,7 +14,7 @@ import gseapy
 
 from dotools_py import logger
 from dotools_py.utils import get_paths_utils, sanitize_anndata, convert_path
-from dotools_py.tl import rank_genes_groups, mean_expr
+from dotools_py.tl import rank_genes_groups
 from scipy.stats import ttest_ind
 
 
