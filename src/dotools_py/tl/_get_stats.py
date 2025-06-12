@@ -146,9 +146,13 @@ def get_expr(
     # Add Metadata
     if groups is not None:
         if isinstance(groups, str):
+            if adata.obs[groups].dtype.name in ['category', 'object']:
+                adata.obs[groups] = adata.obs[groups].str.replace('-', '_')
             table_expr[groups] = adata.obs[groups]  # One column
         else:
             for group in groups:  # Multiple columns
+                if adata.obs[group].dtype.name in ['category', 'object']:
+                    adata.obs[group] = adata.obs[group].str.replace('-', '_')
                 table_expr[group] = adata.obs[group]
     if out_format == "long":
         table_expr = pd.melt(table_expr, id_vars=groups, var_name="genes", value_name="expr")
@@ -159,7 +163,7 @@ def get_expr(
 
 
 # DGE Analysis
-def _run_mast(
+def run_mast(
     adata: ad.AnnData,
     cond_key: str,
     reference: str,
@@ -268,7 +272,7 @@ def _run_test(
     if method.lower() == 'mast':
         logger.info('Running MAST test in R.')
         assert reference != 'rest', 'Specify a reference when using MAST test'
-        dge = _run_mast(adata, cond_key=groupby, reference=reference, disease=groups, covariates=covariates)
+        dge = run_mast(adata, cond_key=groupby, reference=reference, disease=groups, covariates=covariates)
     elif method in ['wilcoxon', 'logreg', 't-test', 't-test_overestim_var']:
         logger.info(f'Running {method} test.')
         rank_genes_groups(adata, groupby=groupby, method=method, tie_correct=True,
@@ -434,9 +438,9 @@ def go_analysis(
     path: str = None,
     filename: str = '',
     specie: str = 'Mouse',
-    go_catgs: Union[str, list] = ['GO_Molecular_Function_2023',
+    go_catgs: Union[str, list] = ('GO_Molecular_Function_2023',
                                   'GO_Cellular_Component_2023',
-                                  'GO_Biological_Process_2023']
+                                  'GO_Biological_Process_2023')
 ) -> Union[pd.DataFrame, None]:
     """Run Gene Ontology using EnrichR API.
 
