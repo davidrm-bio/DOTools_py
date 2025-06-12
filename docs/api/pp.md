@@ -15,4 +15,5 @@ such as [scDblFinder](https://github.com/plger/scDblFinder),
 
     pp.run_cellbender
     pp.importer_py
+    pp.sctransform_normalise
 ```

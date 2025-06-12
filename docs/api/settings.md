@@ -9,4 +9,5 @@ the pipeline.
     :toctree: generated
 
     settings
+    interactive_session
 ```

@@ -6,7 +6,7 @@
 [badge-tests]: https://img.shields.io/github/actions/workflow/status/davidrm-bio/DOTools_py/test.yaml?branch=main
 [badge-docs]:  https://img.shields.io/readthedocs/DOTools_py
 
-Functions for sc/snRNA-seq Analysis and Visualisation
+Convenient functions for sc/snRNA-seq analysis and visualisation.
 
 ## Getting started
 
@@ -19,18 +19,19 @@ You need to have Python 3.10 or newer installed on your system.
 
 There are several alternative options to install DOTools_py:
 
-
+<-----
 1. Install the latest release of `DOTools_py` from [PyPI][]:
     ```bash
     pip install DOTools_py
     ```
+---->
 
-2. Install the latest development version:
+1. Install the latest development version:
     ```bash
     pip install git+https://github.com/davidrm-bio/DOTools_py.git@main
     ```
 
-We also have an R implementation of the  [DOTools](https://github.com/MarianoRuzJurado/DOtools). This can be
+We also have a R implementation of the  [DOTools](https://github.com/MarianoRuzJurado/DOtools). This can be
 installed with `devtools`:
 
 ```R

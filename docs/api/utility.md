@@ -11,6 +11,7 @@ the analysis.
     :toctree: generated
 
     utility.free_memory
+    utility.transfer_labels
 ```
 
 ## Plotting
@@ -21,6 +22,7 @@ the analysis.
     utility.generate_cmap
     utility.extended_tab20
     utility.get_hex_colormaps
+    utility.spine_format
 ```
 
 ## Spatial

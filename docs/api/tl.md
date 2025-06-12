@@ -29,6 +29,7 @@ analysis and statistical methods.
     tl.rank_genes_groups
     tl.rank_genes_condition
     tl.grouped_ttest
+    tl.run_mast
     tl.generate_results
 ```
 
