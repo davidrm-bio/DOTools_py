@@ -339,8 +339,8 @@ class TestData:
         elif self.key in self.data.obs.columns:
             df_tmp = self.data.obs[[self.cond_key, self.key]]
             for group in self.groups:
-                _, p = mannwhitneyu(df_tmp[df_tmp[self.cond_key] == self.ctrl],
-                                    df_tmp[df_tmp[self.cond_key] == group],
+                _, p = mannwhitneyu(df_tmp[df_tmp[self.cond_key] == self.ctrl][self.key],
+                                    df_tmp[df_tmp[self.cond_key] == group][self.key],
                                     use_continuity=True,
                                     nan_policy='omit')
                 pvals.append(p)

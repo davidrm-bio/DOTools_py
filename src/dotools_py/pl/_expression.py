@@ -5,7 +5,7 @@ import seaborn as sns
 
 from dotools_py import logger
 from dotools_py.utils import convert_path, sanitize_anndata
-from typing import Union
+from typing import Union, Literal
 from dotools_py.tl import get_expr, mean_expr
 from dotools_py.pl._StatsPlotter import TestData, StatsPlotter
 
@@ -15,7 +15,7 @@ def barplot(adata: ad.AnnData,
             x_axis: str,
             batch_key: str = 'batch',
             layer: str = None,
-            figsize: tuple = (5, 6),
+            figsize: tuple = (3, 4.2),
             palette: Union[str, list] = 'tab10',
             capsize: float = 0.1,
             xtick_rotation: int = None,
@@ -24,16 +24,18 @@ def barplot(adata: ad.AnnData,
             groups_pvals: list = None,
             title: str = None,
             path: str = None, filename: str = None,
-            title_fontproperties: dict = {'weight': 'bold', 'size': 20},
-            show: bool = True, marker_size: int = 5,
+            title_fontproperties: dict = None,
+            show: bool = True,
+            marker_size: int = 6,
             ax: plt.Axes = None,
             logcounts: bool = True,
             estimator: Union[str, None] = 'LogMean',
-            test: str = 'wilcoxon',
-            corr_method: str = 'benjamini-hochberg',
+            test: Literal['wilcoxon', 't-test', 'kruskal', 'anova', 'logreg', 't-test_overestim_var'] = 'wilcoxon',
+            corr_method: Literal['benjamini-hochberg', 'bonferroni'] = 'benjamini-hochberg',
             txt_size: int = 13,
             txt: str = 'p = ',
-            ylabel='LogMean(nUMI)',
+            ylabel: str = 'LogMean(nUMI)',
+            line_offset: float = 0.05,
             **kwargs,
             ):
     """Barplot with stats.
@@ -68,6 +70,7 @@ def barplot(adata: ad.AnnData,
     :param txt_size: size of the text indicating significance.
     :param txt: text for indicating significance. If not set, only the p-value is shown.
     :param ylabel: Y-axis label.
+    :param line_offset: line offset for the stat
     :param kwargs: additional arguments passed to `sns.barplot()`
     :return: matplotlib axis
     """
@@ -87,7 +90,8 @@ def barplot(adata: ad.AnnData,
         df_batch = mean_expr(adata, group_by=[x_axis, batch_key], features=feature, layer=layer)
         df_batch.columns = ['gene', x_axis, batch_key, 'expr']
     elif feature in list(adata.obs.columns):
-        df = adata.obs[feature]
+        df = adata.obs[[x_axis, feature]]
+        df.columns = [x_axis, 'expr']
         df_batch = adata.obs[[feature, x_axis, batch_key]]
         df_batch = df_batch.groupby([x_axis, batch_key]).agg(np.mean).fillna(0).reset_index()
         df_batch['gene'] = feature
@@ -108,7 +112,7 @@ def barplot(adata: ad.AnnData,
         bp = sns.barplot(df, x=x_axis, y='expr', estimator=estimator,
                          capsize=capsize, ax=ax, palette=palette, **kwargs)
 
-    sns.stripplot(df_batch, x=x_axis, y='expr', alpha=0.75, color='k', s=marker_size, ax=ax)
+    sns.stripplot(df_batch, x=x_axis, y='expr', alpha=0.75, color='k', s=marker_size, ax=bp)
 
     if ctrl_cond is not None and groups_cond is not None:
         if groups_pvals is None:
@@ -118,24 +122,21 @@ def barplot(adata: ad.AnnData,
             groups_pvals = testing.pvals
 
         plotter = StatsPlotter(bp, x_axis, 'expr', ctrl_cond, groups_cond,
-                               txt_size, txt, groups_pvals, 'bar')
+                               txt_size, txt, groups_pvals, 'bar', line_offset=line_offset)
         plotter.plot_stats()
 
     if xtick_rotation is not None:
         bp.set_xticklabels(bp.get_xticklabels(), rotation=xtick_rotation, ha='right', va='top',
                            fontweight='bold')
+    else:
+        bp.set_xticklabels(bp.get_xticklabels(), fontweight='bold')
+
     bp.set_xlabel('')
     bp.set_ylabel(ylabel)
 
-    # TODO Remove the lower part from the errorbar
-
-    try:
-        title_size = title_fontproperties['size']
-        title_font = title_fontproperties['weight']
-    except ValueError:
-        logger.warn('Setting title fontsize to 20 and fontweight to bold')
-        title_size = 20
-        title_font = 'bold'
+    title_fontproperties = {} if title_fontproperties is None else title_fontproperties
+    title_size = title_fontproperties.get('size', 20)
+    title_font = title_fontproperties.get('weight', 'bold')
 
     if title is None:
         bp.set_title(feature, fontsize=title_size, fontweight=title_font)  # Title is the genename
@@ -162,14 +163,14 @@ def boxplot(adata: ad.AnnData,
             groups_pvals: list = None,
             title: str = None,
             path: str = None, filename: str = None,
-            title_fontproperties: dict = {'weight': 'bold', 'size': 20},
+            title_fontproperties: dict = None,
             show: bool = True,
             ax: plt.Axes = None,
             showfliers: bool = False,
-            test: str = 'wilcoxon',
-            corr_method: str = 'benjamini-hochberg',
+            test: Literal['wilcoxon', 't-test', 'kruskal', 'anova', 'logreg', 't-test_overestim_var'] = 'wilcoxon',
+            corr_method: Literal['benjamini-hochberg', 'bonferroni'] = 'benjamini-hochberg',
             txt_size: int = 13,
-            txt: str = 'p',
+            txt: str = 'p = ',
             ylabel='LogMean(nUMI)',
             **kwargs,
             ):
@@ -215,7 +216,8 @@ def boxplot(adata: ad.AnnData,
     if feature in adata.var_names:
         df = get_expr(adata, feature, groups=x_axis, layer=layer)
     elif feature in list(adata.obs.columns):
-        df = adata.obs[feature]
+        df = adata.obs[[x_axis, feature]]
+        df.columns = [x_axis, 'expr']
     else:
         raise ValueError(f'{feature} is not in adata.var_names or adata.obs')
 
@@ -237,18 +239,14 @@ def boxplot(adata: ad.AnnData,
         plotter.plot_stats()
 
     if xtick_rotation is not None:
-        bx.set_xticklabels(bx.get_xticklabels(), rotation=xtick_rotation, ha='right', va='top',
-                           fontweight='bold')
+        bx.set_xticklabels(bx.get_xticklabels(), rotation=xtick_rotation,
+                           ha='right', va='top', fontweight='bold')
     bx.set_xlabel('')
     bx.set_ylabel(ylabel)
 
-    try:
-        title_size = title_fontproperties['size']
-        title_font = title_fontproperties['weight']
-    except ValueError:
-        logger.warn('Setting title fontsize to 20 and fontweight to bold')
-        title_size = 20
-        title_font = 'bold'
+    title_fontproperties = {} if title_fontproperties is None else title_fontproperties
+    title_size = title_fontproperties.get('size', 20)
+    title_font = title_fontproperties.get('weight', 'bold')
 
     if title is None:
         bx.set_title(feature, fontsize=title_size, fontweight=title_font)  # Title is the genename
@@ -275,14 +273,14 @@ def violin(adata: ad.AnnData,
            groups_pvals: list = None,
            title: str = None,
            path: str = None, filename: str = None,
-           title_fontproperties: dict = {'weight': 'bold', 'size': 20},
+           title_fontproperties: dict  =None,
            show: bool = True,
            ax: plt.Axes = None,
            cut: float = 0,
-           test: str = 'wilcoxon',
-           corr_method: str = 'benjamini-hochberg',
+           test: Literal['wilcoxon', 't-test', 'kruskal', 'anova', 'logreg', 't-test_overestim_var'] = 'wilcoxon',
+           corr_method: Literal['benjamini-hochberg', 'bonferroni'] = 'benjamini-hochberg',
            txt_size: int = 13,
-           txt: str = 'p',
+           txt: str = 'p = ',
            ylabel='LogMean(nUMI)',
            **kwargs,
            ):
@@ -329,7 +327,8 @@ def violin(adata: ad.AnnData,
     if feature in adata.var_names:
         df = get_expr(adata, feature, groups=x_axis, layer=layer)
     elif feature in list(adata.obs.columns):
-        df = adata.obs[feature]
+        df = adata.obs[[x_axis, feature]]
+        df.columns = [x_axis, 'expr']
     else:
         raise ValueError(f'{feature} is not in adata.var_names or adata.obs')
 
@@ -337,7 +336,7 @@ def violin(adata: ad.AnnData,
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
 
-    vln = sns.violinplot(df, x=x_axis, y='expr', ax=ax, palette=palette, **kwargs)
+    vln = sns.violinplot(df, x=x_axis, y='expr', ax=ax, palette=palette, cut=cut, **kwargs)
 
     if ctrl_cond is not None and groups_cond is not None:
         if groups_pvals is None:
@@ -356,13 +355,9 @@ def violin(adata: ad.AnnData,
     vln.set_xlabel('')
     vln.set_ylabel(ylabel)
 
-    try:
-        title_size = title_fontproperties['size']
-        title_font = title_fontproperties['weight']
-    except ValueError:
-        logger.warn('Setting title fontsize to 20 and fontweight to bold')
-        title_size = 20
-        title_font = 'bold'
+    title_fontproperties = {} if title_fontproperties is None else title_fontproperties
+    title_size = title_fontproperties.get('size', 20)
+    title_font = title_fontproperties.get('weight', 'bold')
 
     if title is None:
         vln.set_title(feature, fontsize=title_size, fontweight=title_font)  # Title is the genename
