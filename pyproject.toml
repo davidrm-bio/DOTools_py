@@ -74,6 +74,7 @@ optional-dependencies.test = [
   "pandas",
   "polars",
   "pytest",
+  "ipython",
   "scanpy",
   "scipy",
   "scvi-tools",
