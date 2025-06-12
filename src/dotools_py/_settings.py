@@ -1,8 +1,11 @@
+import os
 import warnings
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import scanpy as sc
+
+from dotools_py.logger import logger
 from dotools_py.logger import set_verbosity
 
 
@@ -17,34 +20,35 @@ class CustomWarning(UserWarning):
 warnings.filterwarnings("default", category=CustomWarning)
 
 
-def iOn():
-    """Activate interactive plotting if avaialble
+def interactive_session(enable: bool = True):
+    """Make session interactive.
 
+    :param enable: set to True to activate interactive plotting
     :return:
     """
-    import matplotlib as mpl
-    import matplotlib.pyplot as plt
-    import os
+    from IPython import get_ipython
+    if enable:
+        try:
+            shell = get_ipython().__class__.__name__
+            if shell == 'ZMQInteractiveShell':
+                get_ipython().run_line_magic('matplotlib', 'inline')
+                logger.info('Jupyter enviroment detected. Using "inline" backend')
+            else:
+                if os.environ.get('DISPLAY', '') == '':
+                    raise RuntimeError('No display found. Cannot use GUI backend')
+                mpl.use('TkAgg', force=True)
+                plt.ion()
+                logger.info('Interactive plotting enabled. Using "TkAgg" backend')
+        except Exception as e:
+            logger.info(f'Interactive(True) Could not enable interactive plotting {e}.')
+    else:
+        try:
+            plt.ioff()
+            mpl.use('agg', force=True)
+            logger.info('Interactive plotting disabled. Using "Agg" backend')
+        except Exception as e:
+            logger.info(f'Interactive(False) failed to disable interactive plotting {e}')
 
-    try:
-        # If in headless (no display), don't try to use TkAgg
-        if os.environ.get("DISPLAY", "") == "":
-            raise RuntimeError("No display found. Cannot use interactive backend.")
-
-        mpl.use("TkAgg", force=True)
-        plt.ion()
-        print("Interactive plotting enabled (TkAgg).")
-    except Exception as e:
-        print(f"[iOn()] Interactive plotting not available: {e}")
-
-
-def iOff():
-    """Deactivate Interactive plotting.
-
-    :return: None
-    """
-    plt.ioff()
-    mpl.use("Agg")
     return
 
 
@@ -57,17 +61,17 @@ def settings(
     colormap: str = 'Reds',
     frameon: bool = True,
     transparent: bool = False,
-    fontsize: int = 12,
-    axes_fontsize: int = 18,
+    fontsize: int = 10,
+    axes_fontsize: int = 12,
     axes_fontweight: str = 'bold',
-    title_fontsize: int = 20,
+    title_fontsize: int = 12,
     title_fontweight: str = 'bold',
-    legend_fontsize: int = 14,
-    ticks_fontsize: int = 12,
+    legend_fontsize: int = 9,
+    ticks_fontsize: int = 9,
+    figsize: tuple =(4, 5),
     top_spine: bool = False,
     right_spine: bool = False,
     grid: bool = False,
-    font_family: str = 'sans-serif',
 ) -> None:
     """Set general settings.
 
@@ -86,56 +90,76 @@ def settings(
     :param title_fontweight: Set the font-weight for the title.
     :param legend_fontsize: Set the fontsize for the legend.
     :param ticks_fontsize: Set the fontsize for the x and y ticks.
+    :param figsize: Set the figsize.
     :param top_spine: remove the top spine.
     :param right_spine: remove the right spine.
     :param grid: show the grid lines.
     :param font_family: font family to use.
     :return:
     """
-    set_verbosity(verbosity)
-    if interactive:
-        iOn()
-    else:
-        iOff()
 
     # Scanpy Settings
-    sc.settings.set_figure_params(
-        dpi=dpi, dpi_save=dpi_save, facecolor=facecolor,
+    sc.settings.set_figure_params(dpi=dpi, dpi_save=dpi_save, facecolor=facecolor,
         color_map=colormap, frameon=frameon, transparent=transparent
     )
+    set_verbosity(verbosity)
+    interactive_session(interactive)
 
-    # Set global font sizes and styles
-    plt.rcParams["font.size"] = fontsize
-    plt.rcParams["axes.labelsize"] = axes_fontsize
-    plt.rcParams["axes.labelweight"] = axes_fontweight
+    plt.rcParams.update({
+        # Font settings
+        "font.family": "sans-serif",
+        "font.serif": ["Helvetica"],
+        "font.size": fontsize,
+        "font.weight": 'normal',
+        "axes.labelsize": axes_fontsize,
+        "axes.labelweight": axes_fontweight,
+        "axes.titlesize": title_fontsize,
+        "axes.titleweight": title_fontweight,
+        "xtick.labelsize": ticks_fontsize,
+        "ytick.labelsize": ticks_fontsize,
+        "legend.fontsize": legend_fontsize,
 
-    # Set title font size and style
-    plt.rcParams["axes.titlesize"] = title_fontsize
-    plt.rcParams["axes.titleweight"] = title_fontweight
+        # Figure and axes
+        "figure.figsize": figsize,  # Single column width (inches)
+        "figure.dpi": dpi,
+        "figure.facecolor": facecolor,
 
-    # Set legends and xticks
-    plt.rcParams["legend.fontsize"] = legend_fontsize
-    plt.rcParams["xtick.labelsize"] = ticks_fontsize
-    plt.rcParams["ytick.labelsize"] = ticks_fontsize
+        # Grid settings
+        "axes.grid": grid,
 
-    # Hide top and right spines
-    plt.rcParams["axes.spines.top"] = top_spine
-    plt.rcParams["axes.spines.right"] = right_spine
+        # Line settings
+        "lines.linewidth": 1.5,
+        "lines.markersize": 6,
 
-    # Remove grid
-    plt.rcParams["axes.grid"] = grid
-    plt.rcParams["axes.linewidth"] = 1.2  # Thicker axes lines
-    plt.rcParams["lines.linewidth"] = 2.0  # Thicker lines
+        # Spines
+        "axes.spines.top": top_spine,
+        "axes.spines.right": right_spine,
+        "axes.linewidth": 1.2,
 
-    # Set Font family
-    plt.rcParams["font.family"] = font_family
-    if font_family == 'sans-serif':
-        plt.rcParams["font.sans-serif"] = "DejaVu Sans"
-    plt.rcParams["text.usetex"] = False
-    plt.rcParams["svg.fonttype"] = "none"
-    mpl.rcParams["pdf.fonttype"] = 42
+        # Ticks
+        "xtick.direction": "out",
+        "ytick.direction": "out",
+        "xtick.major.size": 5,
+        "ytick.major.size": 5,
+        "xtick.minor.size": 3,
+        "ytick.minor.size": 3,
+        "xtick.major.width": 1,
+        "ytick.major.width": 1,
+        "xtick.minor.width": 0.8,
+        "ytick.minor.width": 0.8,
 
-    plt.rcParams["figure.autolayout"] = True  # Prevent overlapping
-    plt.rcParams["savefig.bbox"] = "tight"  # No unnecessary whitespace
+        # Legend
+        "legend.frameon": frameon,
+        "legend.loc": "best",
+
+        # Text and font rendering
+        "text.usetex": False,  # Do not use LaTeX for text rendering
+        "svg.fonttype": "none",  # Keep text as text in SVGs
+        "figure.autolayout": True,  # Prevent overlapping elements
+        "savefig.bbox": "tight",  # Remove unnecessary whitespace
+    })
+
+    mpl.rcParams["pdf.fonttype"] = 42  # Use TrueType fonts in PDFs (editable text)
+
     return
 
