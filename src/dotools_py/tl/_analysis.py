@@ -376,7 +376,8 @@ def reclustering(
     :param adata: annotated dt matrix.
     :param cluster_key: `.obs` column name with clusters.
     :param batch_key: `.obs` column name with batch information.
-    :param use_clusters: clusters in cluster_key to re-cluster.
+    :param use_clusters: clusters in cluster_key to re-cluster. If several clusters are provided,
+                         the reclustering will be performed subsetting for all the clusters specified.
     :param hvg_batch: calculate highly variable genes that are shared across samples.
     :param recluster_apporach: reclustering approach to use. Available: cca4, cca5, harmony, bbknn and scvi.
     :param use_rep: `.obsm` key with the representation. Required for SCVI and CCA approach.
