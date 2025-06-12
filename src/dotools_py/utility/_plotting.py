@@ -3,7 +3,6 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 
-
 def generate_cmap(*args) -> LinearSegmentedColormap:
     """Generate a custom colormap.
 
@@ -17,7 +16,9 @@ def generate_cmap(*args) -> LinearSegmentedColormap:
     return LinearSegmentedColormap.from_list('Custom', colors, N=256)
 
 
-def get_hex_colormaps(colormap: str):
+def get_hex_colormaps(
+    colormap: str
+):
     """Get a list with Hexa IDs for a colormap.
 
     :param colormap: colormap name
@@ -27,7 +28,9 @@ def get_hex_colormaps(colormap: str):
     return [mpl.colors.rgb2hex(cmap(i)) for i in range(cmap.N)]
 
 
-def extended_tab20(n_shades: int = 6) -> list:
+def extended_tab20(
+    n_shades: int = 6
+) -> list:
     """Extends the colormap tab20 to more shades for a color.
 
     :param n_shades: number of shades.
@@ -52,3 +55,22 @@ def extended_tab20(n_shades: int = 6) -> list:
             ]
             extended_colors.append(color)
     return extended_colors
+
+
+def spine_format(
+    axis: plt.Axes,
+    txt: str = "UMAP",
+    fontsize: int = 12
+) -> None:
+    """Formatting the spines for Embeddings.
+
+    :param axis: axis object.
+    :param txt: type of embedding.
+    :param fontsize: size of the text.
+    :return:
+    """
+    axis.spines[["right", "top"]].set_visible(False)
+    axis.set_xlabel(txt + "1", loc="left", fontsize=fontsize, fontweight="bold")
+    axis.set_ylabel(txt + "2", loc="bottom", fontsize=fontsize, fontweight="bold")
+    return
+
