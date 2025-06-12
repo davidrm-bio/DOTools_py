@@ -32,7 +32,7 @@ from dotools_py.utils import convert_path, sanitize_anndata
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-    from typing import Literal
+    from typing import Literal, Union
     from typing_extensions import Self
     import pandas as pd
     from anndata import AnnData
@@ -1025,16 +1025,16 @@ def dotplot_scanpy(
 def dotplot(
     adata: ad.AnnData,
     x_axis: str,
-    features: str | list,
+    features: Union[str, list],
     y_axis: str = None,
-    layer: str | None = None,
+    layer: Union[str, None] = None,
     x_categories_order: list = None,
     y_categories_order: list = None,
     subset_adata: bool = False,
     logcounts: bool = True,
     expression_cutoff: float = 0.0,
     mean_only_expressed: bool = False,
-    z_score: str | None = None,
+    z_score: Union[str, None] = None,
     cmap: str = "Reds",
     vmax: float = None,
     vmin: float = None,
@@ -1045,7 +1045,7 @@ def dotplot(
     xticks_rotation: float = 90,
     ax: plt.Axes = None,
     figsize: tuple = (8, 4),
-    path: str | Path = None,
+    path: Union[str, Path] = None,
     filename: str = "Dotplot.svg",
     smallest_dot: float = 0.0,
     largest_dot: float = 200.0,

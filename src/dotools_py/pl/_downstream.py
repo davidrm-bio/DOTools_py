@@ -289,7 +289,7 @@ def volcano_plot(
     clean: bool = True,
     dot_size: float = 2.5,
     topn: int = 10,
-    textprops: dict = {"weight": "bold", "size": 13},
+    textprops: dict = None,
     show: bool = False,
     **kwargs,
 ):
@@ -326,6 +326,10 @@ def volcano_plot(
     :return: Volcano plot.
     """
     dge = dge.copy()  # Do not Modify input
+
+    textprops = {} if textprops is None else textprops
+    textprops = {'weight': textprops.get('weight', 'bold'),
+                 'size': textprops.get('size', 13)}
 
     # Replace Pvals & LFC greater than limit to the limit
     dge[pval_col][dge[pval_col] < pval_lim] = pval_lim
@@ -417,7 +421,7 @@ def split_bar_gsea(
     log10_transform: bool = True,
     figsize: tuple[int, int] = (12, 8),
     topn: float = 10,
-    colors_pairs: list = ["sandybrown", "royalblue"],
+    colors_pairs: list = ("sandybrown", "royalblue"),
     alpha_colors: float = 0.3,
     path: Union[str, None] = None,
     spacing: float = 5,
