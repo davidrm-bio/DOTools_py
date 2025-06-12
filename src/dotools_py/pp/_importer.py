@@ -59,7 +59,9 @@ def _qc_vln(
 
     if path is not None:
         plt.savefig(convert_path(path) / filename, bbox_inches="tight")
-    return
+        plt.close(fig)
+    else:
+        return
 
 
 def _filter_quantiles(
@@ -104,7 +106,7 @@ def _run_scdblfinder(
     logger.info("Running scDblFinder")
     cmd = ["Rscript", rscript, "--input=" + str(tmpdir_path) + "/adata_tmp.h5ad", "--out=" + str(tmpdir_path) + "/"]
     if batch_key:
-        cmd +=["--name=" + batch_key]
+        cmd += ["--name=" + batch_key]
     subprocess.call(cmd)
 
     doublets = polars.read_csv(tmpdir_path / "scDblFinder_inference.csv", infer_schema_length=0)
@@ -305,6 +307,7 @@ def _qc_scrna(
         bp.set_xlabel("Counts", fontsize=18)
         bp.legend(title="QC_Step", fontsize=12, frameon=False, title_fontproperties={"weight": "bold", "size": 15})
         plt.savefig(os.path.join(qc_path, f"{today}_QC_Metrics{ids}.svg"), bbox_inches="tight")
+        plt.close(fig)
 
         # Save Metric File
         df.to_excel(os.path.join(qc_path, metrics_filename), index=False)
@@ -452,3 +455,61 @@ def importer_py(
     logger.info("Run PCA")
     sc.pp.pca(adata_concat, layer='scaled')
     return adata_concat
+
+
+def sctransform_normalise(
+    adata: ad.AnnData,
+    batch_key: str = None,
+    layer=None
+) -> ad.AnnData:
+    """Normalisation based on SCTransform.
+
+    This function performs an alternative normalisation base on the SCTransform.
+
+    :param adata: anndata object.
+    :param batch_key: obs metadata with batch information.
+    :param layer: layer to use.
+    :return: AnnData object with layers containing the SCT counts and SCT normalise data.
+    """
+    from scipy import sparse
+    rscript = get_paths_utils("_run_SCTransform.R")
+    tmpdir_path = Path("/tmp") / f"SCTransform_{uuid.uuid4().hex}"
+    tmpdir_path.mkdir(parents=True, exist_ok=False)
+
+    logger.info('Preparing to transfer to R')
+    adata_copy = adata.copy()
+    if layer is not None:
+        adata.X = adata.layers[layer].copy()
+    del adata.uns
+    del adata.obsm
+
+    if batch_key is not None:
+        adata_copy.obs['batch'] = adata_copy.obs[batch_key]
+    else:
+        adata_copy.obs['batch'] = 'batch1'
+    adata_copy.write(tmpdir_path / "adata_tmp.h5ad")
+
+    logger.info('Running SCTransform in R')
+    subprocess.call(['Rscript', rscript, '--input=' + str(tmpdir_path) + '/', '--out=' + str(tmpdir_path) + '/'])
+
+    raw_counts = polars.read_csv(os.path.join(tmpdir_path, 'SCTransform_raw.csv'), infer_schema_length=0)
+    raw_counts = raw_counts.to_pandas().astype(float)
+    raw_counts = raw_counts.set_index(adata.obs_names)
+
+    norm_counts = polars.read_csv(os.path.join(tmpdir_path, 'SCTransform_norm.csv'), infer_schema_length=0)
+    norm_counts = norm_counts.to_pandas().astype(float)
+    norm_counts = norm_counts.set_index(adata.obs_names)
+
+    # Transfer genes not kept during normalisation to .obsm
+    excluded_genes = [gene for gene in adata.var_names if gene not in norm_counts.columns]
+    adata.var['SCT_rm'] = [True if gene in excluded_genes else False for gene in adata.var_names]
+    adata.obsm['SCT_rm'] = adata[:, adata.var['SCT_rm'].values].X.toarray()
+    adata = adata[:, ~adata.var['SCT_rm'].values]
+
+    # Make sure we have the same order or barcodes and features
+    norm_counts = norm_counts.reindex(index=adata.obs_names, columns=adata.var_names)
+    raw_counts = raw_counts.reindex(index=adata.obs_names, columns=adata.var_names)
+
+    adata.layers['SCT_norm'] = sparse.csr_matrix(norm_counts.values)
+    adata.layers['SCT_counts'] = sparse.csr_matrix(raw_counts.values)
+    return adata
