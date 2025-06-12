@@ -3,11 +3,12 @@ A function for setting some default `matplotlib.rcParams` as well as verbosity f
 the pipeline.
 
 ```{eval-rst}
+.. module:: dotools_py.settings
 .. currentmodule:: dotools_py
 
 .. autosummary::
     :toctree: generated
 
-    settings
-    interactive_session
+    settings.session_settings
+    settings.interactive_session
 ```

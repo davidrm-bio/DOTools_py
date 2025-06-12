@@ -5,19 +5,10 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import scanpy as sc
 
-from dotools_py.logger import logger
-from dotools_py.logger import set_verbosity
+from dotools_py import logger
+from dotools_py.logger import  set_verbosity
 
-
-class DeprecatedFunctionError(Exception):
-    pass
-
-
-class CustomWarning(UserWarning):
-    pass
-
-
-warnings.filterwarnings("default", category=CustomWarning)
+warnings.filterwarnings("ignore")
 
 
 def interactive_session(enable: bool = True):
@@ -52,7 +43,7 @@ def interactive_session(enable: bool = True):
     return
 
 
-def settings(
+def session_settings(
     verbosity: int = 2,
     interactive: bool = True,
     dpi: int = 100,

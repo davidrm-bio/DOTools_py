@@ -288,7 +288,7 @@ def timer(func):
     :return:
     """
     import time
-    
+
     def _timer(*args, **kwargs):
         start_time = time.time()
         try:

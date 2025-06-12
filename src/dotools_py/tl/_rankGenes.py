@@ -3,7 +3,6 @@
 #     CORRECTION FOR RANK GENES GROUPS
 #
 ########################################################################################################################
-
 from math import floor
 from typing import TYPE_CHECKING, Literal, get_args
 
@@ -61,8 +60,8 @@ def _select_top_n(scores: NDArray, n_top: int):
 
 def _ranks(
     X: np.ndarray | sparse.csr_matrix | sparse.csc_matrix,
-    mask_obs: NDArray[np.bool_] | None = None,
-    mask_obs_rest: NDArray[np.bool_] | None = None,
+    mask_obs: NDArray | None = None,
+    mask_obs_rest: NDArray | None = None,
 ):
     CONST_MAX_SIZE = 10000000
 
@@ -116,7 +115,7 @@ class _RankGenes:
         groups: Iterable[str] | Literal["all"],
         groupby: str,
         *,
-        mask_var: NDArray[np.bool_] | None = None,
+        mask_var: NDArray | None = None,
         reference: Literal["rest"] | str = "rest",
         use_raw: bool = True,
         layer: str | None = None,
@@ -490,7 +489,7 @@ def rank_genes_groups(
     adata: AnnData,
     groupby: str,
     *,
-    mask_var: NDArray[np.bool_] | str | None = None,
+    mask_var: NDArray | str | None = None,
     use_raw: bool | None = None,
     groups: Literal["all"] | Iterable[str] = "all",
     reference: str = "rest",

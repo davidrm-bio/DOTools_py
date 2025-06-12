@@ -1,13 +1,10 @@
 import anndata as ad
-from tempfile import TemporaryDirectory
-from pathlib import Path
 import pandas as pd
 from tqdm import tqdm
 import scipy.sparse as sp
 import numpy as np
-from typing import TYPE_CHECKING
 
-from dotools_py.utils import convert_path, require_dependencies
+from dotools_py.utils import require_dependencies
 
 def select_slide(adata: ad.AnnData,
                  s: str,
