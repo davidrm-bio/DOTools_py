@@ -11,6 +11,11 @@ import importlib
 import subprocess
 import sys
 
+
+class DeprecatedFunctionError(Exception):
+    pass
+
+
 def get_paths_utils(
     script: str
 ):
@@ -258,3 +263,38 @@ def require_dependencies(required_packages):
             return func(*args, **kwargs)
         return wrapper
     return decorator
+
+
+
+def deprecated_function(func):
+    """Decorator to mark a function as deprecated."""
+    import warnings
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        warnings.warn(
+            f"{func.__name__} is deprecated and cannot be called.",
+            category=DeprecationWarning,
+            stacklevel=2
+        )
+        raise DeprecatedFunctionError(f"{func.__name__} is no longer available.")
+    return wrapper
+
+
+def timer(func):
+    """Decorator to measure how much time a function took to run.
+
+    :param func: function
+    :return:
+    """
+    import time
+    
+    def _timer(*args, **kwargs):
+        start_time = time.time()
+        try:
+            return func(*args, **kwargs)
+        finally:
+            time_taken = time.time() - start_time
+            print(f"----Run {func.__name__} in {time_taken:0.2f} s ----\n")
+
+    return _timer

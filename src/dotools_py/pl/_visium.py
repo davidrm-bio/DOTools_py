@@ -56,7 +56,7 @@ def layers(
 def slides(
     adata: ad.AnnData,
     color: str,
-    obs_col: str = 'sample',
+    batch_key: str = 'batch',
     ncols: int = 4,
     sp_size: float = 1.5,
     fig_path: str = None,
@@ -82,7 +82,7 @@ def slides(
 
     :param adata: annotated data matrix.
     :param color:  var_names or obs column to plot.
-    :param obs_col: obs column containing Batch/Sample Information. This column should have the same names system use
+    :param batch_key: obs column containing Batch/Sample Information. This column should have the same names system use
                     to save the spatial images in `adata.uns['spatial'].keys()`.
     :param ncols: number of subplots per row.
     :param sp_size: size of the dots.
@@ -113,17 +113,17 @@ def slides(
     if select_samples is not None:
         if type(select_samples) is str:
             select_samples = [select_samples]
-        adata = adata[adata.obs[obs_col].isin(select_samples)].copy()
-        adata.obs[obs_col] = pd.Categorical(adata.obs[obs_col].astype(str))
+        adata = adata[adata.obs[batch_key].isin(select_samples)].copy()
+        adata.obs[batch_key] = pd.Categorical(adata.obs[batch_key].astype(str))
 
     # Define the number of rows base on the desired number of columns
-    n_samples = len(adata.obs[obs_col].unique())
+    n_samples = len(adata.obs[batch_key].unique())
     nrows, ncols, extras = get_subplot_shape(n_samples, ncols)
 
     # Control the order of the samples
     show_order = order
     if order is None:
-        show_order = sorted(adata.obs[obs_col].unique())  # If no order is provided sort the samples
+        show_order = sorted(adata.obs[batch_key].unique())  # If no order is provided sort the samples
 
     # Assume we plot non-categorical values
     cat, cb_loc, cont = None, 'right', 0
@@ -141,7 +141,7 @@ def slides(
     plt.subplots_adjust(hspace=spacing[0], wspace=spacing[1], left=.05)  # Spacing between subplots
     axs = axs.flatten()
     for idx, sample in tqdm(enumerate(show_order), desc='Slide ', disable=not verbose, total=len(show_order)):
-        sdata = adata[adata.obs[obs_col] == sample]
+        sdata = adata[adata.obs[batch_key] == sample]
 
         if common_legend:
             # Remove the legend from all subplots except the last one per row
@@ -190,7 +190,7 @@ def slides(
         spine_format(axs[idx], txt='SP')
         remove_extra(extras, nrows, ncols, axs)  # Remove extra subplots
         if fig_path is not None:
-            plt.savefig(convert_path(fig_path) / filename)
+            plt.savefig(convert_path(fig_path) / filename, bbox_inches='tight')
     if show:
         return None
     else:
