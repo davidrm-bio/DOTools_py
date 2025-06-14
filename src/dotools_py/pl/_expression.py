@@ -36,6 +36,7 @@ def barplot(adata: ad.AnnData,
             txt: str = 'p = ',
             ylabel: str = 'LogMean(nUMI)',
             line_offset: float = 0.05,
+            ylim_max: float = None,
             **kwargs,
             ):
     """Barplot with stats.
@@ -71,6 +72,7 @@ def barplot(adata: ad.AnnData,
     :param txt: text for indicating significance. If not set, only the p-value is shown.
     :param ylabel: Y-axis label.
     :param line_offset: line offset for the stat
+    :param ylim_max: set maximum Y limit.
     :param kwargs: additional arguments passed to `sns.barplot()`
     :return: matplotlib axis
     """
@@ -121,9 +123,11 @@ def barplot(adata: ad.AnnData,
             testing.run_test()
             groups_pvals = testing.pvals
 
-        plotter = StatsPlotter(bp, x_axis, 'expr', ctrl_cond, groups_cond,
-                               txt_size, txt, groups_pvals, 'bar', line_offset=line_offset)
+        plotter = StatsPlotter(bp, x_axis=x_axis, y_axis='expr', ctrl=ctrl_cond,
+                               groups=groups_cond, pvals=groups_pvals,
+                               txt_size=txt_size, txt=txt, kind='bar', line_offset=line_offset)
         plotter.plot_stats()
+
 
     if xtick_rotation is not None:
         bp.set_xticklabels(bp.get_xticklabels(), rotation=xtick_rotation, ha='right', va='top',
@@ -133,6 +137,14 @@ def barplot(adata: ad.AnnData,
 
     bp.set_xlabel('')
     bp.set_ylabel(ylabel)
+
+    # Correct YLim in case it was cut
+    if len(adata.obs[batch_key]) == 2:  # There are only 1 batch per condition
+        pass
+    else:
+        ymax = df_batch['expr'].max() +  df_batch['expr'].max() *0.1
+        ymax = ylim_max if ylim_max is None else ymax
+        bp.set_ylim(0,    ymax)
 
     title_fontproperties = {} if title_fontproperties is None else title_fontproperties
     title_size = title_fontproperties.get('size', 20)
@@ -172,6 +184,7 @@ def boxplot(adata: ad.AnnData,
             txt_size: int = 13,
             txt: str = 'p = ',
             ylabel='LogMean(nUMI)',
+            line_offset: float = 0.05,
             **kwargs,
             ):
     """Boxplot with stats.
@@ -202,7 +215,8 @@ def boxplot(adata: ad.AnnData,
      :param txt_size: size of the text indicating significance.
      :param txt: text for indicating significance. If not set, only the p-value is shown.
      :param ylabel: Y-axis label.
-     :param kwargs: additional arguments passed to `sns.barplot()`
+     :param line_offset: offset from the stats.
+     :param kwargs: additional arguments passed to `sns.boxplot()`
      :return: matplotlib axis
      """
     # Checks
@@ -229,13 +243,14 @@ def boxplot(adata: ad.AnnData,
 
     if ctrl_cond is not None and groups_cond is not None:
         if groups_pvals is None:
-            testing = TestData(adata, feature, x_axis, ctrl_cond, groups_cond,
-                               test, corr_method)
+            testing = TestData(adata, feature=feature, cond_key=x_axis, ctrl=ctrl_cond, groups=groups_cond,
+                               test=test, test_correction=corr_method)
             testing.run_test()
             groups_pvals = testing.pvals
 
-        plotter = StatsPlotter(bx, x_axis, 'expr', ctrl_cond, groups_cond,
-                               txt_size, txt, groups_pvals, 'box')
+        plotter = StatsPlotter(bx, x_axis=x_axis, y_axis='expr', ctrl=ctrl_cond,
+                               groups=groups_cond, pvals=groups_pvals,
+                               txt_size=txt_size, txt=txt, kind='box', line_offset=line_offset)
         plotter.plot_stats()
 
     if xtick_rotation is not None:
@@ -273,7 +288,7 @@ def violin(adata: ad.AnnData,
            groups_pvals: list = None,
            title: str = None,
            path: str = None, filename: str = None,
-           title_fontproperties: dict  =None,
+           title_fontproperties: dict = None,
            show: bool = True,
            ax: plt.Axes = None,
            cut: float = 0,
@@ -282,6 +297,7 @@ def violin(adata: ad.AnnData,
            txt_size: int = 13,
            txt: str = 'p = ',
            ylabel='LogMean(nUMI)',
+           line_offset: float = 0.05,
            **kwargs,
            ):
     """Violinplot with stats.
@@ -313,6 +329,7 @@ def violin(adata: ad.AnnData,
      :param txt_size: size of the text indicating significance.
      :param txt: text for indicating significance. If not set, only the p-value is shown.
      :param ylabel: Y-axis label.
+     :param line_offset: offset for the stat
      :param kwargs: additional arguments passed to `sns.barplot()`
      :return: matplotlib axis
      """
@@ -345,8 +362,9 @@ def violin(adata: ad.AnnData,
             testing.run_test()
             groups_pvals = testing.pvals
 
-        plotter = StatsPlotter(vln, x_axis, 'expr', ctrl_cond, groups_cond,
-                               txt_size, txt, groups_pvals, 'violin')
+        plotter = StatsPlotter(vln, x_axis=x_axis, y_axis='expr', ctrl=ctrl_cond,
+                               groups=groups_cond, pvals=groups_pvals,
+                               txt_size=txt_size, txt=txt, kind='violin', line_offset=line_offset)
         plotter.plot_stats()
 
     if xtick_rotation is not None:

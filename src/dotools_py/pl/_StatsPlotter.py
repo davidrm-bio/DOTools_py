@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from scipy.stats import shapiro
 import numpy as np
 import pandas as pd
-from matplotlib.patches import PathPatch
+from matplotlib.patches import PathPatch, Rectangle
 from matplotlib.collections import PolyCollection
 
 from dotools_py import logger
@@ -60,9 +60,9 @@ class StatsPlotter:
                  y_axis: str,
                  ctrl: str,
                  groups: list,
+                 pvals: list,
                  txt_size: int = None,
                  txt: str = None,
-                 pvals: list = None,
                  kind: str = None,
                  line_offset: float = None
                  ):
@@ -104,6 +104,7 @@ class StatsPlotter:
         self.line_offset = DEFAULT_LINES_OFFSET if line_offset is None else line_offset
 
         if pvals is not None:
+            pvals = [float(p) for p in pvals]
             self.pvals = [
                 str(np.round(p, 2)) if p > 0.05 else
                 str(np.round(p, 4)) if p > 0.009 else
@@ -138,13 +139,16 @@ class StatsPlotter:
                         heights[x] = max(heights[x], y)
 
             # Bars without errorbars
-            for key, val in heights.items():
-                if val == 0:
-                    for patch in self.axis.patches:
-                        x = (patch.get_x() + patch.get_x() + patch.get_width()) / 2
-                        if key == x:
-                            y = patch.get_height()
-                            heights[x] = max(heights[x], y)
+            try:
+                for key, val in heights.items():
+                    if val == 0:
+                        for patch in self.axis.patches:
+                            x = (patch.get_x() + patch.get_x() + patch.get_width()) / 2
+                            if key == x:
+                                y = patch.get_height()
+                                heights[x] = max(heights[x], y)
+            except AttributeError:
+                pass
 
         self.heights = heights
         return
@@ -178,9 +182,13 @@ class StatsPlotter:
             offset_added = self.line_offset
             new_pos = val + val * offset_added
             if new_pos in pairs_offset.values():
+                cont = 0
                 while new_pos in pairs_offset.values():
+                    if cont == 100:
+                        break
                     offset_added += 0.05
                     new_pos = val + val * offset_added
+                    cont +=1
             pairs_offset[key] = new_pos
         self.heights_offset = list(pairs_offset.values())
         return
@@ -305,7 +313,10 @@ class TestData:
         feature = [feature] if isinstance(feature, str) else feature
         assert len(feature) == 1, f'{len(feature)} features provided. Please provide only 1'
         self.key = feature[0]  # We only plot 1 feature
-        assert (cond_key in list(data.obs.columns)) or (cond_key in list(data.columns)), f'{cond_key} not in adata.obs or df.columns'
+        if isinstance(data, pd.DataFrame):
+            assert (cond_key in list(data.columns)), f'{cond_key} not in adata.obs or df.columns'
+        if isinstance(data, ad.AnnData):
+            assert (cond_key in list(data.obs.columns)), f'{cond_key} not in adata.obs or df.columns'
         self.cond_key = cond_key
         self.ctrl = ctrl
         self.groups = [groups] if isinstance(groups, str) else groups
@@ -360,7 +371,7 @@ class TestData:
         if self.test in ['t-test', 'anova']:
             # Test for normality
             for group in self.groups + [self.ctrl]:
-                _, p = shapiro(self.data[self.cond_key == group])
+                _, p = shapiro(self.data[self.data[self.cond_key] == group][self.key])
                 if p > 0.05:
                     new_test = 'wilcoxon' if self.test == 't-test' else 'anova'
                     logger.warn(f'Data does not follow normality but {self.test} was set, changing to {new_test}')
@@ -371,8 +382,8 @@ class TestData:
             logger.warn(f'Running {self.test} but testing {len(self.groups)} conditions')
 
         for group in self.groups:
-            x = self.data[[self.cond_key] == self.ctrl][self.key]
-            y = [self.data[self.cond_key] == group][self.key]
+            x = self.data[self.data[self.cond_key] == self.ctrl][self.key]
+            y = self.data[self.data[self.cond_key] == group][self.key]
             if self.test == 't-test':
                 _, p = ttest_ind(x, y)
             elif self.test == 'anova':
