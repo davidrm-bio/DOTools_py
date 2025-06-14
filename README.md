@@ -25,7 +25,7 @@ conda create -n do_py10 python=3.10
 
 There are several alternative options to install DOTools_py:
 
-<---
+<!---
 1. Install the latest release of `DOTools_py` from [PyPI][]:
     ```bash
     pip install DOTools_py
