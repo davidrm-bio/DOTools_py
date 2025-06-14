@@ -8,7 +8,7 @@ downstream analysis using a public dataset from 10X.
 ```{toctree}
 :maxdepth: 1
 
-example_cellbender
+Running_CellBender
 example_10X
 ```
 

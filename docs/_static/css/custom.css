@@ -2,3 +2,19 @@
 div.cell_output table.dataframe {
     font-size: 0.8em;
 }
+
+
+/* For Jupyter notebook output containers */
+div.nboutput,
+div.output_area,
+div.output_scroll,
+div.cell_output {
+    max-height: none !important;      /* Remove height limits */
+    overflow-y: auto !important;  /* Show full vertical output */
+}
+
+/* If vertical scroll is preferred with a large max height */
+div.output_scroll {
+    max-height: 1200px !important;    /* Set large max height */
+    overflow-y: auto !important;     /* Enable vertical scroll */
+}

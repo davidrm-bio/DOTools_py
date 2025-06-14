@@ -31,7 +31,14 @@ dependencies = [
   "tqdm",
   "requests",
   "adjustText",
-  "scanpy"
+  "scanpy",
+  "bbknn",
+  "gseapy",
+  "celltypist",
+  "jupyter",
+  "polars",
+  "scvi-tools",
+  "doubletdetection",
 ]
 optional-dependencies.dev = [
   "pre-commit",
@@ -61,7 +68,8 @@ optional-dependencies.doc = [
   "seaborn",
   "tqdm",
   "doubletdetection",
-  "gseapy"
+  "gseapy",
+  "jupyter"
 ]
 optional-dependencies.test = [
   "adjusttext",
