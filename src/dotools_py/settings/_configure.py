@@ -18,6 +18,7 @@ def interactive_session(enable: bool = True):
     :return:
     """
     from IPython import get_ipython
+
     if enable:
         try:
             shell = get_ipython().__class__.__name__
@@ -46,19 +47,19 @@ def interactive_session(enable: bool = True):
 def session_settings(
     verbosity: int = 2,
     interactive: bool = True,
-    dpi: int = 100,
+    dpi: int = 90,
     dpi_save: int = 300,
     facecolor: str = 'white',
     colormap: str = 'Reds',
     frameon: bool = True,
     transparent: bool = False,
-    fontsize: int = 10,
-    axes_fontsize: int = 12,
+    fontsize: int = 13,
+    axes_fontsize: int = 14,
     axes_fontweight: str = 'bold',
-    title_fontsize: int = 12,
+    title_fontsize: int = 16,
     title_fontweight: str = 'bold',
-    legend_fontsize: int = 9,
-    ticks_fontsize: int = 9,
+    legend_fontsize: int = 12,
+    ticks_fontsize: int = 12,
     figsize: tuple =(4, 5),
     top_spine: bool = False,
     right_spine: bool = False,
