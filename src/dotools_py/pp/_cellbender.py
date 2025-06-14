@@ -90,7 +90,7 @@ def run_cellbender(
     # Check-Ups and Information
     samplenames = [samplenames] if isinstance(samplenames, str) else samplenames
     assert os.path.exists(cellranger_path), f"{cellranger_path} does not exist"
-    assert os.path.exists(output_path), f"{cellranger_path} does not exist"
+    assert os.path.exists(output_path), f"{output_path} does not exist"
 
     bash_script = get_paths_utils("_run_CellBender.sh")
 
@@ -107,14 +107,20 @@ def run_cellbender(
         if conda_path is None
         else os.path.expanduser(conda_path)
     )
-    command = ["conda", "create", "-y", "-p", conda_path, "python=3.7"] + ["cellbender"]
+    command = ["conda", "create", "-y", "-p", conda_path, "python=3.7"]
     if not os.path.exists(conda_path):
         logger.info("Path to conda env with cellbender not provided, installing cellbender...")
+        logger.info("This will take a few minutes")
         try:
             subprocess.run(
                 command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
             )  # Quiet installation
+            command = ['conda', 'run', '-p', conda_path, 'pip', 'install', 'cellbender', 'lxml-html-clean']
+            subprocess.run(
+                command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )  # Quiet installation
             logger.info("Environment created")
+            logger.info(f'Conda environment create in {conda_path}')
         except subprocess.CalledProcessError as err:
             raise Exception("Error installing cellbender, provide a valid conda environment") from err
     else:
@@ -141,25 +147,21 @@ def run_cellbender(
             "conda",
             "run",
             "-p",
-            conda_path,
+            str(conda_path),
             "bash",
-            bash_script,
+            str(bash_script),
             "-i",
             batch,
             "-o",
-            output_path,
+            str(output_path),
             "--cellRanger-output",
-            cellranger_path,
+            str(cellranger_path),
             "--cpu-threads",
             str(cpu_threads),
             "--epochs",
             str(epochs),
             "--lr",
-            str(lr),
-            "--expected-cells",
-            str(expected_cells),
-            "--total-droplets",
-            str(total_droplets),
+            str(lr)
         ]
         command += ["--expected-cells", expected_cells] if expected_cells is not None else []
         command += ["--total-droplets", total_droplets] if total_droplets is not None else []
@@ -168,7 +170,7 @@ def run_cellbender(
         command += ["--estimator_multiple_cpu"] if estimator_multiple_cpu else []
 
         try:
-            logger.info('Running Cellbender, might take a while')
+            logger.info(f'Running Cellbender for {batch}, might take a while')
             subprocess.run(command, check=True, cwd=output_path)
         except subprocess.CalledProcessError as e:
             logger.info(f"Error running CellBender in conda environment: {e}")
