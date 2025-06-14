@@ -144,7 +144,7 @@ def _normalise(
     adata.layers["logcounts"] = adata.X.copy()
 
     if scale:
-        logger.info("Scaling dt")
+        logger.info("Scaling data")
         sc.pp.scale(adata, zero_center=True, max_value=max_val)
         adata.layers["scaled"] = adata.X.copy()
         adata.X = adata.layers["logcounts"].copy()
