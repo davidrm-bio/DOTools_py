@@ -1,5 +1,6 @@
 import logging
 import scanpy as sc
+import sys
 
 logger = logging.getLogger("dotools")
 
@@ -10,7 +11,7 @@ def _setup_logger() -> None:
     :return: None
     """
     if not logger.handlers:
-        handler = logging.StreamHandler()
+        handler = logging.StreamHandler(sys.stdout)
         formatter = logging.Formatter("%(asctime)s - %(message)s")
         handler.setFormatter(formatter)
         logger.addHandler(handler)
