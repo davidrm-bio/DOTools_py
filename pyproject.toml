@@ -40,7 +40,6 @@ dependencies = [
   "scvi-tools",
   "numpy",
   "pandas",
-  "scanpro",
   "doubletdetection",
   "scipy",
   "adjusttext",
