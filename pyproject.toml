@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "hatchling.build"
-requires = [ "hatchling", "numpy" ]
+requires = [ "hatchling" ]
 
 [project]
 name = "dotools-py"
@@ -44,7 +44,6 @@ dependencies = [
   "doubletdetection",
   "scipy",
   "adjusttext",
-  "scanpro",
 ]
 
 # scanpro missing and failts if added here
