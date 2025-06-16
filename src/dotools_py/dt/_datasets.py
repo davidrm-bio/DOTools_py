@@ -11,8 +11,8 @@ def example_10x(
 )->None:
     """Download 10X datasets.
 
-     Download datasets of PBMC from healty and malignant condition. Two H5 files will be downloaded and saved
-     following the structure ouput from CellRanger.
+    Download datasets of PBMC from healty and malignant condition. Two H5 files will be downloaded and saved
+    following the structure ouput from CellRanger.
 
     :param path: path to save H5 files.
     :return:

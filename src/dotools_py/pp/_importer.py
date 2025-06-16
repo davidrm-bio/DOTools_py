@@ -345,7 +345,7 @@ def importer_py(
         * Filter cells based on UMI and features. There are two modes:
             * Absolute filtering: set absolute values for the maximum and minimum number of UMI and features.
             * Quantile filtering: filter the top and/or quantile.
-        * Remove doublets using `scDblFinder <https://github.com/plger/scDblFinder>`_.
+        * Remove doublets using scDblFinder, Scrublet or DoubletDetection.
 
     An ExcelSheet with stats on how many cells and features were removed in each step, and violin plots showing the
     distribution of `total_counts`, `n_genes` and `pct_mt_content` per  cell before and after the quality control will
