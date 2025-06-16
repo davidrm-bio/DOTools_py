@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "hatchling.build"
-requires = [ "hatchling" ]
+requires = [ "hatchling", "numpy" ]
 
 [project]
 name = "dotools-py"
@@ -43,7 +43,12 @@ dependencies = [
   "doubletdetection",
   "scipy",
   "adjusttext",
+  "scanpro",
 ]
+
+# scanpro missing and failts if added here
+
+
 optional-dependencies.dev = [
   "pre-commit",
   "twine>=4.0.2",
