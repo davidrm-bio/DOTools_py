@@ -39,6 +39,9 @@ dependencies = [
   "polars",
   "scvi-tools",
   "doubletdetection",
+  "scanpro",
+  "scipy",
+  "adjusttext",
 ]
 optional-dependencies.dev = [
   "pre-commit",
@@ -69,7 +72,7 @@ optional-dependencies.doc = [
   "tqdm",
   "doubletdetection",
   "gseapy",
-  "jupyter"
+  "jupyter",
 ]
 optional-dependencies.test = [
   "adjusttext",

@@ -2,9 +2,25 @@
 
 [![Tests][badge-tests]][tests]
 [![Documentation][badge-docs]][documentation]
+[![Issues][badge-issues]][issue tracker]
+[![Stars][badge-stars]](https://github.com/davidrm-bio/DOTools_py/stargazers)
+
+<!---
+[![PyPI][badge-pypi]][pypi]
+[![Downloads month][badge-mdown]][down]
+[![Downloads all][badge-adown]][down]
+--->
+
 
 [badge-tests]: https://img.shields.io/github/actions/workflow/status/davidrm-bio/DOTools_py/test.yaml?branch=main
 [badge-docs]:  https://img.shields.io/readthedocs/DOTools_py
+[badge-issues]: https://img.shields.io/github/issues/davidrm-bio/DOTools_py
+[badge-stars]: https://img.shields.io/github/stars/davidrm-bio/DOTools_py?style=flat&logo=github&color=yellow
+<!---
+[badge-pypi]: https://img.shields.io/pypi/v/DOTools_py.svg
+[badge-mdown]: https://static.pepy.tech/badge/DOTools_py/month
+[badge-adown]: https://static.pepy.tech/badge/DOTools_py
+--->
 
 Convenient functions for sc/snRNA-seq analysis and visualisation.
 
@@ -66,10 +82,6 @@ BiocManager::install("MAST")
 BiocManager::install("scDblFinder")
 BiocManager::install("zellkonverter")
 ```
-
-
-
-
 
 ## Release notes
 

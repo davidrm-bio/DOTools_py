@@ -9,6 +9,5 @@
 api/index
 notebooks/index
 changelog
-contributing
 references
 ```
