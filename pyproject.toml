@@ -39,7 +39,6 @@ dependencies = [
   "polars",
   "scvi-tools",
   "doubletdetection",
-  "scanpro",
   "scipy",
   "adjusttext",
 ]
