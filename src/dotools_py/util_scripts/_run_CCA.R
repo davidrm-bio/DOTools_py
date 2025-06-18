@@ -70,10 +70,10 @@ if (opt$version == 'v4') {
     message("Run CCA with v5")
     Seu.hvg[['originalexp']] <- split(Seu.hvg[['originalexp']], f = Seu.hvg@meta.data[[opt$name]])
     Seu.hvg <- ScaleData(Seu.hvg)
-    Seu.hvg <- RunPCA(Seu.hvg, features = rownames(Seu.hvg))
+    Seu.hvg <- RunPCA(Seu.hvg, features = rownames(Seu.hvg), verbose=F)
     Seu.hvg <- IntegrateLayers(object = Seu.hvg, method = CCAIntegration, orig.reduction = "pca", new.reduction = "integrated.cca",
-                               verbose = TRUE)
-    CCAEmbeddings <- Seu.hvg@reduction$integrated.cca
+                               verbose = TRUE, assay="originalexp", features=rownames(Seu.hvg))
+    CCAEmbeddings <- Seu.hvg@reductions$integrated.cca
     CCAEmbeddings <- CCAEmbeddings@cell.embeddings
     df_integrated_expr <- as.data.frame(CCAEmbeddings)
 } else {

@@ -389,6 +389,6 @@ def split_embeddding(
         plt.savefig(convert_path(path) / filename, bbox_inches="tight")
     if show:
         plt.tight_layout()
-        return None
+        return plt.show()
     else:
         return axs

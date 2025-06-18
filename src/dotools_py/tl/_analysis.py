@@ -48,7 +48,7 @@ def _run_cca(
         [
             "Rscript",
             rscript,
-            "--input=" + in_path,
+            "--input=" + str(in_path),
             "--out=" + str(tmpdir_path) + "/",
             "--name=" + batch_key,
             "--version=" + version,
@@ -474,11 +474,11 @@ def reclustering(
                                       majority=majority,
                                       model=model)
 
-    adata.obs['annotation_recluster'] = adata.obs[cluster_key].copy()
-    transfer_labels(adata, adata_subset,
-                    col_original='annotation_recluster',
-                    col_subset='annotation_recluster',
-                    labels_original=celltype)
+        adata.obs['annotation_recluster'] = adata.obs[cluster_key].copy()
+        transfer_labels(adata, adata_subset,
+                        col_original='annotation_recluster',
+                        col_subset='annotation_recluster',
+                        labels_original=celltype)
     if get_subset:
         return adata_subset
     else:
