@@ -5,10 +5,11 @@ import sys
 logger = logging.getLogger("dotools")
 
 
-def _setup_logger() -> None:
+def _setup_logger(
+) -> None:
     """Logger settings.
 
-    :return: None
+    :return:
     """
     if not logger.handlers:
         handler = logging.StreamHandler(sys.stdout)
@@ -20,14 +21,16 @@ def _setup_logger() -> None:
     return None
 
 
-def set_verbosity(level: int = 2) -> None:
+def set_verbosity(
+    level: int = 2
+) -> None:
     """Set verbosity.
 
     :param level: 0 - Silent;
                   1 - Info/Warnings;
                   2 - Info/Warnings + Scanpy Info/Warnings;
                   3 - Debug mode
-    :return: None
+    :return:
     """
     if level == 0:
         # Completely silent

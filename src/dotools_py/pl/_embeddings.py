@@ -60,7 +60,6 @@ def umap(
     :param kwargs: additional parameters pass to ``sc.pl.umap()``.
     :return: matplotlib axis
     """
-    # TODO for some reason it does not work in jupyter notebook?
     sanitize_anndata(adata)
 
     def _plot_labels_embedding(

@@ -154,8 +154,13 @@ def integrate_data(
 ) -> None:
     """Integrate a concatenated AnnData.
 
-    Integrate and perform batch correction for an AnnData with
-    several samples.
+    Integrate and perform batch correction for an AnnData with several samples. Different batch correction methods are
+    available: Harmony, Scanorama, BBKNN, scVI and CCA (v4 or v5).
+
+    .. note::
+        The integration method CCA is based on Seurat. The v4 will generate a corrected expression matrix of all the
+        highly variable genes that is then used to perform dimensionality reduction. In v5 the dimensionality
+        reduction is performed before producing the CCA embeddings.
 
     :param adata: annotated data matrix.
     :param batch_key: column in `obs` with batch information.
@@ -262,16 +267,16 @@ def auto_annot(
     path: Union[str, None] = None,
     filename: Union[str, None] = 'Dotplot_CellProbabilities.svg',
 ) -> ad.AnnData:
-    """Automatic Annotation base on CellTypist Package.
+    """Semi-automatic annotation based on CellTypist.
 
-    This function takes an AnnData object with log-counts in `.X` and automatically annotate the clusters
-    employing a model available for celltypist.
+    This function takes an AnnData object with log-counts in `.X` and annotate the clusters employing a model available
+    for celltypist.
 
-    :param adata: annotated dt matrix
+    :param adata: annotated data matrix
     :param cluster_key: `.obs` column with clusters.
     :param model: model to use for the prediction.
     :param key_added: `.obs` column name where to save the predicted cell types.
-    :param majority: majority voting for predictions (See CellTypist documentation). Default True
+    :param majority: majority voting for predictions (See CellTypist documentation).
     :param convert: convert the gene format of the model. If a Human  model is used, then gene in mouse format
                     will be use and viceverse.
     :param update_label: add a `.obs` column with cell type labels updated.
@@ -292,10 +297,10 @@ def auto_annot(
     """
     if update_models:
         celltypist.models.download_models(force_update=True)
-    if model not in list(celltypist.models.models_description()["model"]):
-        raise Exception(
-            f"The model {model} is not available. Please specify a valid model \n\n{celltypist.models.models_description()}"
-        )
+    # if model not in list(celltypist.models.models_description()["model"]):
+    #     raise Exception(
+    #         f"The model {model} is not available. Please specify a valid model \n\n{celltypist.models.models_description()}"
+    #     )
 
     adata_copy = adata.copy()
     steps = ["Setting-up", "Predicting", "Saving predictions", "Updating labels"]
@@ -509,6 +514,10 @@ def full_recluster(
         For CCA (v4/v5) and scVI the corrected expression matrix (CC4 v5), the CCA representation
         (CCA v5) and the latent space (scvi) to be in `.obsm`. When re-clustering with harmony and
         BBKNN the pipeline will be re-run over the clusters.
+
+    See Also
+    --------
+    Check :func:`dotools_py.tl.reclustering` to re-cluster specific clusters.
 
     :param adata: annotated dt matrix.
     :param cluster_key: `.obs` column name with clusters.

@@ -4,7 +4,7 @@ import subprocess
 import uuid
 from datetime import date
 from pathlib import Path
-from typing import Union
+from typing import Literal, Union
 
 import anndata as ad
 import doubletdetection
@@ -320,7 +320,7 @@ def importer_py(
     metadata: Union[dict, None] = None,
     batch_key: str = "batch",
     remove_doublets: bool = True,
-    doublet_tool: str = 'scDblFinder',
+    doublet_tool: Literal['scDblFinder', 'Scrublet', 'DoubletDetection'] = 'scDblFinder',
     min_genes_in_cell: int = 300,
     min_cells_with_genes: int = 5,
     cut_mt: int = 5,
@@ -343,8 +343,8 @@ def importer_py(
         * Filter cells with low number of genes.
         * Filter cells with high mitochondrial content. Recommended to use 5% for scRNA and 3% for snRNA.
         * Filter cells based on UMI and features. There are two modes:
-            * Absolute filtering: set absolute values for the maximum and minimum number of UMI and features.
-            * Quantile filtering: filter the top and/or quantile.
+            - Absolute filtering: set absolute values for the maximum and minimum number of UMI and features.
+            - Quantile filtering: filter the top and/or quantile.
         * Remove doublets using scDblFinder, Scrublet or DoubletDetection.
 
     An ExcelSheet with stats on how many cells and features were removed in each step, and violin plots showing the
@@ -466,7 +466,7 @@ def sctransform_normalise(
 
     This function performs an alternative normalisation base on the SCTransform.
 
-    :param adata: anndata object.
+    :param adata: AnnData object.
     :param batch_key: obs metadata with batch information.
     :param layer: layer to use.
     :return: AnnData object with layers containing the SCT counts and SCT normalise data.

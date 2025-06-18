@@ -264,6 +264,7 @@ class TestData:
         t-test_overestim_var and logreg is only available for AnnData input and anova and kruskal is only available
         for pandas dataframe
 
+
     Parameters
     ----------
     data
@@ -282,10 +283,9 @@ class TestData:
         correction method for multiple testing to use ('benjamini-hochberg', 'bonferroni')
 
 
-
     See Also
     --------
-    :func:`dotools_py.pl.StatsPlotter`: class to plot the p-values in barplots, boxplots or violinplots
+        :func:`dotools_py.pl.StatsPlotter`: class to plot the p-values in barplots, boxplots or violinplots
 
     """
     def __init__(self,

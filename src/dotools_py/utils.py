@@ -18,10 +18,10 @@ class DeprecatedFunctionError(Exception):
 
 def get_paths_utils(
     script: str
-):
+) -> Path:
     """Get path for a script within the project.
 
-    :param script:
+    :param script: name of the script in util_scripts
     :return:
     """
     module_dir = Path(__file__).parent
@@ -33,8 +33,8 @@ def convert_path(
 ) -> Path:
     """Convert to Path format if string is provided.
 
-    :param path: string or Path variable
-    :return: path
+    :param path: string or Path variable.
+    :return: Path
     """
     if not isinstance(path, Path):
         return Path(path)
@@ -45,7 +45,7 @@ def convert_path(
 def sanitize_anndata(
     adata: ad.AnnData
 ) -> None:
-    """Transform string annotations to categorical.
+    """Transform string metadata to categorical.
 
     :param adata: AnnData
     :return None
@@ -58,13 +58,13 @@ def get_centroids(
     adata: ad.AnnData,
     cluster_key: str,
     basis: str = "X_umap"
-)->pd.DataFrame:
+) -> pd.DataFrame:
     """Get centroids for clusters in anndata object.
 
-    :param adata: anndata
-    :param cluster_key: .obs column with categorical information
-    :param basis: embedding to use (Default X_umaP)
-    :return: centroids as a panda dataframe
+    :param adata: AnnData.
+    :param cluster_key: obs column with categorical information.
+    :param basis: embedding to use.
+    :return: centroids as a panda dataframe.
     """
     all_pos = pd.DataFrame(adata.obsm[basis], columns=["x", "y"])
     all_pos["group"] = adata.obs[cluster_key].values
@@ -77,9 +77,9 @@ def get_subplot_shape(
 ) -> tuple:
     """Compute the number of rows and columns to use for defining the figure base on a desired number of samples and columns.
 
-    :param n_samples: number of samples to plot
-    :param ncols: number of columns to plot
-    :return: nrows, ncols, extras (extra subplots that should be hidden)
+    :param n_samples: number of samples to plot.
+    :param ncols: number of columns to plot.
+    :return: nrows, ncols, extras (extra subplots that should be hidden).
     """
     if n_samples < ncols:  # Correction
         ncols = n_samples  # Adjust plot if more cols than samples are specified
@@ -95,9 +95,12 @@ def spine_format(
 ) -> None:
     """Formatting the spines for Embeddings.
 
-    :param axis: axis object
-    :param txt: type of embedding
-    :param fontsize: size of the text
+    Removes the top and right spines and set the x- and y-label for the left and bottom spine
+    moving them to the corner.
+
+    :param axis: matplozlib axes object.
+    :param txt: text for the embedding.
+    :param fontsize: size of the text.
     :return:
     """
     axis.spines[["right", "top"]].set_visible(False)
@@ -112,20 +115,20 @@ def remove_extra(
     ncols: int,
     axs: plt.Axes
 ) -> None:
-    """Hide the last "extras" subplots.
+    """Hide the last subplots.
 
-    :param extras: number of subplots to remove
-    :param nrows: number of rows of the plot
-    :param ncols: number of columns of the plot
-    :param axs: axis object
+    :param extras: number of subplots to remove.
+    :param nrows: number of rows of the plot.
+    :param ncols: number of columns of the plot.
+    :param axs: matplotlib axes object.
     :return:
     """
     if extras == 0:
-        return
+        return None
     else:
         for check in range(nrows * ncols - extras, nrows * ncols):
             axs[check].set_visible(False)
-        return
+        return None
 
 
 def make_grid_spec(
@@ -138,15 +141,15 @@ def make_grid_spec(
     width_ratios: float = None,
     height_ratios: float = None,
 ):
-    """Modified from Scanpy.
+    """Taken and adapted from Scanpy.
 
-    :param ax_or_figsize:
-    :param nrows:
-    :param ncols:
-    :param wspace:
-    :param hspace:
-    :param width_ratios:
-    :param height_ratios:
+    :param ax_or_figsize: axes or figsize.
+    :param nrows: number of rows.
+    :param ncols: number of columns.
+    :param wspace: width space.
+    :param hspace: height space.
+    :param width_ratios: width ratio.
+    :param height_ratios: height ratio.
     :return:
     """
     kw = dict(wspace=wspace, hspace=hspace, width_ratios=width_ratios, height_ratios=height_ratios)
@@ -167,7 +170,7 @@ def format_terms_gsea(
     df: pd.DataFrame,
     term_col: str,
     cutoff: int = 35
-)->pd.DataFrame:
+) -> pd.DataFrame:
     """Format Terms from Gene Set Enrichment Analysis.
 
     :param df: dataframe with GSEA terms.
@@ -236,8 +239,6 @@ def transfer_labels(
     return None
 
 
-
-
 def require_dependencies(required_packages):
     def decorator(func):
         @functools.wraps(func)
@@ -263,7 +264,6 @@ def require_dependencies(required_packages):
             return func(*args, **kwargs)
         return wrapper
     return decorator
-
 
 
 def deprecated_function(func):

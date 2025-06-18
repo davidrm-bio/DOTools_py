@@ -3,7 +3,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 
-def generate_cmap(*args) -> LinearSegmentedColormap:
+def generate_cmap(
+    *args
+) -> LinearSegmentedColormap:
     """Generate a custom colormap.
 
     This functions returns a color map. Specify colors to set a gradient in the specified order. Use
@@ -18,11 +20,11 @@ def generate_cmap(*args) -> LinearSegmentedColormap:
 
 def get_hex_colormaps(
     colormap: str
-):
+) -> list:
     """Get a list with Hexa IDs for a colormap.
 
-    :param colormap: colormap name
-    :return: list with Hexa IDs
+    :param colormap: colormap name.
+    :return: list with Hexa IDs.
     """
     cmap = plt.get_cmap(colormap)
     return [mpl.colors.rgb2hex(cmap(i)) for i in range(cmap.N)]
@@ -62,15 +64,15 @@ def spine_format(
     txt: str = "UMAP",
     fontsize: int = 12
 ) -> None:
-    """Formatting the spines for Embeddings.
+    """Formatting the spines for embeddings.
 
-    :param axis: axis object.
-    :param txt: type of embedding.
+    :param axis: matplotlib axes object.
+    :param txt: text of the type of embedding.
     :param fontsize: size of the text.
     :return:
     """
     axis.spines[["right", "top"]].set_visible(False)
     axis.set_xlabel(txt + "1", loc="left", fontsize=fontsize, fontweight="bold")
     axis.set_ylabel(txt + "2", loc="bottom", fontsize=fontsize, fontweight="bold")
-    return
+    return None
 

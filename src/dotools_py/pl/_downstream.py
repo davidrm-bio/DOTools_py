@@ -9,9 +9,10 @@ import pandas as pd
 from adjustText import adjust_text
 
 from dotools_py import logger
-from dotools_py.utils import convert_path, format_terms_gsea, make_grid_spec, sanitize_anndata
+from dotools_py.utils import convert_path, format_terms_gsea, make_grid_spec, sanitize_anndata, require_dependencies
 from typing import Union
 
+@require_dependencies([{'name': 'scanpro'}])
 def cell_props(
     adata: ad.AnnData,
     annot_key: str,
@@ -292,7 +293,7 @@ def volcano_plot(
     textprops: dict = None,
     show: bool = False,
     **kwargs,
-):
+) -> Union[plt.Axes, None]:
     """Generate a volcano plot.
 
     Genes will be colored differently depending on the p-value (Pval) and logfoldchange (LFC):
@@ -429,10 +430,10 @@ def split_bar_gsea(
     filename: str = "SplitBar.svg",
     title: str = "Top 10 GO Terms in each Condition",
     show: bool = True,
-) -> plt.Axes:
+) -> Union[plt.Axes, None]:
     """Split BarPlot for GO terms.
 
-    This function generates a split barplot. This is a plot where the top 10 Go terms are shown, sorted based on a
+    This function generates a split barplot. This is a plot where the top 10 GO terms are shown, sorted based on a
     column `col_split`. Two conditions are shown at the same time. One condition is shown in the positive axis,
     while the other in the negative one. The condition to be shown as positive is set with `pos_col`.
 

@@ -1,14 +1,13 @@
 from dotools_py import logger
+from typing import Literal
 
 def heart_markers(
-    species: str = 'mouse'
+    species: Literal['mouse', 'human'] = 'mouse',
 ) -> dict:
     """Marker genes for celltypes in the heart.
 
-    Get a dictionary with marker genes for celltypes present in the heart.
-
     :param species: format for gene names. Options: mouse or human.
-    :return: dictionary with a list of markers for each celltype
+    :return: dictionary with a list of marker genes for each celltype present in the heart.
     """
     logger.info(f'Getting {species} markers')
     species = species.lower()
@@ -55,10 +54,11 @@ def heart_markers(
         raise Exception('Species not recognise')
 
 
-def standard_ct_labels_heart():
+def standard_ct_labels_heart(
+) -> dict:
     """Standardise the celltype labels in the Human Heart Model from Celltypist.
 
-    :return: dictionary with keys and updated labels
+    :return: dictionary with keys and updated labels.
     """
     return  {
     'PC1_vent': 'Pericytes',
@@ -90,5 +90,4 @@ def standard_ct_labels_heart():
     'CD8+T_trans': 'T_cells',
     'vCM4': 'CM',
     'NC2_glial_NGF+': 'NC_glial_NGF+',
-    'NK_CD16hi': 'NK',
-}
+    'NK_CD16hi': 'NK'}

@@ -16,6 +16,7 @@
 [badge-docs]:  https://img.shields.io/readthedocs/DOTools_py
 [badge-issues]: https://img.shields.io/github/issues/davidrm-bio/DOTools_py
 [badge-stars]: https://img.shields.io/github/stars/davidrm-bio/DOTools_py?style=flat&logo=github&color=yellow
+
 <!---
 [badge-pypi]: https://img.shields.io/pypi/v/DOTools_py.svg
 [badge-mdown]: https://static.pepy.tech/badge/DOTools_py/month
@@ -36,7 +37,6 @@ a dedicated conda environment.
 
 ```bash
 conda create -n do_py10 python=3.10
-
 ```
 
 There are several alternative options to install DOTools_py:
@@ -49,9 +49,10 @@ There are several alternative options to install DOTools_py:
 --->
 
 1. Install the latest development version:
-    ```bash
-    pip install git+https://github.com/davidrm-bio/DOTools_py.git@main
-    ```
+
+ ```bash
+pip install git+https://github.com/davidrm-bio/DOTools_py.git@main
+```
 
 Finally, to use this environment in jupyter notebook, add jupyter kernel for this environment:
 
@@ -60,7 +61,7 @@ conda activate do_py10
 python -m ipykernel install --user --name=do_py10 --display-name=do_py10
 ```
 
-We also have a R implementation of the  [DOTools](https://github.com/MarianoRuzJurado/DOtools). This can be
+We also have an R implementation of the  [DOTools](https://github.com/MarianoRuzJurado/DOtools). This can be
 installed with `devtools`:
 
 ```R
@@ -83,15 +84,14 @@ BiocManager::install("scDblFinder")
 BiocManager::install("zellkonverter")
 ```
 
+
 ## Release notes
 
 See the [changelog][].
 
 ## Contact
-Raising up an issue in this Github repository might be the fastest way of submitting suggestions and bugs.
+Raising up an issue in this GitHub repository might be the fastest way of submitting suggestions and bugs.
 Alternatively you can write to my email: [rodriguezmorales@med.uni-frankfurt.de](mailto:rodriguezmorales@med.uni-frankfurt.de).
-
-
 
 ## Citation
 

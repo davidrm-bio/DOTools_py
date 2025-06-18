@@ -36,7 +36,7 @@ data.
 ```
 
 ## Classes
-These classes allow to calculate and add statistical information to bar-,
+These classes allow to calculate and add statistical information of bar-,
 box- and violin-plots.
 ```{eval-rst}
 .. autosummary::

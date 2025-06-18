@@ -11,10 +11,12 @@ from dotools_py.logger import  set_verbosity
 warnings.filterwarnings("ignore")
 
 
-def interactive_session(enable: bool = True):
+def interactive_session(
+    enable: bool = True
+) -> None:
     """Make session interactive.
 
-    :param enable: set to True to activate interactive plotting
+    :param enable: set to True to activate interactive plotting.
     :return:
     """
     from IPython import get_ipython
@@ -41,7 +43,7 @@ def interactive_session(enable: bool = True):
         except Exception as e:
             logger.info(f'Interactive(False) failed to disable interactive plotting {e}')
 
-    return
+    return None
 
 
 def session_settings(
@@ -54,11 +56,11 @@ def session_settings(
     frameon: bool = True,
     transparent: bool = False,
     fontsize: int = 13,
-    axes_fontsize: int = 14,
+    axes_fontsize: int = 16,
     axes_fontweight: str = 'bold',
-    title_fontsize: int = 16,
+    title_fontsize: int = 18,
     title_fontweight: str = 'bold',
-    legend_fontsize: int = 12,
+    legend_fontsize: int = 13,
     ticks_fontsize: int = 12,
     figsize: tuple =(4, 5),
     top_spine: bool = False,
@@ -67,7 +69,8 @@ def session_settings(
 ) -> None:
     """Set general settings.
 
-    :param verbosity: set verbosity level. 0 for silent, 1 for Info/Warnings, 2 for Info/Warnings + Scanpy Info/Warnings and 3 for debug mode.
+    :param verbosity: set verbosity level. 0 for silent, 1 for Info/Warnings, 2 for Info/Warnings + Scanpy Info/Warnings
+                      and 3 for debug mode.
     :param interactive: if set to true, activate interactive plotting.
     :param dpi: dpi for showing plots.
     :param dpi_save: dpi for saving plots.
@@ -86,7 +89,6 @@ def session_settings(
     :param top_spine: remove the top spine.
     :param right_spine: remove the right spine.
     :param grid: show the grid lines.
-    :param font_family: font family to use.
     :return:
     """
 
@@ -153,5 +155,5 @@ def session_settings(
 
     mpl.rcParams["pdf.fonttype"] = 42  # Use TrueType fonts in PDFs (editable text)
 
-    return
+    return None
 

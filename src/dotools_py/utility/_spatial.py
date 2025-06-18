@@ -11,7 +11,7 @@ def select_slide(adata: ad.AnnData,
                  s_col: str = 'sample') -> ad.AnnData:
     """Subset a Spatial AnnData object.
 
-    This function selects the data for one slide from the spatial anndata object. Useful when working with
+    This function selects the data for one slide from the spatial AnnData object. Useful when working with
     Visium data. The keys in `adata.uns['spatial']` should be the same as in s_col.
 
     :param adata: Anndata object with multiple spatial experiments.

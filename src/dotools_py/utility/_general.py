@@ -2,17 +2,18 @@ import anndata as ad
 from typing import Union
 
 
-def free_memory():
+def free_memory(
+) -> None:
     """Garbage collector.
 
-    :return: None
+    :return:
     """
     import ctypes
     import gc
 
     gc.collect()
     ctypes.CDLL("libc.so.6").malloc_trim(0)
-    return
+    return None
 
 
 def transfer_labels(
@@ -22,16 +23,17 @@ def transfer_labels(
     subset_key: str,
     original_labels: list,
     copy: bool = False
-)-> Union[ad.AnnData, None]:
-    """Transfer annotation from a subset of an AnnData.
+) -> Union[ad.AnnData, None]:
+    """Transfer annotation from a subseted AnnData to an AnnData.
 
-    :param adata_original: original anndata.
-    :param adata_subset: subsetted anndata.
-    :param original_key: obs column name in the original anndata where new labels are added.
-    :param subset_key: obs column name in the subsetted object with the new labels.
-    :param original_labels: list of labels in the original anndata to replace.
-    :param copy: if copy is True, returns the updated anndata, else changes are inplace
-    :return: Nothing, changes are saved inplace
+    :param adata_original: original AnnData.
+    :param adata_subset: subsetted AnnData.
+    :param original_key: obs column name in the original AnnData where new labels are added.
+    :param subset_key: obs column name in the subsetted AnnData with the new labels.
+    :param original_labels: list of labels in `original_key` to replace.
+    :param copy: if set to True, returns the updated anndata
+    :return: the original AnnData with the updated labels.
+             the original_labels in original_key will be updated with the labels in subset_key.
     """
 
     if copy:

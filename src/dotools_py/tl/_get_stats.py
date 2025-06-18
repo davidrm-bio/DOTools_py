@@ -37,15 +37,15 @@ def mean_expr(
     adata: ad.AnnData,
     group_by: str,
     features: Union[list, str, None] = None,
-    out_format: str = "long",
+    out_format: Literal['long', 'wide'] = "long",
     layer: Union[str, None] = None,
 ) -> pd.DataFrame:
-    """Calculate Average Expression in AnnData Objects for features
+    """Calculate the average expression in an annData objects for features.
 
     This function calculates the average expression of a set of features grouping by one
     or several categories.
 
-    :param adata: annotated dt matrix
+    :param adata: annotated data matrix
     :param group_by: `.obs` column or list of columns to group by.
     :param features: list of features in `.var` to use. If not set, it will be calculated over all the genes.
     :param out_format: format of the dataframe returned. This can be wide or long format.
@@ -100,7 +100,7 @@ def get_expr(
     adata: ad.AnnData,
     features: str,
     groups: Union[str, None] = None,
-    out_format: str = "long",
+    out_format: Literal['long', 'wide'] = "long",
     layer: Union[str, None] = None
 ) -> pd.DataFrame:
     """Extract the expression of features.
@@ -109,7 +109,7 @@ def get_expr(
     is not specified the expression in `.X` will be extracted. Additionally, metadata from `.obs` can be added
     to the dataframe.
 
-    :param adata: annotated dt matrix.
+    :param adata: annotated data matrix.
     :param groups: `.obs` metadata column to include in the dataframe.
     :param features: var_names to include.
     :param out_format: format of the dataframe (wide or long).
@@ -160,8 +160,6 @@ def get_expr(
     return table_expr
 
 
-
-
 # DGE Analysis
 def run_mast(
     adata: ad.AnnData,
@@ -170,7 +168,7 @@ def run_mast(
     disease: Union[str, list],
     covariates: Union[str, list, None] = None
 ) -> pd.DataFrame:
-    """Run MAST Test in R.
+    """Run MAST Test for sc/snRNAseq.
 
     :param adata: annotated data matrix.
     :param cond_key: obs column with condition information.
@@ -322,7 +320,7 @@ def rank_genes_condition(
     :param filename: name of the ExcelSheet.
     :param layer: layer of the AnnData to use.
     :param covariates: extra covariates to correct for in the MAST test.
-    :return: DGE dataframe .
+    :return: DGE dataframe. If a path is provided, the DataFrame with DGEs will be saved under the specified path.
     """
 
     sanitize_anndata(adata)
@@ -437,10 +435,8 @@ def go_analysis(
     log2fc_cutoff: float = 0.25,
     path: str = None,
     filename: str = '',
-    specie: str = 'Mouse',
-    go_catgs: Union[str, list] = ('GO_Molecular_Function_2023',
-                                  'GO_Cellular_Component_2023',
-                                  'GO_Biological_Process_2023')
+    specie: Literal['Mouse', 'Human'] = 'Mouse',
+    go_catgs: Union[str, list] = ('GO_Molecular_Function_2023', 'GO_Cellular_Component_2023', 'GO_Biological_Process_2023')
 ) -> Union[pd.DataFrame, None]:
     """Run Gene Ontology using EnrichR API.
 
