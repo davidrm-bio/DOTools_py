@@ -44,6 +44,9 @@ dependencies = [
   "doubletdetection",
   "scipy",
   "adjusttext",
+  "scikit-image",
+  "harmonypy",
+  "scanorama",
 ]
 
 # scanpro missing and failts if added here

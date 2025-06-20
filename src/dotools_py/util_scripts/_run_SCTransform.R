@@ -29,13 +29,21 @@ opt <- parse_args(opt_parser)
 
 # Read h5ad as ScE
 message('Reading AnnData into R')
-adata <- readH5AD(paste0(opt$input, 'adata_to_seurat_tmp.h5ad'))
+adata <- readH5AD(paste0(opt$input, '/adata_tmp.h5ad'))
 
 Seu <- as.Seurat(adata, counts = "counts", data = 'counts')
 
 message('Applying SCTransform')
-Seu <- Seurat::SCTransform(Seu, vst.flavor="v2", assay = 'originalexp', return.only.var.genes = F, min_cells=3,
-			   batch_var='batch')
+Seu <- tryCatch(
+    Seu <- Seurat::SCTransform(Seu, vst.flavor="v2", assay = 'originalexp', return.only.var.genes = F,
+                               min_cells=5,  batch_var='batch',   new.assay.name = "SCT"),
+    error = function (e){
+        message('Running for only one batch')
+        Seu <- Seurat::SCTransform(Seu, vst.flavor="v2", assay = 'originalexp', return.only.var.genes = F,
+                                    min_cells=5,   new.assay.name = "SCT")
+        return(Seu)
+    }
+)
 
 message('Preparing to Python')
 norm_expr <- GetAssayData(Seu, assay = 'SCT', slot = 'data')

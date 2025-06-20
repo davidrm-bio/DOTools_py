@@ -14,6 +14,7 @@ import polars
 import scanpy as sc
 import scanpy.external as sce
 from tqdm import tqdm
+from typing import Literal
 
 from dotools_py import logger
 from dotools_py.utils import get_paths_utils, transfer_labels, convert_path
@@ -370,6 +371,7 @@ def reclustering(
         * Harmony integration.
         * BBKNN integration.
         * SCVI integration.
+        * PCA.
 
     We assume that `X` has logcounts.
 
@@ -425,7 +427,7 @@ def reclustering(
         sc.pp.highly_variable_genes(adata_tmp, batch_key=hvg_key)
         sc.pp.scale(adata_tmp)
         sc.pp.pca(adata_tmp)
-        sce.pp.harmony_integrate(adata_tmp, key=batch_key, max_iter_harmony=20)
+        sce.pp.harmony_integrate(adata_tmp, key=batch_key, max_iter_harmony=25)
         representation = 'X_pca_harmony'
         adata_subset.obsm[representation] = adata_tmp.obsm[representation]
     # If bbknn was used, redo PCA
@@ -442,6 +444,13 @@ def reclustering(
         logger.info('Reclustering using scVI approach')
         assert use_rep is not None, 'Specify obsm key with integrated matrix'
         representation = use_rep
+    elif recluster_apporach.lower() == 'pca':
+        adata_tmp = adata_subset.copy()
+        sc.pp.highly_variable_genes(adata_tmp, batch_key=hvg_key)
+        sc.pp.scale(adata_tmp)
+        sc.pp.pca(adata_tmp)
+        representation = 'X_pca'
+        adata_subset.obsm['X_pca'] = adata_tmp.obsm['X_pca']
     else:
         raise NotImplemented(f'{recluster_apporach} not implemented, use: CCA4, CCA5, harmony, bbknn or scvi')
 
@@ -489,7 +498,7 @@ def full_recluster(
     adata: ad.AnnData,
     cluster_key: str,
     batch_key: str,
-    recluster_apporach: str,
+    recluster_apporach: Literal['cca'],
     hvg_batch: bool = False,
     use_rep: str = None,
     resolution: float = 0.3,
@@ -507,6 +516,7 @@ def full_recluster(
     * Harmony integration.
     * BBKNN integration.
     * SCVI integration.
+    * PCA.
 
     We assume that `X` has logcounts. To re-cluster specific clusters use :class: `~dotools_py.tl.reclustering`.
 

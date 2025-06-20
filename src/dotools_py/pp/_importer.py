@@ -266,10 +266,11 @@ def _qc_scrna(
             del adata.obs['predicted_doublet']
         elif doublet_tool == 'DoubletDetection':
             clf = doubletdetection.BoostClassifier(
-                n_iters=10,
+                n_iters=15,
                 clustering_algorithm="leiden",
                 standard_scaling=True,
                 pseudocount=0.1,
+                verbose=False,
                 n_jobs=-1,
             )
             doublets = clf.fit(adata.X).predict()
@@ -484,7 +485,7 @@ def sctransform_normalise(
     del adata.obsm
 
     if batch_key is not None:
-        adata_copy.obs['batch'] = adata_copy.obs[batch_key]
+        adata_copy.obs['batch'] = adata_copy.obs[batch_key].copy()
     else:
         adata_copy.obs['batch'] = 'batch1'
     adata_copy.write(tmpdir_path / "adata_tmp.h5ad")
