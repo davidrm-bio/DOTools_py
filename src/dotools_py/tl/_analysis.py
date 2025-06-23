@@ -512,7 +512,7 @@ def full_recluster(
     convert: bool = True,
     model: str = 'Healthy_Adult_Heart.pkl',
     key_added: str = 'annotation_fullrecluster',
-) -> ad.AnnData:
+) -> None:
     """Re-clustering of all clusters in dataset.
 
     Perform reclustering on an integrated AnnData object over all clusters. Can recluster for the following integration
