@@ -1,4 +1,5 @@
 # DOTools_py
+<img src="https://github.com/davidrm-bio/DOTools_py/docs/_static/figures/LogoDoTools.png?raw=1" align="right" width="120" class="no-scaled-link"/>
 
 [![Tests][badge-tests]][tests]
 [![Documentation][badge-docs]][documentation]
