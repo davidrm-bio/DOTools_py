@@ -529,10 +529,7 @@ def full_recluster(
         (CCA v5) and the latent space (scvi) to be in `.obsm`. When re-clustering with harmony and
         BBKNN the pipeline will be re-run over the clusters.
 
-    See Also
-    --------
-        :func:`dotools_py.tl.reclustering` - to re-cluster specific clusters.
-
+    Check :func:`dotools_py.tl.reclustering` to re-cluster specific clusters.
 
     :param adata: annotated dt matrix.
     :param cluster_key: `.obs` column name with clusters.
