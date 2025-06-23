@@ -523,12 +523,12 @@ def full_recluster(
     * SCVI integration.
     * PCA.
 
-    We assume that `X` has logcounts. To re-cluster specific clusters use :class: `~dotools_py.tl.reclustering`.
-
     .. note::
         For CCA (v4/v5) and scVI the corrected expression matrix (CC4 v5), the CCA representation
         (CCA v5) and the latent space (scvi) to be in `.obsm`. When re-clustering with harmony and
         BBKNN the pipeline will be re-run over the clusters.
+
+    We assume that `X` has logcounts.
 
     :param adata: annotated dt matrix.
     :param cluster_key: `.obs` column name with clusters.
@@ -547,7 +547,7 @@ def full_recluster(
 
     See Also
     --------
-    Check :func:`dotools_py.tl.reclustering` to re-cluster specific clusters.
+        Check :func:`dotools_py.tl.reclustering` to re-cluster specific clusters.
     """
 
     celltype = list(adata.obs[cluster_key].unique())
