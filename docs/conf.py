@@ -116,7 +116,8 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
 html_theme = "sphinx_book_theme"
 html_static_path = ["_static"]
 html_css_files = ["css/custom.css"]
-html_logo = "docs/figures/LogoDoTools.png"
+html_logo = "_static/figures/LogoDoTools.png"
+html_favicon = '_static/figures/LogoDoTools.png'
 nbsphinx_allow_errors = True
 
 html_title = project_name
