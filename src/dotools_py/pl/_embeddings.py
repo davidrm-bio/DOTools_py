@@ -31,6 +31,7 @@ def umap(
     labels_fontproporties: dict = {"weight": "bold", "size": 12, "outline": 1.5},
     labels_repel: dict = {},
     basis: str = "X_umap",
+    ax: plt.Axes = None,
     **kwargs,
 ) -> Union[plt.Axes, None]:
     """Make UMAP Plot.
@@ -55,6 +56,7 @@ def umap(
     :param labels_fontproporties: fontproperties for the labels.
     :param labels_repel: additional arguments pass to adjust_text.
     :param basis: embedding to use, default UMAP.
+    :param ax: matplotlib axis.
     :param path: path to save plot.
     :param filename: filename of the plot.
     :param kwargs: additional parameters pass to ``sc.pl.umap()``.
@@ -145,9 +147,11 @@ def umap(
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Generate the Plot                                       #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-    fig, axs = plt.subplots(nrows, ncols, figsize=figsize)
-    plt.subplots_adjust(hspace=spacing[0], wspace=spacing[1], left=0.1)  # Spacing between subplots
+    if ax is None:
+        fig, axs = plt.subplots(nrows, ncols, figsize=figsize)
+        plt.subplots_adjust(hspace=spacing[0], wspace=spacing[1], left=0.1)  # Spacing between subplots
+    else:
+        axs = ax
     cat, cb_loc, cont = None, "right", 0
     # 1st Case; - We do not split by categories and only 1 thing is plotted
     if ncatgs == 1:
@@ -249,7 +253,6 @@ def umap(
     if path is not None:
         plt.savefig(os.path.join(path, filename), bbox_inches="tight")
     if show:
-        plt.tight_layout()
         return plt.show()
     else:
         return axs
@@ -274,6 +277,7 @@ def embedding(
     labels_fontproporties: dict = {"weight": "bold", "size": 12, "outline": 1.5},
     labels_repel: dict = {},
     basis: str = "X_umap",
+    ax: plt.Axes = None,
     **kwargs,
 ) -> Union[None, plt.Axes]:
     """Make Embedding Plot.
@@ -299,6 +303,7 @@ def embedding(
     :param labels_fontproporties: fontproperties for the labels.
     :param labels_repel: additional arguments pass to adjust_text.
     :param basis: embedding to use.
+    :param ax: matplotlib axis.
     :param path: path to save plot.
     :param filename: filename of the plot.
     :param kwargs: additional parameters pass to ``sc.pl.embedding()``
@@ -323,11 +328,11 @@ def embedding(
         labels_fontproporties=labels_fontproporties,
         labels_repel=labels_repel,
         basis=basis,
+        ax=ax,
         **kwargs,
     )
 
     if show:
-        plt.tight_layout()
         return plt.show()
     else:
         return axis
@@ -388,7 +393,6 @@ def split_embeddding(
     if path is not None:
         plt.savefig(convert_path(path) / filename, bbox_inches="tight")
     if show:
-        plt.tight_layout()
         return plt.show()
     else:
         return axs

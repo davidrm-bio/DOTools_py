@@ -273,11 +273,15 @@ def _run_test(
         dge = run_mast(adata, cond_key=groupby, reference=reference, disease=groups, covariates=covariates)
     elif method in ['wilcoxon', 'logreg', 't-test', 't-test_overestim_var']:
         logger.info(f'Running {method} test.')
-        rank_genes_groups(adata, groupby=groupby, method=method, tie_correct=True,
-                          pts=True, reference=reference, groups=groups)
-        dge = generate_results(adata)
-        if 'group' not in dge.columns:
-            dge['group'] = groups[0]
+        try:
+            rank_genes_groups(adata, groupby=groupby, method=method, tie_correct=True,
+                              pts=True, reference=reference, groups=groups)
+            dge = generate_results(adata)
+            if 'group' not in dge.columns:
+                dge['group'] = groups[0]
+        except ValueError as e:
+            logger.warn(f'Error running test:\n{e}')
+            dge = None
     else:
         NameError(f'{method} not implemented. Use: mast, wilcoxon, logreg, t-test, t-test_overestim_var')
     return dge
@@ -335,17 +339,21 @@ def rank_genes_condition(
         groups.remove(reference)
 
     if subset_by:
-        categories = list(adata_copy.obs[subset_by].cat.categories())
+        categories = list(adata_copy.obs[subset_by].cat.categories)
+        dge = pd.DataFrame([])
         for catg in categories:
             logger.info(f'Running DGEs for {catg}.')
             sdata = adata_copy[adata_copy.obs[subset_by] == catg]
-            dge = _run_test(sdata,
+            dge_s = _run_test(sdata,
                             method=method,
                             groupby=groupby,
                             reference=reference,
                             groups=groups,
                             covariates=covariates)
-            dge[subset_by] = catg
+            if dge_s is None:
+                continue
+            dge_s[subset_by] = catg
+            dge = pd.concat([dge, dge_s])
     else:
         logger.info('Running DGEs.')
         dge = _run_test(adata_copy,

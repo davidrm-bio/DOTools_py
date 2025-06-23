@@ -12,7 +12,10 @@ def free_memory(
     import gc
 
     gc.collect()
-    ctypes.CDLL("libc.so.6").malloc_trim(0)
+    try:
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+    except OSError:
+        pass
     return None
 
 

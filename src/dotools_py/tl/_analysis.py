@@ -197,10 +197,6 @@ def integrate_data(
         dim_reduc = "X_scanorama"
     if bbknn:
         logger.info("Integration using BBKNN")
-        bkn.bbknn(adata, batch_key=batch_key, neighbors_within_batch=neighbors_within_batch)
-        sc.tl.leiden(adata, resolution=0.3, flavor="igraph", directed=False, n_iterations=2)
-        bkn.ridge_regression(adata, batch_key=batch_key, confounder_key="leiden")
-        sc.tl.pca(adata)
     if scvi:
         logger.info("Integration using scVI")
         _run_scvi(adata, batch_key, **kwargs)
@@ -363,6 +359,7 @@ def reclustering(
     convert: bool = True,
     model: str = 'Healthy_Adult_Heart.pkl',
     get_subset: bool = False,
+    key_added: str = 'annotation_recluster',
 ) -> ad.AnnData:
     """Re-clustering of dataset.
 
@@ -395,8 +392,11 @@ def reclustering(
     :param convert: convert the gene format. Useful if using a human model in celltypist and input is mouse or viceverse.
     :param model: model name of celltypist to use.
     :param get_subset: if set to True, returns an AnnData of `use_clusters` after re-clustering
+    :param key_added: column name in obs to save reclustering information.
     :return: input AnnData with reclustering or subsetted anndata with reclusters
     """
+    if key_added in adata.obs.columns:
+        logger.warn(f'{key_added} will be overwritten')
 
     celltype = [use_clusters] if isinstance(use_clusters, str) else use_clusters
     hvg_key = batch_key if hvg_batch else None
@@ -463,13 +463,14 @@ def reclustering(
 
     sc.tl.umap(adata_subset)
     sc.tl.leiden(adata_subset, resolution=resolution, flavor='igraph', n_iterations=2, directed=False)
+    adata.obs[key_added] = adata.obs[cluster_key].copy()
 
     if automatic_annot:
         try:
             adata_subset = auto_annot(adata_subset,
                                       'leiden',
                                       key_added='autoAnnot',
-                                      key_updated='annotation_recluster',
+                                      key_updated=key_added,
                                       update_label=True,
                                       convert=convert,
                                       majority=majority,
@@ -477,28 +478,31 @@ def reclustering(
         except KeyError:  # Might fail if getting a cell not present in our update_labels dictionary
             adata_subset = auto_annot(adata_subset,
                                       'leiden',
-                                      key_added='annotation_recluster',
+                                      key_added=key_added,
                                       update_label=False,
                                       convert=convert,
                                       majority=majority,
                                       model=model)
+    else:
+        preffix = '+'.join(use_clusters) if isinstance(use_clusters, list) else use_clusters
+        adata_subset.obs[key_added] = preffix + '_' + adata_subset.obs['leiden'].astype(str)
 
-        adata.obs['annotation_recluster'] = adata.obs[cluster_key].copy()
-        transfer_labels(adata, adata_subset,
-                        col_original='annotation_recluster',
-                        col_subset='annotation_recluster',
-                        labels_original=celltype)
+    transfer_labels(adata, adata_subset,
+                    col_original=key_added,
+                    col_subset=key_added,
+                    labels_original=celltype)
+
     if get_subset:
         return adata_subset
     else:
-        return adata
+        return None
 
 
 def full_recluster(
     adata: ad.AnnData,
     cluster_key: str,
     batch_key: str,
-    recluster_apporach: Literal['cca'],
+    recluster_apporach: Literal['cca4', 'harmony', 'cca5', 'bbknn', 'scvi', 'scanorama', 'pca'],
     hvg_batch: bool = False,
     use_rep: str = None,
     resolution: float = 0.3,
@@ -507,6 +511,7 @@ def full_recluster(
     majority: bool = True,
     convert: bool = True,
     model: str = 'Healthy_Adult_Heart.pkl',
+    key_added: str = 'annotation_fullrecluster',
 ) -> ad.AnnData:
     """Re-clustering of all clusters in dataset.
 
@@ -525,10 +530,6 @@ def full_recluster(
         (CCA v5) and the latent space (scvi) to be in `.obsm`. When re-clustering with harmony and
         BBKNN the pipeline will be re-run over the clusters.
 
-    See Also
-    --------
-    Check :func:`dotools_py.tl.reclustering` to re-cluster specific clusters.
-
     :param adata: annotated dt matrix.
     :param cluster_key: `.obs` column name with clusters.
     :param batch_key: `.obs` column name with batch information.
@@ -541,34 +542,45 @@ def full_recluster(
     :param majority: use majority voting for automatic annotation.
     :param convert: convert the gene format. Useful if using a human model in celltypist and input is mouse or viceverse.
     :param model: model name of celltypist to use.
+    :param key_added: column name in obs with reclustering information.
     :return: input AnnData with reclustering or subsetted anndata with reclusters.
+
+    See Also
+    --------
+    Check :func:`dotools_py.tl.reclustering` to re-cluster specific clusters.
     """
 
     celltype = list(adata.obs[cluster_key].unique())
     hvg_key = batch_key if hvg_batch else None
-    adata.obs['annotation_recluster'] = adata.obs[cluster_key].copy()
+    adata.obs[key_added] = adata.obs[cluster_key].copy()
     for ct in celltype:
-        adata_subset = reclustering(adata,
-                                    cluster_key=cluster_key,
-                                    batch_key=batch_key,
-                                    recluster_apporach=recluster_apporach,
-                                    use_clusters=ct,
-                                    hvg_batch=hvg_key,
-                                    use_rep=use_rep,
-                                    resolution=resolution,
-                                    neighbors_batch=neighbors_batch,
-                                    automatic_annot=automatic_annot,
-                                    majority=majority,
-                                    convert=convert,
-                                    model=model,
-                                    get_subset=True
-                                    )
+        try:
+            adata_subset = reclustering(adata,
+                                        cluster_key=cluster_key,
+                                        batch_key=batch_key,
+                                        recluster_apporach=recluster_apporach,
+                                        use_clusters=[ct],
+                                        hvg_batch=hvg_key,
+                                        use_rep=use_rep,
+                                        resolution=resolution,
+                                        neighbors_batch=neighbors_batch,
+                                        automatic_annot=automatic_annot,
+                                        majority=majority,
+                                        convert=convert,
+                                        model=model,
+                                        get_subset=True,
+                                        key_added='annotation_recluster'
+                                        )
+        except TypeError as e:
+            logger.warn(f'Error while reclustering {ct}, keeping original annotation')
+            adata_subset = adata[adata.obs[cluster_key] == ct ]
+            adata_subset.obs['annotation_recluster'] = ct
 
         transfer_labels(adata,
                         adata_subset,
-                        col_original='annotation_recluster',
+                        col_original=key_added,
                         col_subset='annotation_recluster',
-                        labels_original=ct
+                        labels_original=[ct]
                         )
-
+    del adata.obs['annotation_recluster']
     return None

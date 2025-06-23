@@ -356,15 +356,15 @@ def volcano_plot(
     # Generate Plot
     # Create scatter Plot
     fig, axs = plt.subplots(1, 1, figsize=figsize)
-    axs.scatter(lfcs, -np.log10(pvals), color="gray", alpha=0.7, label="NS", s=dot_size, rasterized=True)
+    axs.scatter(lfcs, -np.log10(pvals), color="grey", alpha=0.7, label="NS", s=dot_size**2, rasterized=True)
     axs.scatter(
-        lfcs[cat1], -np.log10(pvals[cat1]), color="tomato", alpha=0.7, label="FDR & log2FC", s=dot_size, rasterized=True
+        lfcs[cat1], -np.log10(pvals[cat1]), color="tomato", alpha=0.7, label="FDR & log2FC", s=dot_size**2, rasterized=True
     )
     axs.scatter(
-        lfcs[cat2], -np.log10(pvals[cat2]), color="cornflowerblue", alpha=0.7, label="FDR", s=dot_size, rasterized=True
+        lfcs[cat2], -np.log10(pvals[cat2]), color="lightsteelblue", alpha=0.7, label="FDR", s=dot_size**2, rasterized=True
     )
     axs.scatter(
-        lfcs[cat3], -np.log10(pvals[cat3]), color="limegreen", alpha=0.7, label="log2FC", s=dot_size, rasterized=True
+        lfcs[cat3], -np.log10(pvals[cat3]), color="limegreen", alpha=0.7, label="log2FC", s=dot_size**2, rasterized=True
     )
     axs.spines[["top", "right"]].set_visible(False)
     axs.grid(False)
@@ -402,7 +402,7 @@ def volcano_plot(
     axs.set_xlabel("Log2FC")
     axs.set_ylabel("-log10(FDR)")
     axs.set_title(title)
-    axs.legend(loc="upper center", bbox_to_anchor=(0.5, -0.13), fancybox=True, ncols=2)
+    axs.legend(loc="upper center", bbox_to_anchor=(0.5, -0.13), frameon=False, ncols=2, markerscale=dot_size, prop={'weight': 'bold'})
 
     if fig_path is not None:
         plt.savefig(convert_path(fig_path) / filename, bbox_inches="tight")
