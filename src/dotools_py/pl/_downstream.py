@@ -3,14 +3,179 @@ from pathlib import Path
 
 import anndata as ad
 import matplotlib.lines as mlines
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 import pandas as pd
 from adjustText import adjust_text
 
 from dotools_py import logger
 from dotools_py.utils import convert_path, format_terms_gsea, make_grid_spec, sanitize_anndata, require_dependencies
-from typing import Union
+from typing import Union, Literal
+from dotools_py.tl import mean_expr
+from dotools_py.utility import generate_cmap
+
+
+def expr_correlation(
+        adata: ad.AnnData,
+        group_by: str = 'batch',
+        method: Literal['spearman', 'pearson', 'kendall'] = 'pearson',
+        mask: Literal['upper', 'lower', None] = None,
+        square: bool = True,
+        linewidths: float = 0.1,
+        annot: bool = True,
+        figsize: tuple = (3, 4),
+        axs: plt.Axes = None,
+        mode: Literal['colors', 'letters'] = 'letters',
+        cmap: Union['str', 'list'] = 'RdBu_r',
+        linecolor: str = 'k',
+        color_annot: str = 'white',
+        annot_kws: dict = {'orientation': 'horizontal', 'fraction': 0.05, 'pad': 0.2, 'shrink': 0.5},
+        ticks_size: int = 12,
+        path: str = None,
+        filename: str = 'Correlation.svg',
+        show=True,
+) -> Union[plt.Axes, None]:
+    """Calculate correlation between samples.
+
+    Calculates the pearson / spearman / kendall correlation between categorical metadata for
+    all the genes and makes a heatmap representation. There are two modes:
+    * letters: the squares will be white and the correlation values will be colored based on a gradient
+    * colors: the squares will be colored based on a gradient and the letters will be white.
+    We assume that the input is log-normalised data.
+
+    :param adata: annotated data matrix.
+    :param group_by: obs column with categorical information like sample or condition information.
+    :param method: method to use to calculate correlation: Pearson, Spearman or Kendall.
+    :param mask: set to lower or upper to hide the upper or lower triangle of the heatmap.
+    :param square: if True, set the Axes aspect to “equal” so each cell will be square-shaped.
+    :param linewidths: width of the lines that will divide each cell.
+    :param annot: add correlation values to the squares.
+    :param figsize: figure size.
+    :param axs: matplotlib axis.
+    :param mode: letters or color mode.
+    :param cmap: name of the colormap, list of colors to generate a colormap or a custom colormap.
+    :param linecolor: color of the lines that will divide each cell.
+    :param color_annot: color of the correlation values. Will use the cmap in letters mode.
+    :param annot_kws: keyword arguments for matplotlib.axes.Axes.text() when annot is True.
+    :param ticks_size: size of the x and y ticks.
+    :param path: path to save plot.
+    :param filename: name of the file.
+    :param show: set  false to return the matplotlib axis.
+    :return: matplotlib axis.
+    """
+    # Checks
+    assert method in ['spearman', 'pearson', 'kendall'], 'Not a valid method use spearman, pearson or kendall'
+    assert mode in ['colors', 'letters'], 'Not a valid method use spearman, pearson or kendall'
+    part_removed = mask
+
+    # Extract the Average Expression
+    df = mean_expr(adata, group_by=group_by, features=list(adata.var_names))  # All Genes
+    df_pivot = df.pivot(index='gene', columns='group0', values='expr')
+    df_corr = df_pivot.corr(method=method)
+
+    # Define mask
+    if mask == 'upper':
+        mask = ~np.tril(df_corr.values).astype(bool)
+    elif mask is 'lower':
+        mask = ~np.triu(df_corr.values).astype(bool)
+    elif mask is None:
+        mask = None
+    else:
+        raise Exception(f'"{mask}" is not a valid mask, specify "upper", "lower" or None ')
+
+    # Define the colormap
+    norm_palette = plt.Normalize(df_corr.min().min(), df_corr.max().min())
+    if isinstance(cmap, str):  # Assume is a cmap in matplotlib
+        palette = plt.cm.get_cmap(cmap)
+    elif isinstance(cmap, list):
+        palette = generate_cmap(*cmap)
+    elif isinstance(cmap, LinearSegmentedColormap):
+        palette = cmap
+    else:
+        raise Exception('Provide the name of a colormap, a list of colors or a custom colormap')
+
+    white_cmap = ListedColormap(["white"])
+    palette_cbar = white_cmap if mode == 'letters' else palette
+
+    if axs is None:
+        fig, axs = plt.subplots(1, 1, figsize=figsize)
+
+    hm = sns.heatmap(df_corr,
+                     mask=mask,
+                     cmap=palette_cbar,
+                     square=square,
+                     linewidths=linewidths,
+                     annot=False,
+                     ax=axs,
+                     linecolor=linecolor,
+                     cbar=False)
+
+    # Remove the gridlines around masked data
+    if mask is not None:
+        mesh = hm.findobj()[0]
+        nan_mask_flat = mask.ravel()
+        edge_colors = np.array([(0, 0, 0, 0) if is_nan else (0, 0, 0, 1) for is_nan in nan_mask_flat])
+        mesh.set_edgecolors(edge_colors)
+
+    if mode is 'letters' or annot is True:
+        for i in range(df_corr.shape[0]):
+            for j in range(df_corr.shape[1]):
+                if mask is not None:
+                    if mask[i, j]:
+                        continue
+                value = df_corr.iloc[i, j]
+                color = palette(norm_palette(value)) if mode is 'letters' else color_annot
+                hm.text(j + 0.5,
+                        i + 0.5,
+                        f"{value:.2f}",
+                        color=color,
+                        ha='center',
+                        va='center',
+                        fontsize=18,
+                        weight='bold'
+                        )
+    # Add Colorbar
+    sm = ScalarMappable(norm=norm_palette, cmap=palette)
+    sm.set_array([])  # Needed for colorbar to work
+    cbar = fig.colorbar(sm, ax=axs, **annot_kws)
+    cbar.ax.set_title(f"Correlation {method}", fontdict={'size': 12})
+
+    # Layout
+    hm.set_xlabel('')
+    hm.set_ylabel('')
+
+    xticks, yticks = hm.get_xticks(), hm.get_yticks()
+    (xtickslabels,
+     ytickslabels) = ([label.get_text() for label in hm.get_xticklabels()],
+                      [label.get_text() for label in hm.get_yticklabels()])
+    if part_removed == 'lower':
+        remove_x, remove_y = [], []
+        for row in range(mask.shape[0]):
+            for col in range(mask.shape[1]):
+                if mask[row, col]:
+                    xtickslabels[col] = ''
+                    ytickslabels[row] = ''
+                    remove_x.append(xticks[col])
+                    remove_y.append(yticks[row])
+        xticks = [tick for tick in xticks if tick not in remove_x]
+        yticks = [tick for tick in yticks if tick not in remove_y]
+        xtickslabels = [label for label in xtickslabels if label is not '']
+        ytickslabels = [label for label in ytickslabels if label is not '']
+
+    hm.set_xticks(xticks)
+    hm.set_xticklabels(xtickslabels, fontweight='bold', fontsize=ticks_size)
+    hm.set_yticks(yticks)
+    hm.set_yticklabels(ytickslabels, fontweight='bold', fontsize=ticks_size)
+    if path is not None:
+        plt.savefig(convert_path(path) / filename, bbox_inches='tight')
+    if show:
+        return plt.show()
+    else:
+        return hm
+
 
 @require_dependencies([{'name': 'scanpro'}])
 def cell_props(

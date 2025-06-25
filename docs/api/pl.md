@@ -18,6 +18,7 @@ visualisation methods.
     pl.umap
     pl.cell_props
     pl.split_bar_gsea
+    pl.expr_correlation
     pl.volcano_plot
     pl.barplot
     pl.violin
