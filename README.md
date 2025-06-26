@@ -85,6 +85,13 @@ BiocManager::install("scDblFinder")
 BiocManager::install("zellkonverter")
 ```
 
+For old CPU architectures there can be problems with [polars]() making the kernel die
+when importing the package. In this case run
+
+```bash
+pip install --no-cache polars-lts-cpu
+```
+
 
 ## Release notes
 

@@ -28,6 +28,8 @@ analysis and statistical methods.
     tl.mean_expr
     tl.rank_genes_groups
     tl.rank_genes_condition
+    tl.rank_genes_deseq2
+    tl.rank_genes_consensus
     tl.grouped_ttest
     tl.run_mast
     tl.generate_results

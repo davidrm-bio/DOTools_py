@@ -12,11 +12,12 @@ Running_CellBender
 example_10X
 ```
 
-## Visualisation
+## Visualisation and Usage Examples
 In these tutorials we compile case examples for the visualisation of data.
 
 ```{toctree}
 :maxdepth: 1
 
+dea
 example_visualisation
 ```
