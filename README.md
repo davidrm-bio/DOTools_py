@@ -85,7 +85,7 @@ BiocManager::install("scDblFinder")
 BiocManager::install("zellkonverter")
 ```
 
-For old CPU architectures there can be problems with [polars]() making the kernel die
+For old CPU architectures there can be problems with [polars](https://docs.pola.rs/) making the kernel die
 when importing the package. In this case run
 
 ```bash

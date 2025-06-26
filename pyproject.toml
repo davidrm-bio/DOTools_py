@@ -47,6 +47,7 @@ dependencies = [
   "scikit-image",
   "harmonypy",
   "scanorama",
+  "pydeseq2"
 ]
 
 # scanpro missing and failts if added here
@@ -82,6 +83,7 @@ optional-dependencies.doc = [
   "doubletdetection",
   "gseapy",
   "jupyter",
+  "pydeseq2"
 ]
 optional-dependencies.test = [
   "adjusttext",
