@@ -59,7 +59,7 @@ def slides(
     batch_key: str = 'batch',
     ncols: int = 4,
     sp_size: float = 1.5,
-    fig_path: str = None,
+    path: str = None,
     filename: str = 'Spatial.svg',
     common_legend: bool = True,
     order: list = None,
@@ -86,7 +86,7 @@ def slides(
                     to save the spatial images in `adata.uns['spatial'].keys()`.
     :param ncols: number of subplots per row.
     :param sp_size: size of the dots.
-    :param fig_path: path to save the plot.
+    :param path: path to save the plot.
     :param filename: filename of the plot.
     :param common_legend: if set to true only the legend of the last column will be shown. Otherwise, the legend of
                           all the subplots will be shown.
@@ -189,8 +189,8 @@ def slides(
 
         spine_format(axs[idx], txt='SP')
         remove_extra(extras, nrows, ncols, axs)  # Remove extra subplots
-        if fig_path is not None:
-            plt.savefig(convert_path(fig_path) / filename, bbox_inches='tight')
+        if path is not None:
+            plt.savefig(convert_path(path) / filename, bbox_inches='tight')
     if show:
         return None
     else:

@@ -92,7 +92,6 @@ when importing the package. In this case run
 pip install --no-cache polars-lts-cpu
 ```
 
-
 ## Release notes
 
 See the [changelog][].
