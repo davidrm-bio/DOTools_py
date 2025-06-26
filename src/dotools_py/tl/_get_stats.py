@@ -1,4 +1,5 @@
 from pathlib import Path
+from tqdm import tqdm
 import os
 import subprocess
 import uuid
@@ -11,12 +12,15 @@ import numpy as np
 import pandas as pd
 import scipy as sp
 import gseapy
+from pydeseq2.default_inference import DefaultInference
+from pydeseq2.ds import DeseqStats
+from pydeseq2.dds import DeseqDataSet
 
 from dotools_py import logger
 from dotools_py.utils import get_paths_utils, sanitize_anndata, convert_path
 from dotools_py.tl import rank_genes_groups
 from scipy.stats import ttest_ind
-
+import random
 
 def _expm1_anndata(
     adata: ad.AnnData
@@ -183,11 +187,9 @@ def run_mast(
     tmpdir_path = Path("/tmp") / f"MAST_Test_{uuid.uuid4().hex}"
     tmpdir_path.mkdir(parents=True, exist_ok=False)
 
-    logger.info("Preprocessing to R")
     del adata.uns, adata.raw
     adata.write(tmpdir_path / "adata.h5ad")
 
-    logger.info("Running MAST Integration")
     in_path = os.path.join(tmpdir_path, "adata.h5ad")
 
     disease = [disease] if isinstance(disease, str) else disease
@@ -209,6 +211,11 @@ def run_mast(
         dge = pd.read_csv(os.path.join(tmpdir_path, "dge_mast.csv"))
         dge['groups'] = alternative
         dge_main = pd.concat([dge_main, dge])
+
+    dge_main.rename(columns={'primerid': 'GeneName',
+                             'mean2...mean1': 'log2fc',
+                             }, inplace=True)
+    del dge_main['Unnamed: 0']
     return dge_main
 
 
@@ -300,6 +307,7 @@ def rank_genes_condition(
     filename: str = 'DGE.xlsx',
     layer: str = None,
     covariates: Union[list, None] = None,
+    get_results: bool =True,
 ) -> Union[pd.DataFrame, None]:
     """Run DGE Analysis.
 
@@ -309,8 +317,8 @@ def rank_genes_condition(
 
     After running DGE analysis and if path is provided an ExcelSheet will be generated with 3 sheets: 1) AllGenes
     containing all the genes, 2) UpregGenes containing upregulated genes and 3) DownregGenes containing downregulated
-    genes. The up- and down-regulated genes are filtered depending on the pval_cutoff and log2fc_cutoff.
-
+    genes. The up- and down-regulated genes are filtered depending on the pval_cutoff and log2fc_cutoff. The results will
+    be saved in the uns attribute under `rank_genes_condition`.
 
     :param adata: annotated data matrix.
     :param groupby: obs column with condition to test for.
@@ -324,7 +332,8 @@ def rank_genes_condition(
     :param filename: name of the ExcelSheet.
     :param layer: layer of the AnnData to use.
     :param covariates: extra covariates to correct for in the MAST test.
-    :return: DGE dataframe. If a path is provided, the DataFrame with DGEs will be saved under the specified path.
+    :param get_results: results a dataframe with results.
+    :return: DGE dataframe. If a path is provided, the DataFrame with DGEs will be saved under the specified path. Results are saved in the uns attribute
     """
 
     sanitize_anndata(adata)
@@ -363,6 +372,7 @@ def rank_genes_condition(
                         groups=groups,
                         covariates=covariates)
 
+    adata.uns['rank_genes_condition'] = dge  # Save inplace
     if path is not None:
         out_path = convert_path(path) / filename
         logger.info(f'Saving DGE ExcelSheet in {str(out_path.name)}')
@@ -376,8 +386,10 @@ def rank_genes_condition(
 
                 dge_up.to_excel(writer, sheet_name=f'UpregGenes_{case}', index=False)
                 dge_down.to_excel(writer, sheet_name=f'DownregGenes_{case}', index=False)
-    else:
+    if get_results:
         return dge
+    else:
+        return None
 
 
 def grouped_ttest(
@@ -481,3 +493,280 @@ def go_analysis(
         return None
     else:
         return res
+
+def rank_genes_deseq2(
+        adata,
+        ctrl_cond,
+        disease_cond,
+        cluster_key,
+        batch_key: str = 'batch',
+        condition_key: str = 'condition',
+        design: str = '~condition',
+        layer: str = 'counts',
+        min_cells: int = 50,
+        pseudobulk_approach: Literal['sum', 'mean'] = 'sum',
+        technical_replicates: int = 1,
+        min_counts: int = 10,
+        n_cpus: int = 8,
+        path: str = None,
+        filename: str = 'DESeq.xlsx',
+        get_results: bool = True,
+        key_added: str = 'rank_genes_deseq2',
+) -> Union[pd.DataFrame, None]:
+    """Running DESeq2 for DEA.
+
+    Perform differential expression analysis (DEA) using DESeq2. This functions has a similar behavior as
+    `do.tl.rank_genes_condition`. For each cluster it will test for differential gene expression between two conditions.
+    The input is expected to be raw counts.
+
+    See Also
+    -------
+        :func:`dotools_py.tl.rank_genes_condition` - Run DEA at single-cell level
+
+    :param adata: annotated data matrix
+    :param ctrl_cond: control condition
+    :param disease_cond: disease condition
+    :param cluster_key: column in obs with cluster information
+    :param batch_key: column in obs with batch information
+    :param condition_key: column in obs with condition information
+    :param design: design for DESeq2
+    :param layer: layer to use. Expected raw counts.
+    :param min_cells: minimum number of cells per batch/sample required when generating the pseudo-bulk. If there are
+                      fewer cells, DESeq2 will not be run on the cluster.
+    :param pseudobulk_approach: how to generate the pseudobulk counts.
+    :param technical_replicates: how many technical replicates should be generated per sample.
+    :param min_counts: minimum number of total counts for a gene to be tested in DESeq2 after pseudobulking.
+    :param n_cpus: number of CPUs to use for DESEq2.
+    :param path: path to save the file.
+    :param filename: name of the file.
+    :param get_results: get dataframe with DEA results
+    :param key_added: name of the uns attribute with the results
+    :return: a dataframe with DEA results. The results are also saved under the uns attribute.
+    """
+    # Step 1 - Generate Pseudo-bulk data
+    logger.info('Generating Pseudo-bulk data')
+    list_pdata = []
+    for cluster in tqdm(adata.obs[cluster_key].unique(),
+                        desc='Pseudo-bulked clusters'):
+
+        adata_subset = adata[adata.obs[cluster_key] == cluster].copy()
+
+        # Do not test clusters where we do not have enough cells per batch
+        check = adata_subset.obs.value_counts(batch_key)
+        check = list(check[~check.where(check < min_cells).isna()].index)
+        if len(check) != 0:
+            print('\n')
+            logger.warn(f'The samples {check} have < {min_cells} in cluster {cluster}. Skipping cluster')
+            continue
+        # Keep only categorical metadata
+        keep_metadata = list(adata_subset.obs.select_dtypes(include=['category']).columns)
+        # Define settings to aggregate data
+        df_main = pd.DataFrame()
+        for sample in adata_subset.obs[batch_key].unique():
+            subset_batch = adata_subset[adata_subset.obs[batch_key] == sample].copy()
+            # Keep only metadata that has one value per donor
+            keep_metadata_current = [k for k in keep_metadata if len(subset_batch.obs[k].unique()) == 1]
+            aggregate_info = {gene: pseudobulk_approach for gene in adata_subset.var_names}
+            aggregate_info.update({obs: 'first' for obs in keep_metadata_current})
+
+            # Generate technical replicates
+            idx = list(subset_batch.obs_names)
+            random.shuffle(idx)
+            idx = np.array_split(np.array(idx), technical_replicates)
+            for i, replicate in enumerate(idx):
+                batch_replicate = subset_batch[replicate, :]
+                mtx = get_expr(batch_replicate, batch_replicate.var_names, keep_metadata_current, out_format='wide',
+                               layer=layer)
+                mtx = mtx.groupby(batch_key).agg(aggregate_info)
+                if len(idx) > 1:
+                    mtx[batch_key] = mtx[batch_key] + '_' + str(i)
+                df_main = pd.concat([df_main, mtx])
+
+        pdata = ad.AnnData(df_main[adata_subset.var_names], obs=df_main[keep_metadata_current])
+        sc.pp.calculate_qc_metrics(pdata, inplace=True)
+        n_vars = pdata.n_vars
+        pdata = pdata[:, pdata.var.total_counts > min_counts]
+        n_vars = n_vars - pdata.n_vars
+        print('\n')
+        logger.info(f'Removed {n_vars} genes for having less than {min_counts} total counts')
+        list_pdata.append(pdata)
+
+    # Step 2 - Run DESeq2
+    inference = DefaultInference(n_cpus=n_cpus)
+
+    df_main = pd.DataFrame([])
+    for pdata in list_pdata:
+        dds = DeseqDataSet(adata=pdata, design=design, refit_cooks=True, inference=inference)
+        dds.deseq2()
+        stat_res = DeseqStats(dds, contrast=[condition_key, disease_cond, ctrl_cond], inference=inference)
+        stat_res.summary()
+        results = stat_res.results_df.copy()
+        results.loc[results.padj.isna(), 'padj'] = 1  # Replace NaN with 1
+        results['group'] = pdata.obs[cluster_key].unique()[0]
+        df_main = pd.concat([df_main, results])
+
+    if path is not None:
+        df_main.to_excel(convert_path(path) / filename)
+
+    adata.uns[key_added] = df_main
+    if get_results:
+        return df_main
+    else:
+        return None
+
+
+def rank_genes_consensus(
+        adata,
+        ctrl_cond,
+        disease_cond,
+        cluster_key,
+        batch_key: str = 'batch',
+        condition_key: str = 'condition',
+        design: str = '~condition',
+        count_layer: str = 'counts',
+        logcounts_layer: str = 'logcounts',
+        min_cells: int = 50,
+        pseudobulk_approach: Literal['sum', 'mean'] = 'sum',
+        technical_replicates: int = 2,
+        min_counts: int = 10,
+        n_cpus: int = 8,
+        path: Union[str, Path, None] = None,
+        filename: str = 'DEA.xlsx',
+        test: Literal['wilcoxon', 'mast', 't-test', 'logreg', 't-test_overestim_var'] = 'wilcoxon',
+        mast_covariates: list = None,
+        pval_cutoff: float = 0.05,
+        get_results: bool = True,
+        key_added: str = 'rank_genes_consensus',
+) -> Union[pd.DataFrame, None]:
+    """Run single-cell and pseudo-bulk differential expression analysis.
+
+    This function performs differential gene expression analysis between two conditions for
+    an all the clusters in the AnnData object using a single-cell level and pseudo-bulk level approach.
+    For the single-cell level, it will test for DEGs using wilcoxon, MAST, t-test, logistic regression or
+    t-test overestimate. For the pseudobulk level it will test for DEGs using DESeq2.
+
+    A dataframe will be produce with the results of both tests including the foldchanges, p-values, statistics,
+    percentage of cells in each group expressing the gene and the mean expression per sample in each cluster for each gene.
+    The dataframe will be saved in the `uns` attribute and can also be saved if a path a filename is provided.
+
+    :param adata: annotated data matrix.
+    :param ctrl_cond: control condition.
+    :param disease_cond: disease or alternative condition to test.
+    :param cluster_key: column in obs with clustering information.
+    :param batch_key: column in obs with batch information.
+    :param condition_key: column in obs with condition information.
+    :param design: design for the differential expression analysis in DESeq2.
+    :param count_layer: layer with counts. Required for DESeq2.
+    :param logcounts_layer:  layer with logcounts.
+    :param min_cells: minimum number of cells per batch/sample required when generating the pseudo-bulk. If there are
+                      fewer cells, DESeq2 will not be run on the cluster.
+    :param pseudobulk_approach: how to generate the pseudobulk counts.
+    :param technical_replicates: how many technical replicates should be generated per sample.
+    :param min_counts: minimum number of total counts for a gene to be tested in DESeq2 after pseudobulking.
+    :param n_cpus: number of CPUs to use for DESEq2.
+    :param path: path to save results.
+    :param filename: name of the file.
+    :param test: test to use for doing differential expression analysis on single-cell level.
+    :param mast_covariates: covariates for MAST test.
+    :param pval_cutoff: cutoff for considering a gene significant.
+    :param get_results: get a dataframe with the consensus results
+    :param key_added: name of the uns attribute with the results
+    :return: a dataframe with DEA results. The results are also saved under the uns attribute.
+    """
+
+    # Run single-cell dge
+    logger.info(f'Running {test}')
+    df_sc = rank_genes_condition(adata,
+                                 groupby=condition_key,
+                                 subset_by=cluster_key,
+                                 reference=ctrl_cond,
+                                 groups=disease_cond,
+                                 method=test,
+                                 layer=logcounts_layer,
+                                 covariates=mast_covariates,
+                                 get_results=True
+                                 )
+
+    # Run pseudobulk
+    logger.info('Running DESeq2')
+    df_pseudobulk = rank_genes_deseq2(adata,
+                                      ctrl_cond=ctrl_cond,
+                                      disease_cond=disease_cond,
+                                      cluster_key=cluster_key,
+                                      batch_key=batch_key,
+                                      condition_key=condition_key,
+                                      design=design,
+                                      layer=count_layer,
+                                      min_cells=min_cells,
+                                      min_counts=min_counts,
+                                      pseudobulk_approach=pseudobulk_approach,
+                                      technical_replicates=technical_replicates,
+                                      n_cpus=n_cpus,
+                                      )
+    logger.info('Generating consensus DataFrame')
+    # CleanUp
+    df_pseudobulk['GeneName'] = df_pseudobulk.index
+    df_pseudobulk.rename(columns={'log2FoldChange': 'log2fc_DESeq2',
+                                  'stat': 'stat_DESeq2',
+                                  'pvalue': 'pval_DESeq2',
+                                  'padj': 'padj_DESeq2'},
+                         inplace=True)
+    df_pseudobulk = df_pseudobulk[
+        ['GeneName', 'log2fc_DESeq2', 'stat_DESeq2', 'pval_DESeq2', 'padj_DESeq2', 'group']].reset_index(drop=True)
+
+    # Add missing genes for the consensus
+    missing = df_pseudobulk.groupby('group')['GeneName'].apply(lambda x: list(set(adata.var_names) - set(x))
+                                                               ).reset_index(name='missing_values')
+    tmp = pd.DataFrame([])
+    for idx, row in missing.iterrows():
+        new_rows = pd.DataFrame(row['missing_values'], columns=['GeneName'])
+        template = pd.DataFrame(np.zeros((new_rows.shape[0], 4)),
+                                columns=['log2fc_DESeq2', 'stat_DESeq2', 'pval_DESeq2', 'padj_DESeq2'])
+        template['group'] = row['group']
+        template['pval_DESeq2'] = 1
+        template['padj_DESeq2'] = 1
+        new_rows = new_rows.join(template)
+        tmp = pd.concat([tmp, new_rows])
+    df_pseudobulk = pd.concat([df_pseudobulk, tmp])
+
+    # If a group was not tested we also need to add it
+    missing = [c for c in df_sc[cluster_key].unique() if c not in df_pseudobulk['group'].unique()]
+    tmp = pd.DataFrame([])
+    for m in missing:
+        new_rows = pd.DataFrame(list(adata.var_names), columns=['GeneName'])
+        template = pd.DataFrame(np.zeros((new_rows.shape[0], 4)),
+                                columns=['log2fc_DESeq2', 'stat_DESeq2', 'pval_DESeq2', 'padj_DESeq2'])
+        template['group'] = m
+        template['pval_DESeq2'] = 1
+        template['padj_DESeq2'] = 1
+        new_rows = new_rows.join(template)
+        tmp = pd.concat([tmp, new_rows])
+    df_pseudobulk = pd.concat([df_pseudobulk, tmp])
+    df_pseudobulk.rename(columns={'group': cluster_key}, inplace=True)
+    df_sc = df_sc[df_sc.group == disease_cond]
+    assert df_sc.shape[0] == df_pseudobulk.shape[0]
+    df_consensus = df_sc.merge(df_pseudobulk, on=['GeneName', cluster_key])
+
+    df_consensus['sc_signicant'] = ['Yes' if pval < pval_cutoff else 'No' for pval in df_consensus['padj']]
+    df_consensus['DESeq2_signicant'] = ['Yes' if pval < pval_cutoff else 'No' for pval in df_consensus['padj_DESeq2']]
+    df_consensus['consensus_significant'] = df_consensus.apply(lambda row: 'Yes' if row['sc_signicant'] == 'Yes' and row['DESeq2_signicant'] == 'Yes' else 'No', axis=1)
+
+    # Mean per cluster for each sample correct
+    df_mean = mean_expr(adata, group_by=[batch_key, cluster_key], features=list(adata.var_names))
+    df_mean['group0'] = 'MeanExpr_' + df_mean['group0'].astype(str)
+    df_mean = df_mean.pivot(index=['gene', 'group1'], columns='group0', values='expr').reset_index()
+    df_mean.rename(columns={'gene': 'GeneName', 'group1': cluster_key}, inplace=True)
+    df_mean = df_mean.reset_index(drop=True)
+
+    df_consensus = df_consensus.merge(df_mean, on=['GeneName', cluster_key])
+
+    adata.uns[key_added] = df_consensus
+
+    if path is not None:
+        df_consensus.to_excel(convert_path(path) / filename, index=False)
+
+    if get_results:
+        return df_consensus
+    else:
+        return None
+

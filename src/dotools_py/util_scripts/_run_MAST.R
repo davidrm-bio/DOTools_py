@@ -112,7 +112,5 @@ df <-data.frame(
     pts_group = pct2
   )
 
-print(df)
-
 message('Saving DGE Table')
 write.csv(df, opt$out)
