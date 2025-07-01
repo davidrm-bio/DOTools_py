@@ -72,13 +72,14 @@ devtools::install_github("MarianoRuzJurado/DOtools")
 ## Requirements
 
 Some methods are run through R and require additional dependencies
-including: `Seurat`, `MAST`, `scDblFinder`, `zellkonverter` and `optparse`.
+including: `Seurat`, `MAST`, `scDblFinder`, `zellkonverter`, `future` and `optparse`.
 
 ```R
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
 install.packages("optparse")
+install.packages('future')
 remotes::install_github("satijalab/seurat", "seurat5", quiet = TRUE)  # Seurat
 BiocManager::install("MAST")
 BiocManager::install("scDblFinder")

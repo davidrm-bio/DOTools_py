@@ -12,6 +12,7 @@ suppressWarnings(suppressMessages(library(optparse)))
 suppressWarnings(suppressMessages(library(zellkonverter)))
 suppressWarnings(suppressMessages(library(Seurat)))
 suppressWarnings(suppressMessages(library(data.table)))
+suppressWarnings(suppressMessages(library(future)))
 
 
 option_list <- list(
@@ -25,7 +26,16 @@ option_list <- list(
                 metavar = "character"),
     make_option(c("--version"), type = "character", default = "v4",
                 help = "Seurat version approach to use (v4 or v5)",
-                metavar = "character")
+                metavar = "character"),
+    make_option(c("--multiprocess"), type="boolean", defult = FALSE,
+                help = "Use multiprocess plan from future",
+                metavar = "boolean"),
+    make_option(c('--threads'), type = "integer", default=15,
+                help = "Number of threads to use",
+                metavar = "integer"),
+    make_option(c('--memory'), type = "integer", default= 100000 * 1024^2,
+                help = "Maximum RAM memory to use",
+                metavar = "integer")
 )
 
 opt_parser <- OptionParser(usage = "usage: %prog [options]
@@ -48,6 +58,11 @@ if (is.null(opt$input)) {
     stop("Please provide the specified arguments", call. = FALSE)
 }
 
+# Set to use multiple CPUs
+if (opt$multiprocess){
+    plan("multiprocess", workers = out$threads)
+    options(future.globals.maxSize = out$memory)
+}
 
 # Read h5ad as ScE
 message('Reading AnnData in R')
