@@ -14,21 +14,18 @@ import numpy as np
 
 from dotools_py.utils import convert_path, sanitize_anndata
 from dotools_py.tl import rank_genes_groups, mean_expr
-from  dotools_py.logger import  logger
-
-
-
+from dotools_py.logger import logger
 
 
 def make_grid_spec(
-        ax_or_figsize,
-        *,
-        nrows: int,
-        ncols: int,
-        wspace: float = None,
-        hspace: float = None,
-        width_ratios: Union[float, list] = None,
-        height_ratios: Union[float, list] = None,
+    ax_or_figsize,
+    *,
+    nrows: int,
+    ncols: int,
+    wspace: float = None,
+    hspace: float = None,
+    width_ratios: Union[float, list] = None,
+    height_ratios: Union[float, list] = None,
 ):
     # Taken from Scanpy
     kw = dict(wspace=wspace, hspace=hspace, width_ratios=width_ratios, height_ratios=height_ratios)
@@ -45,7 +42,12 @@ def make_grid_spec(
         return ax.figure, ax.get_subplotspec().subgridspec(nrows, ncols, **kw)
 
 
-def check_colornorm(vmin=None, vmax=None, vcenter=None, norm=None):
+def check_colornorm(
+    vmin=None,
+    vmax=None,
+    vcenter=None,
+    norm=None
+):
     from matplotlib.colors import Normalize
 
     try:
@@ -66,7 +68,14 @@ def check_colornorm(vmin=None, vmax=None, vcenter=None, norm=None):
     return norm
 
 
-def square_color(rgba):
+def square_color(
+    rgba: list
+) -> str:
+    """Determine if the background is dark or clear and return black or white.
+
+    :param rgba: list with rgba values
+    :return: black or white
+    """
     r, g, b = rgba[:3]  # ignore alpha
     # Convert from 0–1 float to 0–255 int
     r, g, b = [int(c * 255) for c in (r, g, b)]
@@ -75,60 +84,70 @@ def square_color(rgba):
     return 'black' if brightness > 128 else 'white'
 
 
-def small_squares(ax, pos, color, size=1, linewidth=0.8):
+def small_squares(
+    ax: plt.Axes,
+    pos: list,
+    color: list,
+    size: float = 1,
+    linewidth: float = 0.8
+) -> None:
+    """Add small squares.
+
+    :param ax: matplotlib axis
+    :param pos: list of positions
+    :param color: list of colors
+    :param size:  size of the square
+    :param linewidth: linewith of the square
+    :return: None
+    """
     for idx, xy in enumerate(pos):
         x, y = xy
         margin = (1 - size) / 2
-        rect = patches.Rectangle(
-            (y + margin, x + margin),
-            size,
-            size,
-            linewidth=linewidth,
-            edgecolor=color[idx],
-            facecolor="none",
-            zorder=20,
-        )
+        rect = patches.Rectangle((y + margin, x + margin), size, size,
+                                 linewidth=linewidth, edgecolor=color[idx],
+                                 facecolor="none", zorder=20, )
         ax.add_patch(rect)
+    return None
 
 
 def heatmap(
-        adata: ad.AnnData,
-        group_by: Union[str, list],
-        features: Union[str, list],
-        z_score: Literal['var', 'group', None] = None,  # x_axis is the group_by
-        path: str = None,
-        filename: str = 'Heatmap.svg',
-        layer: str = None,
-        swap_axes: bool = True,
-        cmap: str = 'Reds',
-        title: str = None,
-        title_fontprop: dict = None,
-        clustering_method: str = 'complete',
-        clustering_metric: str = 'euclidean',
-        cluster_x_axis: bool = False,
-        cluster_y_axis: bool = False,
-        axs: Union[plt.Axes, None] = None,
-        figsize: tuple = (5, 6),
-        linewidth: float = 0.1,
-        ticks_fontdict: dict = None,
-        xticks_rotation: int = None,
-        yticks_rotation: int = None,
-        vmin: float = 0.0,
-        vcenter: float = None,
-        vmax: float = None,
-        legend_title: str = 'LogMean(nUMI)\nin group',
-        add_stats: bool = True,
-        df_pvals: pd.DataFrame = None,
-        stats_x_size: float = None,
-        square_x_size: dict = None,
-        test: Literal['wilcoxon', 't-test'] = 'wilcoxon',
-        correction_method: Literal["benjamini-hochberg", "bonferroni"] = "benjamini-hochberg",
-        pval_cutoff: float = 0.05,
-        log2fc_cutoff: float = 0.0,
-        square: bool = True,
-        show: bool = True,
-        logcounts: bool = True,
-        **kargs
+    adata: ad.AnnData,
+    group_by: Union[str, list],
+    features: Union[str, list],
+    z_score: Literal['var', 'group'] = None,  # x_axis is the group_by
+    path: str = None,
+    filename: str = 'Heatmap.svg',
+    layer: str = None,
+    swap_axes: bool = True,
+    cmap: str = 'Reds',
+    title: str = None,
+    title_fontprop: dict = None,
+    clustering_method: str = 'complete',
+    clustering_metric: str = 'euclidean',
+    cluster_x_axis: bool = False,
+    cluster_y_axis: bool = False,
+    axs: Union[plt.Axes, None] = None,
+    figsize: tuple = (5, 6),
+    linewidth: float = 0.1,
+    ticks_fontdict: dict = None,
+    xticks_rotation: int = None,
+    yticks_rotation: int = None,
+    vmin: float = 0.0,
+    vcenter: float = None,
+    vmax: float = None,
+    legend_title: str = 'LogMean(nUMI)\nin group',
+    add_stats: bool = True,
+    df_pvals: pd.DataFrame = None,
+    stats_x_size: float = None,
+    square_x_size: dict = None,
+    test: Literal['wilcoxon', 't-test'] = 'wilcoxon',
+    correction_method: Literal["benjamini-hochberg", "bonferroni"] = "benjamini-hochberg",
+    pval_cutoff: float = 0.05,
+    log2fc_cutoff: float = 0.0,
+    square: bool = True,
+    show: bool = True,
+    logcounts: bool = True,
+    **kargs
 ) -> Union[dict, None]:
     """Heatmap of the mean expression of genes across a groups.
 
@@ -146,7 +165,7 @@ def heatmap(
     :param swap_axes: whether to swap the axes or not.
     :param cmap: colormap.
     :param title: title for the main plot.
-    :param title_fontprop: font properties for the title (e.g.,  {weight: 'bold', 'size':12}).
+    :param title_fontprop: font properties for the title (e.g., 'weight' and 'size').
     :param clustering_method: clustering method to use when hierarchically clustering the x and y-axis.
     :param clustering_metric: metric to use when hierarchically clustering the x and y-axis.
     :param cluster_x_axis: hierarchically clustering the x-axis.
@@ -154,7 +173,7 @@ def heatmap(
     :param axs: matplotlib axis.
     :param figsize: figure size.
     :param linewidth: linewidth for the border of cells.
-    :param ticks_fontdict: font properties for the x and y ticks (e.g.,  {weight: 'bold', 'size':12}).
+    :param ticks_fontdict: font properties for the x and y ticks (e.g.,  'weight' and 'size').
     :param xticks_rotation: rotation of the x-ticks.
     :param yticks_rotation: rotations of the y-ticks.
     :param vmin: minimum value.
@@ -171,8 +190,8 @@ def heatmap(
     :param log2fc_cutoff: minimum cutoff for the log2FC.
     :param square: whether to make the cell square or not.
     :param show: if set to false return a dictionary with the axis.
-    :param logcounts: whether the input ís logcounts or not.
-    :param kargs: additional arguments pass to sns.heatmap.
+    :param logcounts: whether the input is logcounts or not.
+    :param kargs: additional arguments pass to `sns.heatmap()`.
     :return: dictionary with matplotlib axis.
     """
     # Checks
