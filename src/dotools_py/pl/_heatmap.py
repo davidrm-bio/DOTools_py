@@ -76,11 +76,6 @@ def square_color(rgba):
 
 
 def small_squares(ax, pos, color, size=1, linewidth=0.8):
-    """
-    Draw many small squares on ax, given the positions of
-    these squares.
-
-    """
     for idx, xy in enumerate(pos):
         x, y = xy
         margin = (1 - size) / 2
