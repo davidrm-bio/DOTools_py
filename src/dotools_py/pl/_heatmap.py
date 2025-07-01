@@ -100,7 +100,7 @@ def heatmap(
         adata: ad.AnnData,
         group_by: Union[str, list],
         features: Union[str, list],
-        z_score: Literal['var', 'group'] = None,  # x_axis is the group_by
+        z_score: Literal['var', 'group', None] = None,  # x_axis is the group_by
         path: str = None,
         filename: str = 'Heatmap.svg',
         layer: str = None,
@@ -142,45 +142,45 @@ def heatmap(
     is significantly upregulated compared to the rest.
 
     :param adata: annotated data matrix.
-    :param group_by: obs column name with categorical values
-    :param features: continuous value in var_names or obs
-    :param z_score:apply z-score transformation
+    :param group_by: obs column name with categorical values.
+    :param features: continuous value in var_names or obs.
+    :param z_score:apply z-score transformation.
     :param path: path to save the plot
     :param filename: name of the file.
     :param layer: layer to use.
-    :param swap_axes: whether to swap the axes or not
-    :param cmap: colormap
-    :param title: title for the main plot
-    :param title_fontprop: font properties for the title (e.g.,  {weight: 'bold', size:12})
-    :param clustering_method: clustering method to use when hierarchically clustering the x and y-axis
-    :param clustering_metric: metric to use when hierarchically clustering the x and y-axis
-    :param cluster_x_axis: hierarchically clustering the x-axis
-    :param cluster_y_axis: hierarchically clustering the y-axis
-    :param axs: matplotlib axis
-    :param figsize: figure size
-    :param linewidth: linewidth for the border of cells
-    :param ticks_fontdict: font properties for the x and y ticks (e.g.,  {weight: 'bold', size:12})
-    :param xticks_rotation: rotation of the x-ticks
-    :param yticks_rotation: rotations of the y-ticks
-    :param vmin: minimum value
-    :param vcenter: center value
-    :param vmax: maximum value
-    :param legend_title: title for the colorbar
-    :param add_stats: add statistical annotation. Will add a square with an "*" in the center if the expression is
-                      significantly different in a group with respect to the others.
-    :param df_pvals: dataframe with the pvals. Should be gene x group or group x gene in case of swap_axes == False,
-    :param stats_x_size: size of the asterisk
-    :param square_x_size: size and thickness of the square
-    :param test: test to use for test for significance
-    :param correction_method: multiple correction method to use
-    :param pval_cutoff: cutoff for the p-value
-    :param log2fc_cutoff: minimum cutoff for the log2FC
-    :param square: whether to make the cell square or nots
+    :param swap_axes: whether to swap the axes or not.
+    :param cmap: colormap.
+    :param title: title for the main plot.
+    :param title_fontprop: font properties for the title (e.g.,  {weight: 'bold', 'size':12}).
+    :param clustering_method: clustering method to use when hierarchically clustering the x and y-axis.
+    :param clustering_metric: metric to use when hierarchically clustering the x and y-axis.
+    :param cluster_x_axis: hierarchically clustering the x-axis.
+    :param cluster_y_axis: hierarchically clustering the y-axis.
+    :param axs: matplotlib axis.
+    :param figsize: figure size.
+    :param linewidth: linewidth for the border of cells.
+    :param ticks_fontdict: font properties for the x and y ticks (e.g.,  {weight: 'bold', 'size':12}).
+    :param xticks_rotation: rotation of the x-ticks.
+    :param yticks_rotation: rotations of the y-ticks.
+    :param vmin: minimum value.
+    :param vcenter: center value.
+    :param vmax: maximum value.
+    :param legend_title: title for the colorbar.
+    :param add_stats: add statistical annotation. Will add a square with an '*' in the center if the expression is significantly different in a group with respect to the others.
+    :param df_pvals: dataframe with the pvals. Should be gene x group or group x gene in case of swap_axes is False.
+    :param stats_x_size: size of the asterisk.
+    :param square_x_size: size and thickness of the square.
+    :param test: test to use for test for significance.
+    :param correction_method: multiple correction method to use.
+    :param pval_cutoff: cutoff for the p-value.
+    :param log2fc_cutoff: minimum cutoff for the log2FC.
+    :param square: whether to make the cell square or not.
     :param show: if set to false return a dictionary with the axis.
-    :param logcounts: whether the input ís logcounts or not
-    :param kargs: additional arguments pass to sns.heatmap
-    :return: dictionary with matplotlib axis
+    :param logcounts: whether the input ís logcounts or not.
+    :param kargs: additional arguments pass to sns.heatmap.
+    :return: dictionary with matplotlib axis.
     """
+
     # Checks
     sanitize_anndata(adata)
     features = [features] if isinstance(features, str) else features
@@ -188,7 +188,8 @@ def heatmap(
     # Get Data for the Heatmap
     if all(item in list(adata.var_names) for item in features):
         if logcounts:
-            df = mean_expr(adata, group_by=group_by, features=features, layer=layer, out_format='wide')  # genes x groups
+            df = mean_expr(adata, group_by=group_by, features=features, layer=layer,
+                           out_format='wide')  # genes x groups
         else:
             raise Exception('Not implemented, specified var_name value but logcounts is set to False')
     elif all(item in list(adata.obs.columns) for item in features):
@@ -213,16 +214,18 @@ def heatmap(
         if df_pvals is None:
             if all(item in list(adata.var_names) for item in features):
                 rank_genes_groups(adata, groupby=group_by, method=test, tie_correct=True,
-                                        corr_method=correction_method)
-                table = sc.get.rank_genes_groups_df(adata, group=None, pval_cutoff=pval_cutoff, log2fc_min=log2fc_cutoff)
+                                  corr_method=correction_method)
+                table = sc.get.rank_genes_groups_df(adata, group=None, pval_cutoff=pval_cutoff,
+                                                    log2fc_min=log2fc_cutoff)
                 table_filt = table[table['names'].isin(features)]
             elif all(item in list(adata.obs.columns) for item in features):
                 tdf = adata.obs[[group_by] + features]
-                tdata = ad.AnnData(tdf.iloc[:, 1:].values, obs =pd.DataFrame(tdf[group_by]), var= list(tdf.columns)[1:])
+                tdata = ad.AnnData(tdf.iloc[:, 1:].values, obs=pd.DataFrame(tdf[group_by]), var=list(tdf.columns)[1:])
                 tdata.var_names = tdata.var[0].copy()
                 rank_genes_groups(tdata, groupby=group_by, method=test, tie_correct=True,
-                                            corr_method=correction_method, logcounts=False)
-                table = sc.get.rank_genes_groups_df(tdata, group=None, pval_cutoff=pval_cutoff, log2fc_min=log2fc_cutoff)
+                                  corr_method=correction_method, logcounts=False)
+                table = sc.get.rank_genes_groups_df(tdata, group=None, pval_cutoff=pval_cutoff,
+                                                    log2fc_min=log2fc_cutoff)
                 table_filt = table[table['names'].isin(features)]
 
             # Dataframe with gene x groups with the pvals
@@ -249,7 +252,7 @@ def heatmap(
             else:
                 axis = 0
         else:
-            raise  Exception(f'{z_score} not a valid key for z_score, use "var" or "group"')
+            raise Exception(f'{z_score} not a valid key for z_score, use "var" or "group"')
 
         df = df.apply(zscore, axis=axis, result_type='expand')  # z_score over the genes
         if cmap == 'Reds':
@@ -318,7 +321,6 @@ def heatmap(
     if add_stats:
         sig_ax = fig.add_subplot(legend_gs[2])
 
-
     # Add Main Plot
     hm = sns.heatmap(data=df,
                      cmap=cmap,
@@ -326,7 +328,7 @@ def heatmap(
                      linewidths=linewidth,
                      cbar=False,
                      annot_kws={"color": 'black', "size": stats_x_size,
-                                "ha": 'center',"va": 'center'},
+                                "ha": 'center', "va": 'center'},
                      annot=annot_pvals,
                      fmt="s",
                      square=square,
@@ -345,7 +347,7 @@ def heatmap(
         sig_ax.scatter(x, y, s=500, facecolors='none', edgecolors='black', marker='s')
         sig_ax.text(x, y, '*', fontsize=18, ha='center', va='center', color='black')
         sig_ax.text(x + 0.03, y, 'FDR < 0.05', fontsize=12, va='center', fontweight='bold')
-        sig_ax.set_xlim(x-0.02, x+0.1)
+        sig_ax.set_xlim(x - 0.02, x + 0.1)
         sig_ax.set_title('Significance', fontsize='small')
         plt.gca().set_aspect('equal')
         sig_ax.axis('off')  # Hide axes for clean display
@@ -393,4 +395,3 @@ def heatmap(
         return plt.show()
     else:
         return return_ax_dict
-
