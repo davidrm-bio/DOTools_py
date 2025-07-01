@@ -12,17 +12,18 @@ visualisation methods.
 .. autosummary::
     :toctree: generated
 
-    pl.dotplot
     pl.embedding
     pl.split_embeddding
     pl.umap
+    pl.dotplot
+    pl.heatmap
+    pl.barplot
+    pl.violin
+    pl.boxplot
     pl.cell_props
     pl.split_bar_gsea
     pl.expr_correlation
     pl.volcano_plot
-    pl.barplot
-    pl.violin
-    pl.boxplot
 ```
 
 ## Visium

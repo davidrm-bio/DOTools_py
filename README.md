@@ -38,6 +38,7 @@ a dedicated conda environment.
 
 ```bash
 conda create -n do_py10 python=3.10
+conda activate do_py10
 ```
 
 There are several alternative options to install DOTools_py:
@@ -58,7 +59,6 @@ pip install git+https://github.com/davidrm-bio/DOTools_py.git@main
 Finally, to use this environment in jupyter notebook, add jupyter kernel for this environment:
 
 ```bash
-conda activate do_py10
 python -m ipykernel install --user --name=do_py10 --display-name=do_py10
 ```
 

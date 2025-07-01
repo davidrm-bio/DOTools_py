@@ -4,4 +4,5 @@ from dotools_py.pl._downstream import cell_props, split_bar_gsea, volcano_plot, 
 from dotools_py.pl._visium import slides, layers
 from dotools_py.pl._expression import barplot, violin, boxplot
 from dotools_py.pl._StatsPlotter import TestData, StatsPlotter
+from dotools_py.pl._heatmap import heatmap
 
