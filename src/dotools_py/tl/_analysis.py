@@ -26,18 +26,12 @@ def _run_cca(
     adata: ad.AnnData,
     batch_key: str,
     version: str = "v4",
-    n_cpus: int = 15,
-    multiprocess: bool = False,
-    memory: int = 10000 * 1024**2,
 ) -> np.array:
     """Integrate AnnData using CCA from Seurat.
 
     :param adata: anndata object.
     :param batch_key: column in obs with batch IDs.
     :param version: version of Seurat to use.
-    :param n_cpus: number of cpus.
-    :param multiprocess: multiprocess plan.
-    :param memory: RAM memory.
     :return: integrated matrix.
     """
     rscript = get_paths_utils("_run_CCA.R")
@@ -59,8 +53,6 @@ def _run_cca(
             "--name=" + batch_key,
             "--version=" + version,
         ]
-    if multiprocess:
-        cmd += ["--multiprocess=" + str(multiprocess), "--memory=" + str(memory), "--threads=" + str(n_cpus)]
 
     subprocess.call(cmd)
 
@@ -159,9 +151,6 @@ def integrate_data(
     cca5: bool = False,
     scvi: bool = False,
     resolution: float = 0.3,
-    cca_memory: int = 10000 * 1024**2,
-    cca_multiprocess: bool = False,
-    cca_threads: int = 15,
     categorical_covariates: list = None,
     continuos_covariates: list = None,
     **kwargs
@@ -186,9 +175,6 @@ def integrate_data(
     :param cca5: integrate using cca version 5.
     :param scvi: integrate using scvi.
     :param resolution: resolution for the leiden clustering.
-    :param cca_memory: run memory for multiprocess in R.
-    :param cca_multiprocess: use multiprocess plan in CCA.
-    :param cca_threads: number of threads.
     :param categorical_covariates: categorical covariates for scVI.
     :param continuos_covariates: continuous covariates for scVI.
     :param kwargs: extra arguments for scVI integration.
@@ -221,14 +207,14 @@ def integrate_data(
         dim_reduc = "X_scVI"
     if cca4:
         logger.info("Integration using CCA (Seurat v4 approach)")
-        adata.obsm["X_CCA"] = _run_cca(hvg, batch_key, version="v4", memory=cca_memory, multiprocess=cca_multiprocess, n_cpus=cca_threads)
+        adata.obsm["X_CCA"] = _run_cca(hvg, batch_key, version="v4")
         logger.info("Using CCA matrix for PCA")
         hvg.X = adata.obsm["X_CCA"].copy()
         sc.pp.pca(hvg)
         adata.obsm["X_pca"] = hvg.obsm["X_pca"]
     if cca5:
         logger.info("Integration using CCA (Seurat v5 approach)")
-        adata.obsm["X_CCA"] = _run_cca(hvg, batch_key, version="v5", memory=cca_memory, multiprocess=cca_multiprocess, n_cpus=cca_threads)
+        adata.obsm["X_CCA"] = _run_cca(hvg, batch_key, version="v5")
         dim_reduc = "X_CCA"
 
     logger.info("Finding neighbors")
