@@ -77,7 +77,7 @@ def square_color(
     :return: black or white
     """
     r, g, b = rgba[:3]  # ignore alpha
-    # Convert from 0–1 float to 0–255 int
+    # Convert from 0 to 1 float to 0–255 int
     r, g, b = [int(c * 255) for c in (r, g, b)]
     # Use brightness heuristic
     brightness = (r * 299 + g * 587 + b * 114) / 1000
@@ -147,18 +147,17 @@ def heatmap(
     square: bool = True,
     show: bool = True,
     logcounts: bool = True,
-    **kargs
+    **kargs,
 ) -> Union[dict, None]:
     """Heatmap of the mean expression of genes across a groups.
 
     Generate a heatmap of showing the average nUMI for a set of genes in different groups. Differential gene
-    expression analysis between the different groups can be performed, and indicate the groups where the gene
-    is significantly upregulated compared to the rest.
+    expression analysis between the different groups can be performed.
 
     :param adata: annotated data matrix.
     :param group_by: obs column name with categorical values.
     :param features: continuous value in var_names or obs.
-    :param z_score:apply z-score transformation.
+    :param z_score: apply z-score transformation.
     :param path: path to save the plot
     :param filename: name of the file.
     :param layer: layer to use.
@@ -192,6 +191,7 @@ def heatmap(
     :param show: if set to false return a dictionary with the axis.
     :param logcounts: whether the input is logcounts or not.
     :param kargs: additional arguments pass to `sns.heatmap()`.
+
     :return: dictionary with matplotlib axis.
     """
     # Checks
