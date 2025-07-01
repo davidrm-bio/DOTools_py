@@ -128,7 +128,7 @@ def heatmap(
         square: bool = True,
         show: bool = True,
         logcounts: bool = True,
-        **kargs,
+        **kargs
 ) -> Union[dict, None]:
     """Heatmap of the mean expression of genes across a groups.
 
@@ -175,7 +175,6 @@ def heatmap(
     :param kargs: additional arguments pass to sns.heatmap.
     :return: dictionary with matplotlib axis.
     """
-
     # Checks
     sanitize_anndata(adata)
     features = [features] if isinstance(features, str) else features
