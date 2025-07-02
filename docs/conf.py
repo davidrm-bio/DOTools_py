@@ -8,7 +8,7 @@
 import sys
 from datetime import datetime
 from importlib.metadata import metadata
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE / "extensions"))
@@ -53,6 +53,8 @@ extensions = [
     "sphinx.ext.autodoc",
     "matplotlib.sphinxext.plot_directive",
     "sphinx.ext.doctest",
+    "scanpydoc",
+    "sphinx.ext.linkcode",
     "sphinx.ext.intersphinx",
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
@@ -150,3 +152,6 @@ plot_formats = [("png", 90)]
 plot_html_show_formats = False
 plot_html_show_source_link = False
 plot_working_directory = HERE.parent  # Project root
+
+
+rtd_links_prefix = PurePosixPath("src")

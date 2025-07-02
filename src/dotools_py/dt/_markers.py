@@ -11,6 +11,7 @@ def heart_markers(
 
     Example
     -------
+    .. doctest::
     >>> import dotools_py as do
     >>> df_mouse = do.dt.heart_markers('mouse')
     >>> print(df_mouse['EndoEC'])
