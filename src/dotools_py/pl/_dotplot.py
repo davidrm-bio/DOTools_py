@@ -1132,8 +1132,10 @@ def dotplot(
         do.pl.dotplot(adata, 'phase', markers)
 
     Create a 3d dotplot grouping also by bulk_labels
+
      .. plot::
         :context: close-figs
+
         do.pl.dotplot(adata, 'phase', markers, 'bulk_labels')
 
     """
