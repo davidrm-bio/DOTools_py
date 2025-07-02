@@ -4,10 +4,17 @@ from typing import Literal
 def heart_markers(
     species: Literal['mouse', 'human'] = 'mouse',
 ) -> dict:
-    """Marker genes for celltypes in the heart.
+    """Marker genes for cell-types in the heart.
 
     :param species: format for gene names. Options: mouse or human.
-    :return: dictionary with a list of marker genes for each celltype present in the heart.
+    :return: dictionary with a list of marker genes for major cell-types present in the heart.
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> df_mouse = do.dt.heart_markers('mouse')
+    >>> print(df_mouse['EndoEC'])
+
     """
     logger.info(f'Getting {species} markers')
     species = species.lower()
@@ -22,7 +29,7 @@ def heart_markers(
                    'Vim', 'Comp'],  # Refined with Kalucka et al., Cell, 2022
         'LymphEC': ['Prox1', 'Lyve1', 'Pdpn', 'Ccl21a', 'Fgl2', 'Mmrn1', 'Lcn2', 'Nts', 'Cp', 'Reln', 'Cd63', 'Maf',
                     'Lmo2', 'Ntn1', 'Anxa1'],  # Refined with Kalucka et al., Cell, 2022
-        'EndoEC': ['Nfatc', 'Npr3', 'Nrg1', 'Pecam1', 'Cdh5', 'Etv2', 'Flk1'],  # ZMM_shared JW
+        'EndoEC': ['Nfatc1', 'Npr3', 'Nrg1', 'Pecam1', 'Cdh5', 'Etv2'],  # ZMM_shared JW
         'SMC': ['Myh11', 'Itga8', 'Acta2', 'Tagln', 'Carmn', 'Kcnab1', 'Ntrk3', 'Rcan2'],  # Refined
         'PC': ['Rgs5', 'Abcc9', 'Gucy1a2', 'Egflam', 'Dlc1', 'Pdgfrb', 'Des', 'Cd248', 'Mcam'],  # Refined
         'FB': ['Dcn', 'Abca9', 'Mgp', 'Lama2', 'Abca6', 'Gsn', 'Pdgfra', 'Vim', 'Fap', 'Pdgfrb'],  # Refined
@@ -31,7 +38,7 @@ def heart_markers(
         'CM': ['Ryr2', 'Mlip', 'Ttn', 'Fhl2', 'Rbm20', 'Ankrd1', 'Tecrl', 'Mybpc3', 'Tnni3', 'Myh7', 'Mybpc3',
                'Irx4'],  # Refined
         'B_cells': ['Igkc', 'Ighm', 'Aff3', 'Cd74', 'Bank1', 'Ms4a1', 'Cd79a', 'Cd69'],  # Refined
-        'T_cells': ['Il7r', 'Themis', 'Skap1', 'Cd247', 'Itk', 'Ptprc', 'Camk4', 'Cd3e', 'Cd3d', 'Cd4', 'Cd8a', 'Cd8b'],
+        's': ['Il7r', 'Themis', 'Skap1', 'Cd247', 'Itk', 'Ptprc', 'Camk4', 'Cd3e', 'Cd3d', 'Cd4', 'Cd8a'],
         # Refined
         'Myeloid': ['F13a1', 'Rbpj', 'Cd163', 'Rbm47', 'Mrc1', 'Fmn1', 'Msr1', 'Frmd4b', 'Mertk',
                     'Lyz2'],  # Refined
