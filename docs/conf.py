@@ -154,4 +154,4 @@ plot_html_show_source_link = False
 plot_working_directory = HERE.parent  # Project root
 
 
-rtd_links_prefix = PurePosixPath("src")
+rtd_links_prefix = PurePosixPath("src/dotools_py")

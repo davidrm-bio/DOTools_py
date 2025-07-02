@@ -15,7 +15,9 @@ def heart_markers(
 
         >>> import dotools_py as do
         >>> df_mouse = do.dt.heart_markers('mouse')
+        2025-07-02 10:55:01,623 - Getting mouse markers
         >>> print(df_mouse['EndoEC'])
+        ['Nfatc1', 'Npr3', 'Nrg1', 'Pecam1', 'Cdh5', 'Etv2']
 
     """
     logger.info(f'Getting {species} markers')
