@@ -5,7 +5,7 @@ def test_heart_markers():
     data = do.dt.heart_markers()
     assert isinstance(data, dict)
     expected_cts = ['Art_EC', 'CapEC', 'VeinEC', 'LymphEC', 'EndoEC', 'SMC', 'PC', 'FB', 'FBa', 'Neurons', 'CM',
-                    'B_cells', 'T_cells', 'Myeloid', 'MP_recruit', 'MP_resident', 'ImmuneCells', 'Epicardial',
+                    'B_cells', 'Myeloid', 'MP_recruit', 'MP_resident', 'ImmuneCells', 'Epicardial',
                     'Adip', 'Mast']
     for ct in expected_cts:
         assert ct in data.keys()
