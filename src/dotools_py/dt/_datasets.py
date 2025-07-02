@@ -20,12 +20,13 @@ def example_10x(
 
     Example
     -------
-
     >>> import  dotools_py as do
     >>> import scanpy as sc
-    >>> do.dt.example_10x('./dataset/')
-    >>> adata = sc.read_10x_h5('./dataset/healthy/outs/filtered_feature_bc_matrix.h5')
+    >>> do.dt.example_10x('/tmp/dootools_datasets/')
+    >>> adata = sc.read_10x_h5('/tmp/dootools_datasets/healthy/outs/filtered_feature_bc_matrix.h5')
     >>> print(adata)
+    AnnData object with n_obs × n_vars = 7865 × 33538
+    var: 'gene_ids', 'feature_types', 'genome', 'pattern', 'read', 'sequence'
 
     """
     logger.info(f'Downloading data to {path}')

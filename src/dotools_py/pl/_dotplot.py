@@ -1028,63 +1028,63 @@ def dotplot(
     features: Union[str, list],
     y_axis: str = None,
     layer: Union[str, None] = None,
-    x_categories_order: list = None,
-    y_categories_order: list = None,
+    x_categories_order: Union[list, None] = None,
+    y_categories_order: Union[list, None] = None,
     subset_adata: bool = False,
     logcounts: bool = True,
     expression_cutoff: float = 0.0,
     mean_only_expressed: bool = False,
     z_score: Union[str, None] = None,
     cmap: str = "Reds",
-    vmax: float = None,
-    vmin: float = None,
-    vcenter: float = None,
+    vmax: Union[float, None] = None,
+    vmin: Union[float, None] = None,
+    vcenter: Union[float, None] = None,
     size_legend_title: str = "Fraction of cells\nin group (%)",
     color_legend_title: str = "LogMean(nUMI)\nin group",
     feature_fontsize: float = 15,
     xticks_rotation: float = 90,
-    ax: plt.Axes = None,
+    ax: Union[plt.Axes, None]= None,
     figsize: tuple = (8, 4),
-    path: Union[str, Path] = None,
+    path: Union[str, Path, None] = None,
     filename: str = "Dotplot.svg",
     smallest_dot: float = 0.0,
     largest_dot: float = 200.0,
     show: bool = True,
     swap_axes: bool = True,
-    rect_height: float = None,
+    rect_height: Union[float, None] = None,
     size_exponent: float = 1.5,
     edge_lw: float = 0.2,
     edge_color: str = "black",
-    dot_max=None,
-    dot_min=None,
+    dot_max: Union[float, None] = None,
+    dot_min: Union[float, None] = None,
     **kwargs,
 ) -> plt.Axes:
     """Makes a 2d dotplot or 3d dotplot.
 
     There are two type of visualisation:
-        * 2d dotplot: X_axis shows ``x_axis`` categories and Y_axis the ``features``. The color represents the LogMean(nUMI)
-                   and the size of the dots the fractions of cells expressing the feature. Uses a modified implementation of
-                   the ``sc.pl.dotplot()`` function of scanpy. It may fall back to scanpy in case of missing implementation
-                   features.
+        * 2d dotplot: X_axis shows ``x_axis`` categories and Y_axis the ``features``. The color represents the logarithmize mean
+                    nUMI and the size of the dots the fractions of cells expressing the feature. Uses a modified implementation of
+                    the ``sc.pl.dotplot()`` function of scanpy. It may fall back to scanpy in case of missing implementation
+                    features.
         * 3d dotplot: X_axis shows ``x_axis`` categories and Y_axis shows ``y_axis`` categories. For each feature the
                       ``x_axis`` categories will be duplicated, to show how is the expressing across 2 categorical columns
-                      in `.obs`. The color represents the LogMean(nUMI) and the size the fraction of cells expressing the
+                      in `.obs`. The color represents the logarithmize mean nUMI and the size the fraction of cells expressing the
                       feature.
 
     .. note::
         The 2d dotplot implementation allows for standard scaling while the 3d implementation allows for Z-score
         scaling.
 
-    :param adata: annotated data matrix
-    :param x_axis: `.obs` column to groupby, same as groupby  in sc.pl.dotplot argument.
+    :param adata: annotated data matrix.
+    :param x_axis: `.obs` column to group-by, same as group-by  in sc.pl.dotplot argument.
     :param features: `.var_names` to show mean values, same as var_names  in sc.pl.dotplot argument.
-    :param y_axis: `.obs` column to groupby in the other axis.
+    :param y_axis: `.obs` column to group-by in the other axis.
     :param layer: layer of the AnnData to use.
     :param x_categories_order: order of the categories in x_axis.
     :param y_categories_order: order of the categories in y_axis.
     :param subset_adata: subset anndata if less x_categories_order and y_categories_order are provided.
-    :param logcounts: the expression values provided are logcounts.
-    :param expression_cutoff: expression cutoff used for binariying the gene expression and determining the fraction of
+    :param logcounts: the expression values provided are log-counts.
+    :param expression_cutoff: expression cutoff used for binarizing the gene expression and determining the fraction of
                               cells expressing a given feature. A gene is expressed only if the expression value is greater
                               than this threshold.
     :param mean_only_expressed: if True, gene expression is averaged only over the cells expressing the given gene.
@@ -1096,8 +1096,8 @@ def dotplot(
     :param vcenter: the value representing the center of the color scale.
     :param size_legend_title: title for the size legend.
     :param color_legend_title: title for the colorbar.
-    :param feature_fontsize: size of the feature names when yticks is specified.
-    :param xticks_rotation: rotation of the xticks.
+    :param feature_fontsize: size of the feature names when y-ticks is specified.
+    :param xticks_rotation: rotation of the x-ticks.
     :param ax: matplotlib axis.
     :param figsize: figure size.
     :param path: path to save plot.
@@ -1115,7 +1115,27 @@ def dotplot(
     :param swap_axes: swap axis, only used in sc.pl.dotplot(). Default is True to match the 3d dotplot arguments
     :param rect_height: height of the boxes of the features in 3d dotplot
     :param kwargs: additional arguments passed to sc.pl.dotplot
-    :return: dictionary of axis or None
+    :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes
+
+    Example
+    -------
+    Create a 2d dotplot using a list of markers and a PBMC example dataset grouped by the
+    cell cycle phase
+
+    .. plot::
+        :context: close-figs
+
+        import scanpy as sc
+        import dotools_py as do
+        adata = sc.datasets.pbmc68k_reduced()
+        markers = ['CD79A', 'PCNA', 'MCM7']
+        do.pl.dotplot(adata, 'phase', markers)
+
+    Create a 3d dotplot grouping also by bulk_labels
+     .. plot::
+        :context: close-figs
+        do.pl.dotplot(adata, 'phase', markers, 'bulk_labels')
+
     """
 
     # <editor-fold desc="Section 0  - Helper functions">

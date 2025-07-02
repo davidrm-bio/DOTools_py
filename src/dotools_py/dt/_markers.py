@@ -7,17 +7,15 @@ def heart_markers(
     """Marker genes for cell-types in the heart.
 
     :param species: format for gene names. Options: mouse or human.
-    :return: dictionary with a list of marker genes for major cell-types present in the heart.
+    :return: Dictionary with a list of marker genes for major cell-types present in the heart.
 
     Example
     -------
-    .. doctest::
-
-        >>> import dotools_py as do
-        >>> df_mouse = do.dt.heart_markers('mouse')
-        2025-07-02 10:55:01,623 - Getting mouse markers
-        >>> print(df_mouse['EndoEC'])
-        ['Nfatc1', 'Npr3', 'Nrg1', 'Pecam1', 'Cdh5', 'Etv2']
+    >>> import dotools_py as do
+    >>> df_mouse = do.dt.heart_markers('mouse')
+    2025-07-02 10:55:01,623 - Getting mouse markers
+    >>> print(df_mouse['EndoEC'])
+    ['Nfatc1', 'Npr3', 'Nrg1', 'Pecam1', 'Cdh5', 'Etv2']
 
     """
     logger.info(f'Getting {species} markers')
@@ -67,9 +65,53 @@ def heart_markers(
 
 def standard_ct_labels_heart(
 ) -> dict:
-    """Standardise the celltype labels in the Human Heart Model from Celltypist.
+    """Set common cell-type labels in the Human Heart Model from Celltypist.
 
-    :return: dictionary with keys and updated labels.
+    This set a common an informative label for the cell-types in the heart model. For example, instead of using
+    EC1_cap, EC3_cap, the common label CapEC can be used. The nature of the subtypes of cell-types needs to be
+    investigated on the dataset. The model might assigned a cell-type based on similarity, however, the assignment might
+    be incorrect if the cell-type is not present in the model.
+
+    :return: Dictionary with the labels from the model as keys and the updated labels as values.
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> labels = do.dt.standard_ct_labels_heart()
+    >>> print(labels)
+    {'PC1_vent': 'Pericytes',
+    'SMC1_basic': 'SMC',
+    'SMC2_art': 'SMC',
+    'CD16+Mo': 'Ccr2_MP',
+    'LYVE1+IGF1+MP': 'MP',
+    'B_plasma': 'B_cells',
+    'B': 'B_cells',
+    'CD4+T_naive':
+    'T_cells',
+    'EC1_cap': 'CapEC',
+    'EC3_cap': 'CapEC',
+    'EC5_art': 'ArtEC',
+    'EC6_ven': 'VeinEC',
+    'EC7_endocardial': 'EndoEC',
+    'EC8_ln': 'LymphEC',
+    'FB3': 'Fibroblasts',
+    'FB4_activated': 'Fibro_activ',
+    'FB5': 'Fibroblasts',
+    'Meso': 'Epi_cells',
+    'vCM1': 'CM',
+    'Adip1': 'Adip',
+    'NC1_glial': 'Neural',
+    'LYVE1+TIMD4+MP': 'MP',
+    'MoMP': 'MP',
+    'DC': 'Dendritic',
+    'Mast': 'Mast',
+    'FB1': 'Fibroblasts',
+    'CD8+T_trans': 'T_cells',
+    'vCM4': 'CM',
+    'NC2_glial_NGF+': 'NC_glial_NGF+',
+    'NK_CD16hi': 'NK'
+    }
+
     """
     return  {
     'PC1_vent': 'Pericytes',
