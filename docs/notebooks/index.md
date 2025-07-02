@@ -13,7 +13,8 @@ example_10X
 ```
 
 ## Visualisation and Usage Examples
-In these tutorials we compile case examples for the visualisation of data.
+In these tutorials we compile case examples for the visualisation and
+differential expression analysis of data.
 
 ```{toctree}
 :maxdepth: 1
