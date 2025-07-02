@@ -146,7 +146,6 @@ nitpick_ignore = [
 # Options for plot examples
 
 plot_include_source = True
-plot_formats = [("png", 90)]
 plot_html_show_formats = False
 plot_html_show_source_link = False
 plot_working_directory = HERE.parent  # Project root
