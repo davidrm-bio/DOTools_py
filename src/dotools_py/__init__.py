@@ -6,4 +6,5 @@ __all__ = ["pl", "pp", "tl", "dt", "utility", "settings"]
 
 __version__ = version("DOTools_py")
 
-settings.session_settings()
+if __name__ != "__sphinx__":
+    settings.session_settings()
