@@ -42,8 +42,9 @@ def expr_correlation(
 
     Calculates the pearson, spearman or kendall correlation between categorical metadata for
     all the genes and makes a heatmap representation. There are two modes:
-        * `letters`: the color of the squares will be white and the correlation values will be colored based on a gradient
-        * colors: the squares will be colored based on a gradient and the letters will be white.
+
+    * `letters`: the color of the squares will be white and the correlation values will be colored based on a gradient
+    * colors: the squares will be colored based on a gradient and the letters will be white.
 
     The gradient is defined based on the provided colormap. The input is expected to be log-normalised data.
 
