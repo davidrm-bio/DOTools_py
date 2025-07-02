@@ -200,35 +200,35 @@ def boxplot(adata: ad.AnnData,
             ):
     """Boxplot with stats.
 
-     Show the distribution of the  expression of `var_names` or a continuous value in `obs` along different categorical values
-     and test for significance.
+    Show the distribution of the  expression of `var_names` or a continuous value in `obs` along different categorical values
+    and test for significance.
 
-     :param adata: annotated data matrix
-     :param feature: feature in `var_name` or `obs`.
-     :param x_axis: categorical `obs` column to groupby.
-     :param layer: layer in the AnnData to use.
-     :param figsize:  figure size.
-     :param palette: dictionary or palette to use.
-     :param xtick_rotation: rotation of the xticks.
-     :param ctrl_cond: name of the ctrl condition in the xticks
-     :param groups_cond: list of the name of the groups to test in the xticks
-     :param groups_pvals: if provided, these values will be plotted. If not set, provide a list of the groups in the xticks
-                          to test.
-     :param title: title of the plot.
-     :param path: path to save the figure.
-     :param filename: name of the file.
-     :param title_fontproperties: properties of the title text.
-     :param show: if set to False, return the axis.
-     :param ax: matplotlib axis.
-     :param showfliers: if set to False, the outliers of the boxplot are not shown.
-     :param test: name of the method to test for significance. Available: ['wilcoxon', 't-test', 'kruskal', 'anova', 'logreg', 't-test_overestim_var'].
-     :param corr_method: correction method for multiple testing. Available: ['benjamini-hochberg', 'bonferroni'].
-     :param txt_size: size of the text indicating significance.
-     :param txt: text for indicating significance. If not set, only the p-value is shown.
-     :param ylabel: Y-axis label.
-     :param line_offset: offset from the stats.
-     :param kwargs: additional arguments passed to `sns.boxplot()`
-     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
+    :param adata: annotated data matrix
+    :param feature: feature in `var_name` or `obs`.
+    :param x_axis: categorical `obs` column to groupby.
+    :param layer: layer in the AnnData to use.
+    :param figsize:  figure size.
+    :param palette: dictionary or palette to use.
+    :param xtick_rotation: rotation of the xticks.
+    :param ctrl_cond: name of the ctrl condition in the xticks
+    :param groups_cond: list of the name of the groups to test in the xticks
+    :param groups_pvals: if provided, these values will be plotted. If not set, provide a list of the groups in the xticks
+                      to test.
+    :param title: title of the plot.
+    :param path: path to save the figure.
+    :param filename: name of the file.
+    :param title_fontproperties: properties of the title text.
+    :param show: if set to False, return the axis.
+    :param ax: matplotlib axis.
+    :param showfliers: if set to False, the outliers of the boxplot are not shown.
+    :param test: name of the method to test for significance. Available: ['wilcoxon', 't-test', 'kruskal', 'anova', 'logreg', 't-test_overestim_var'].
+    :param corr_method: correction method for multiple testing. Available: ['benjamini-hochberg', 'bonferroni'].
+    :param txt_size: size of the text indicating significance.
+    :param txt: text for indicating significance. If not set, only the p-value is shown.
+    :param ylabel: Y-axis label.
+    :param line_offset: offset from the stats.
+    :param kwargs: additional arguments passed to `sns.boxplot()`
+    :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
 
     Example
     -------
@@ -324,36 +324,36 @@ def violin(adata: ad.AnnData,
            ):
     """Violinplot with stats.
 
-     Show the distribution of the  expression of `var_names` or a continuous value in `obs` along different categorical values
-     and test for significance.
+    Show the distribution of the  expression of `var_names` or a continuous value in `obs` along different categorical values
+    and test for significance.
 
-     :param adata: annotated data matrix
-     :param feature: feature in `var_name` or `obs`.
-     :param x_axis: categorical `obs` column to groupby.
-     :param layer: layer in the AnnData to use.
-     :param figsize:  figure size.
-     :param palette: dictionary or palette to use.
-     :param xtick_rotation: rotation of the xticks.
-     :param ctrl_cond: name of the ctrl condition in the xticks
-     :param groups_cond: list of the name of the groups to test in the xticks
-     :param groups_pvals: if provided, these values will be plotted. If not set, provide a list of the groups in the
-                          xticks to test.
-     :param title: title of the plot.
-     :param path: path to save the figure.
-     :param filename: name of the file.
-     :param title_fontproperties: properties of the title text.
-     :param show: if set to False, return the axis.
-     :param ax: matplotlib axis.
-     :param cut: distance in units of bandwidth, to extend the density past extreme datapoints. Set to 0 to limit the
-                 violin within the data range
-     :param test: name of the method to test for significance. Available: ['wilcoxon', 't-test', 'kruskal', 'anova', 'logreg', 't-test_overestim_var'].
-     :param corr_method: correction method for multiple testing. Available: ['benjamini-hochberg', 'bonferroni'].
-     :param txt_size: size of the text indicating significance.
-     :param txt: text for indicating significance. If not set, only the p-value is shown.
-     :param ylabel: Y-axis label.
-     :param line_offset: offset for the stat
-     :param kwargs: additional arguments passed to `sns.barplot()`
-     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
+    :param adata: annotated data matrix
+    :param feature: feature in `var_name` or `obs`.
+    :param x_axis: categorical `obs` column to groupby.
+    :param layer: layer in the AnnData to use.
+    :param figsize:  figure size.
+    :param palette: dictionary or palette to use.
+    :param xtick_rotation: rotation of the xticks.
+    :param ctrl_cond: name of the ctrl condition in the xticks
+    :param groups_cond: list of the name of the groups to test in the xticks
+    :param groups_pvals: if provided, these values will be plotted. If not set, provide a list of the groups in the
+                      xticks to test.
+    :param title: title of the plot.
+    :param path: path to save the figure.
+    :param filename: name of the file.
+    :param title_fontproperties: properties of the title text.
+    :param show: if set to False, return the axis.
+    :param ax: matplotlib axis.
+    :param cut: distance in units of bandwidth, to extend the density past extreme datapoints. Set to 0 to limit the
+             violin within the data range
+    :param test: name of the method to test for significance. Available: ['wilcoxon', 't-test', 'kruskal', 'anova', 'logreg', 't-test_overestim_var'].
+    :param corr_method: correction method for multiple testing. Available: ['benjamini-hochberg', 'bonferroni'].
+    :param txt_size: size of the text indicating significance.
+    :param txt: text for indicating significance. If not set, only the p-value is shown.
+    :param ylabel: Y-axis label.
+    :param line_offset: offset for the stat
+    :param kwargs: additional arguments passed to `sns.barplot()`
+    :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
 
     Example
     -------

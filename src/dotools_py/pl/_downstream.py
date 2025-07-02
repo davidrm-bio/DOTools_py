@@ -264,18 +264,6 @@ def cell_props(
     :param get_props: get a dataframe with the proportions and pvals.
     :param kwargs: additional arguments pass to scanpro().
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
-
-    Example
-    -------
-
-    .. plot::
-        :context: close-figs
-
-        import dotools_py as do
-        adata = do.dt.example_10x_processed()
-        do.pl.cell_props(adata, 'annotation', 'condition', 'batch', cond_order=['healthy', 'disease'],
-                         transform='arcsin')
-
     """
     ########################
     # Test for changes in cell population
