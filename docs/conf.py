@@ -128,7 +128,7 @@ nbsphinx_allow_errors = True
 html_title = project_name
 
 html_theme_options = {
-    "repository_url": repository_url,
+    "repository_url":  "https://github.com/davidrm-bio/DOTools_py",
     "use_repository_button": True,
     "path_to_docs": "docs/",
     "navigation_with_keys": False,
@@ -154,4 +154,4 @@ plot_html_show_source_link = False
 plot_working_directory = HERE.parent  # Project root
 
 
-rtd_links_prefix = PurePosixPath("src/dotools_py")
+rtd_links_prefix = PurePosixPath("src")
