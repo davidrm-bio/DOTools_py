@@ -3,7 +3,7 @@ build-backend = "hatchling.build"
 requires = [ "hatchling" ]
 
 [project]
-name = "dotools-py"
+name = "DOTools_py"
 version = "0.0.1"
 description = "Convenient functions to streamline sc/snRNAseq data analysis workflow"
 readme = "README.md"
