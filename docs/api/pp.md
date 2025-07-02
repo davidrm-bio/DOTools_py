@@ -6,6 +6,8 @@ such as [scDblFinder](https://github.com/plger/scDblFinder),
 [DoubletDetection](https://github.com/JonathanShor/DoubletDetection) and
 [CellBender](https://github.com/broadinstitute/CellBender).
 
+
+## sc/snRNA Processing
 ```{eval-rst}
 .. module:: dotools_py.pp
 .. currentmodule:: dotools_py
@@ -15,5 +17,12 @@ such as [scDblFinder](https://github.com/plger/scDblFinder),
 
     pp.run_cellbender
     pp.importer_py
+```
+
+## Utility functions
+```{eval-rst}
+.. autosummary::
+    :toctree: generated
+
     pp.sctransform_normalise
 ```

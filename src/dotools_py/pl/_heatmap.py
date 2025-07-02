@@ -191,8 +191,18 @@ def heatmap(
     :param show: if set to false return a dictionary with the axis.
     :param logcounts: whether the input is logcounts or not.
     :param kargs: additional arguments pass to `sns.heatmap()`.
+    :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
 
-    :return: dictionary with matplotlib axis.
+    Example
+    -------
+
+    .. plot::
+        :context: close-figs
+
+        import dotools_py as do
+        adata = do.dt.example_10x_processed()
+        do.pl.heatmap(adata, 'annotation', ['CD4', 'CD79A'])
+
     """
     # Checks
     sanitize_anndata(adata)

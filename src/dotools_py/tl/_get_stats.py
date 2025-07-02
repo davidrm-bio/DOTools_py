@@ -456,7 +456,7 @@ def go_analysis(
     path: str = None,
     filename: str = '',
     specie: Literal['Mouse', 'Human'] = 'Mouse',
-    go_catgs: Union[str, list] = ('GO_Molecular_Function_2023', 'GO_Cellular_Component_2023', 'GO_Biological_Process_2023')
+    go_catgs: Union[str, list] = ['GO_Molecular_Function_2023', 'GO_Cellular_Component_2023', 'GO_Biological_Process_2023']
 ) -> Union[pd.DataFrame, None]:
     """Run Gene Ontology using EnrichR API.
 

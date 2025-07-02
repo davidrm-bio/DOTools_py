@@ -22,29 +22,30 @@ def expr_correlation(
         adata: ad.AnnData,
         group_by: str = 'batch',
         method: Literal['spearman', 'pearson', 'kendall'] = 'pearson',
-        mask: Literal['upper', 'lower', None] = None,
+        mask: Literal['upper', 'lower'] = None,
         square: bool = True,
         linewidths: float = 0.1,
         annot: bool = True,
         figsize: tuple = (3, 4),
-        axs: plt.Axes = None,
+        axs: Union[plt.Axes, None] = None,
         mode: Literal['colors', 'letters'] = 'letters',
         cmap: Union['str', 'list'] = 'RdBu_r',
-        linecolor: str = 'k',
+        linecolor: str = 'black',
         color_annot: str = 'white',
-        annot_kws: dict = {'orientation': 'horizontal', 'fraction': 0.05, 'pad': 0.2, 'shrink': 0.5},
+        annot_kws: Union[dict, None] = None,
         ticks_size: int = 12,
-        path: str = None,
+        path: Union[str, None] = None,
         filename: str = 'Correlation.svg',
-        show=True,
+        show: bool = True,
 ) -> Union[plt.Axes, None]:
     """Calculate correlation between samples.
 
-    Calculates the pearson / spearman / kendall correlation between categorical metadata for
+    Calculates the pearson, spearman or kendall correlation between categorical metadata for
     all the genes and makes a heatmap representation. There are two modes:
-    * letters: the squares will be white and the correlation values will be colored based on a gradient
-    * colors: the squares will be colored based on a gradient and the letters will be white.
-    We assume that the input is log-normalised data.
+        * `letters`: the color of the squares will be white and the correlation values will be colored based on a gradient
+        * colors: the squares will be colored based on a gradient and the letters will be white.
+
+    The gradient is defined based on the provided colormap. The input is expected to be log-normalised data.
 
     :param adata: annotated data matrix.
     :param group_by: obs column with categorical information like sample or condition information.
@@ -64,7 +65,18 @@ def expr_correlation(
     :param path: path to save plot.
     :param filename: name of the file.
     :param show: set  false to return the matplotlib axis.
-    :return: matplotlib axis.
+    :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
+
+    Example
+    -------
+
+    .. plot::
+        :context: close-figs
+
+        import dotools_py as do
+        adata = do.dt.example_10x_processed()
+        do.pl.expr_correlation(adata, 'batch')
+
     """
     # Checks
     assert method in ['spearman', 'pearson', 'kendall'], 'Not a valid method use spearman, pearson or kendall'
@@ -140,6 +152,15 @@ def expr_correlation(
     # Add Colorbar
     sm = ScalarMappable(norm=norm_palette, cmap=palette)
     sm.set_array([])  # Needed for colorbar to work
+
+    if annot_kws is not None:
+        annot_kws.update({'orientation': annot_kws.get('orientation', 'horizontal'),
+                          'fraction': annot_kws.get('fraction', 0.05),
+                          'pad': annot_kws.get('pad', 0.2),
+                          'shrink': annot_kws.get('shrink', 0.5)})
+    else:
+        annot_kws = {}
+
     cbar = fig.colorbar(sm, ax=axs, **annot_kws)
     cbar.ax.set_title(f"Correlation {method}", fontdict={'size': 12})
 
@@ -207,11 +228,11 @@ def cell_props(
     get_props: bool = False,
     **kwargs,
 ) -> Union[None, pd.DataFrame, plt.Axes]:
-    """Stacked barplot showing changes in celltype proportions.
+    """Stacked barplot showing changes in cell-type proportions.
 
-    Make a stacked barplot to show changes in celltype proportions between different conditions. Significant changes
-    in cell proportions between conditions will tested with `scanpro <https://github.com/loosolab/scanpro>` and will be
-    indicated by a discontinued line. The significant p-value/FDR will be shown in the legend.
+    Generates a stacked barplot to show changes in cell-type proportions between different conditions. Significant changes
+    in cell proportions between conditions will be tested with `scanpro <https://github.com/loosolab/scanpro>` and will be
+    indicated by a discontinued line. The significant p-value/FDR will be indicated in the legend.
 
     :param adata: annotated data matrix.
     :param annot_key: `.obs` column name with cell type annotation.
@@ -222,7 +243,7 @@ def cell_props(
     :param cond_order: order for the conditions.
     :param covariates: additional covariates for the model.
     :param subset_cells: only show a subset of the celltypes. The test is applied over all cell type populations.
-    :param pval_cutoff: pval/FDR cutoff.
+    :param pval_cutoff: p-val/FDR cutoff.
     :param figsize: figure size.
     :param axis: matplotlib axis.
     :param path: path to save the figure.
@@ -233,7 +254,7 @@ def cell_props(
     :param title: title of the plot.
     :param title_fontsize: fontsize of the title.
     :param legend_fontsize: fontsize of the legend.
-    :param legend_fontweight: fontweight of the legend.
+    :param legend_fontweight: font-weight of the legend.
     :param show: whether to return or not the matplotlib axis. To return the axis, set to False.
     :param legend_title: title for the legend.
     :param add_total_ncell: add the total number of cells in the dataset.
@@ -242,7 +263,19 @@ def cell_props(
     :param linewidth: thickness of the lines connecting significant bars.
     :param get_props: get a dataframe with the proportions and pvals.
     :param kwargs: additional arguments pass to scanpro().
-    :return: None, matplolib axis or dataframe with results of scanpro.
+    :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
+
+    Example
+    -------
+
+    .. plot::
+        :context: close-figs
+
+        import dotools_py as do
+        adata = do.dt.example_10x_processed()
+        do.pl.cell_props(adata, 'annotation', 'condition', 'batch', cond_order=['healthy', 'disease'],
+                         transform='arcsin')
+
     """
     ########################
     # Test for changes in cell population
@@ -456,7 +489,7 @@ def volcano_plot(
     dot_size: float = 2.5,
     topn: int = 10,
     textprops: dict = None,
-    show: bool = False,
+    show: bool = True,
     **kwargs,
 ) -> Union[plt.Axes, None]:
     """Generate a volcano plot.
@@ -468,8 +501,8 @@ def volcano_plot(
     * Genes Pval > pval_cut & LFC > lfc_cut: Green.
     * Genes Pval > pval_cut & LFC < lfc_cut: Gray.
 
-    If no genes are provided (with the mygenes argument) the top 10 genes with highest and lowest LFC that are
-    significant will be marked.
+    If no genes are provided (`mygenes`) the top 10 genes with highest and lowest LFC that are
+    significant will be indicated.
 
     :param dge: pandas dataframe with DGE. Should have at least 3 columns (Genes, Pvalue, Logfoldchange).
     :param lfc_col: name of the column that has the logfoldchanges.
@@ -489,7 +522,21 @@ def volcano_plot(
     :param topn: if mygenes is None. The top 10 positive and negative genes are plotted.
     :param textprops: properties of the gene labels (See `plt.text <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.text.html>`_)
     :param show: if set to true, return axis.
-    :return: Volcano plot.
+    :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
+
+    Example
+    -------
+
+    .. plot::
+        :context: close-figs
+
+        import dotools_py as do
+        adata = do.dt.example_10x_processed()
+        do.tl.rank_genes_groups(adata,  'condition', method='wilcoxon', tie_correct=True, pts=True)
+        table = do.tl.generate_results(adata)
+        table = table[table.group == 'disease']
+        do.pl.volcano_plot(table, 'log2fc', 'padj', 'GeneName', show=True)
+
     """
     dge = dge.copy()  # Do not Modify input
 
@@ -622,7 +669,23 @@ def split_bar_gsea(
     :param colors_pairs: colors for each condition (1st color --> negative axis; 2nd color --> positive axis).
     :param title: title of the plot.
     :param show: if False, the axis is return.
-    :return: None or the axis
+    :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
+
+    Example
+    -------
+
+    .. plot::
+        :context: close-figs
+
+        import dotools_py as do
+        adata = do.dt.example_10x_processed()
+        do.tl.rank_genes_groups(adata,  'condition', method='wilcoxon', tie_correct=True, pts=True)
+        table = do.tl.generate_results(adata)
+        table = table[table.group == 'disease']
+        table_go = do.tl.go_analysis(table, 'GeneName', 'padj', 'log2fc', specie='Human', go_catgs = ['GO_Molecular_Function_2023', 'GO_Cellular_Component_2023', 'GO_Biological_Process_2023'])
+        table_go = table_go[table_go['P-value'] < 0.25]
+        do.pl.split_bar_gsea(table_go, 'Term', 'Combined Score', 'state', 'enriched', show=True)
+
     """
     if len(df[cond_col].unique()) != 2:
         if len(df[cond_col].unique()) > 2:

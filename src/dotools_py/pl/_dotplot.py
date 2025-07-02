@@ -1120,23 +1120,22 @@ def dotplot(
     Example
     -------
     Create a 2d dotplot using a list of markers and a PBMC example dataset grouped by the
-    cell cycle phase
+    cell type annotation
 
     .. plot::
         :context: close-figs
 
-        import scanpy as sc
         import dotools_py as do
-        adata = sc.datasets.pbmc68k_reduced()
-        markers = ['CD79A', 'PCNA', 'MCM7']
-        do.pl.dotplot(adata, 'phase', markers)
+        adata = do.dt.example_10x_processed()
+        markers = ['CD79A', 'CD4', 'CDK1']
+        do.pl.dotplot(adata, 'annotation', markers, figsize=(4, 2.1))
 
-    Create a 3d dotplot grouping also by bulk_labels
+    Create a 3d dotplot grouping also by condition
 
-     .. plot::
+    .. plot::
         :context: close-figs
 
-        do.pl.dotplot(adata, 'phase', markers, 'bulk_labels')
+        do.pl.dotplot(adata, 'condition', markers, 'annotation', figsize=(6, 4))
 
     """
 

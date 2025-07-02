@@ -46,16 +46,16 @@ def barplot(adata: ad.AnnData,
 
     :param adata: annotated data matrix
     :param feature: feature in `var_name` or `obs`.
-    :param x_axis: categorical `obs` column to groupby.
+    :param x_axis: categorical `obs` column to group-by.
     :param batch_key: `obs` column with batch information.
     :param layer: layer in the AnnData to use.
     :param figsize:  figure size.
     :param palette: dictionary or palette to use.
     :param capsize: width of the 'caps' on error bars, relative to bar spacing.
-    :param xtick_rotation: rotation of the xticks.
-    :param ctrl_cond: name of the ctrl condition in the xticks.
-    :param groups_cond: list of the name of the groups to test in the xticks.
-    :param groups_pvals: if provided, these values will be plotted. If not set, provide a list of the groups in the xticks
+    :param xtick_rotation: rotation of the x-ticks.
+    :param ctrl_cond: name of the ctrl condition in the x-ticks.
+    :param groups_cond: list of the name of the groups to test in the x-ticks.
+    :param groups_pvals: if provided, these values will be plotted. If not set, provide a list of the groups in the x-ticks
                          to test.
     :param title: title of the plot.
     :param path: path to save the figure.
@@ -66,15 +66,26 @@ def barplot(adata: ad.AnnData,
     :param ax: matplotlib axis.
     :param logcounts: if set to True, assume input is log1p transformed
     :param estimator: estimator to calculate the mean expression. If set to LogMean assume log1p.
-    :param test: name of the method to test for significance. Available: ['wilcoxon', 't-test', 'kruskal', 'anova', 'logreg', 't-test_overestim_var'].
-    :param corr_method: correction method for multiple testing. Available: ['benjamini-hochberg', 'bonferroni'].
+    :param test: name of the method to test for significance.
+    :param corr_method: correction method for multiple testing.
     :param txt_size: size of the text indicating significance.
     :param txt: text for indicating significance. If not set, only the p-value is shown.
     :param ylabel: Y-axis label.
     :param line_offset: line offset for the stat
     :param ylim_max: set maximum Y limit.
     :param kwargs: additional arguments passed to `sns.barplot()`
-    :return: matplotlib axis
+    :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
+
+    Example
+    -------
+
+    .. plot::
+        :context: close-figs
+
+        import dotools_py as do
+        adata = do.dt.example_10x_processed()
+        do.pl.barplot(adata, 'CD4', 'annotation', ctrl_cond = 'T_cells', groups_cond=['B_cells'], xtick_rotation=45)
+
     """
     # Checks
     sanitize_anndata(adata)
@@ -217,7 +228,18 @@ def boxplot(adata: ad.AnnData,
      :param ylabel: Y-axis label.
      :param line_offset: offset from the stats.
      :param kwargs: additional arguments passed to `sns.boxplot()`
-     :return: matplotlib axis
+     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
+
+    Example
+    -------
+
+    .. plot::
+        :context: close-figs
+
+        import dotools_py as do
+        adata = do.dt.example_10x_processed()
+        do.pl.boxplot(adata, 'CD4', 'annotation', ctrl_cond = 'pDC', groups_cond=['B_cells'], xtick_rotation=45)
+
      """
     # Checks
     sanitize_anndata(adata)
@@ -331,7 +353,18 @@ def violin(adata: ad.AnnData,
      :param ylabel: Y-axis label.
      :param line_offset: offset for the stat
      :param kwargs: additional arguments passed to `sns.barplot()`
-     :return: matplotlib axis
+     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
+
+    Example
+    -------
+
+    .. plot::
+        :context: close-figs
+
+        import dotools_py as do
+        adata = do.dt.example_10x_processed()
+        do.pl.violin(adata, 'CD4', 'annotation', ctrl_cond = 'pDC', groups_cond=['B_cells'], xtick_rotation=45)
+
      """
     # Checks
     sanitize_anndata(adata)

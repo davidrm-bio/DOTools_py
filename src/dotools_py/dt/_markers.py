@@ -14,7 +14,7 @@ def heart_markers(
     >>> import dotools_py as do
     >>> df_mouse = do.dt.heart_markers('mouse')
     2025-07-02 10:55:01,623 - Getting mouse markers
-    >>> print(df_mouse['EndoEC'])
+    >>> df_mouse['EndoEC']
     ['Nfatc1', 'Npr3', 'Nrg1', 'Pecam1', 'Cdh5', 'Etv2']
 
     """
@@ -78,7 +78,7 @@ def standard_ct_labels_heart(
     -------
     >>> import dotools_py as do
     >>> labels = do.dt.standard_ct_labels_heart()
-    >>> print(labels)
+    >>> labels
     {'PC1_vent': 'Pericytes',
     'SMC1_basic': 'SMC',
     'SMC2_art': 'SMC',

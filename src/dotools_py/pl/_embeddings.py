@@ -7,18 +7,19 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 from adjustText import adjust_text
-from typing import  Union
+from typing import Union
 from dotools_py.tl import get_expr
 from dotools_py.utils import convert_path, get_centroids, get_subplot_shape, remove_extra, sanitize_anndata
 from dotools_py.utility import spine_format
 
-def umap(
+
+def embedding(
     adata: ad.AnnData,
     color: Union[str, list],
     split_by: str | None = None,
     order_catgs: list = None,
     ncols: int = 4,
-    title_font: dict = {"size": 18, "weight": "bold"},
+    title_font: dict = None,
     figsize: tuple = (12, 6),
     common_legend: bool = False,
     title: str = None,
@@ -28,15 +29,15 @@ def umap(
     filename: str = "Umap.svg",
     show: bool = True,
     labels: str = None,
-    labels_fontproporties: dict = {"weight": "bold", "size": 12, "outline": 1.5},
+    labels_fontproporties: dict = None,
     labels_repel: dict = {},
     basis: str = "X_umap",
     ax: plt.Axes = None,
     **kwargs,
 ) -> Union[plt.Axes, None]:
-    """Make UMAP Plot.
+    """Make Embedding Plot.
 
-    This function builds on `sc.pl.umap()` and add extra functionalities like splitting by a categorical column in obs.
+    This function builds on `sc.pl.embedding()` and add extra functionalities like splitting by a categorical column in obs.
 
     :param adata: annotated data matrix.
     :param color: `.obs` column or `.var_names` value.
@@ -53,14 +54,14 @@ def umap(
     :param spacing: spacing between subplots (height, width) padding between plots.
     :param show: when set to False the matplotlib axes will be returned.
     :param labels: `.obs` column name with categorical values to add to the plot.
-    :param labels_fontproporties: fontproperties for the labels.
+    :param labels_fontproporties: font-properties for the labels.
     :param labels_repel: additional arguments pass to adjust_text.
     :param basis: embedding to use, default UMAP.
     :param ax: matplotlib axis.
     :param path: path to save plot.
     :param filename: filename of the plot.
     :param kwargs: additional parameters pass to ``sc.pl.umap()``.
-    :return: matplotlib axis
+    :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
     """
     sanitize_anndata(adata)
 
@@ -87,12 +88,29 @@ def umap(
     # Labels is used when plotting inside the plot
     if labels is not None:
         labels_centroids = get_centroids(adata, labels, basis=basis)
-        labels_fontsize = labels_fontproporties["size"] if "size" in labels_fontproporties else 12
-        labels_fontweight = labels_fontproporties["weight"] if "weight" in labels_fontproporties else "bold"
-        labels_fontoutline = labels_fontproporties["outline"] if "outline" in labels_fontproporties else 1.5
+        if labels_fontproporties is None:
+            labels_fontproporties = {}
+
+        labels_fontproporties.update({'size': labels_fontproporties.get('size', 12),
+                                      'weight': labels_fontproporties.get('weight', 'bold'),
+                                      'outline': labels_fontproporties.get('outline', 1.5)})
+        (labels_fontweight,
+         labels_fontsize,
+         labels_fontoutline) = (labels_fontproporties['weight'],
+                                labels_fontproporties['size'],
+                                labels_fontproporties['outline'])
+
 
     # We consider that the input is always a list;
     color = [color] if isinstance(color, str) else color
+
+    # font-properties for the title
+    if title_font is None:
+        title_font = {}
+
+    title_font.update({'size': title_font.get('size', 18),
+                       'weight': title_font.get('weight', 'bold')
+                       })
 
     # When plotting only one thing, we can define the title
     if title is None and len(color) == 1:
@@ -258,13 +276,13 @@ def umap(
         return axs
 
 
-def embedding(
+def umap(
     adata: ad.AnnData,
     color: str,
     split_by: str | None = None,
     order_catgs: list = None,
     ncols: int = 4,
-    title_font: dict = {"size": 18, "weight": "bold"},
+    title_font: dict =None,
     figsize: tuple = (12, 6),
     common_legend=False,
     title: str = None,
@@ -274,13 +292,13 @@ def embedding(
     filename: str = "Umap.svg",
     show: bool = True,
     labels: str = None,
-    labels_fontproporties: dict = {"weight": "bold", "size": 12, "outline": 1.5},
+    labels_fontproporties: dict = None,
     labels_repel: dict = {},
     basis: str = "X_umap",
     ax: plt.Axes = None,
     **kwargs,
 ) -> Union[None, plt.Axes]:
-    """Make Embedding Plot.
+    """Make UMAP Plot.
 
     This function builds on `sc.pl.embedding()` and add extra functionalities like
     splitting by a categorical column in `.obs`.
@@ -307,9 +325,30 @@ def embedding(
     :param path: path to save plot.
     :param filename: filename of the plot.
     :param kwargs: additional parameters pass to ``sc.pl.embedding()``
-    :return: matplotlib axis
+    :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
+
+    Example
+    -------
+    Visualise a categorical column
+
+    .. plot::
+        :context: close-figs
+
+        import dotools_py as do
+        adata = do.dt.example_10x_processed()
+        do.pl.umap(adata, 'annotation', split_by='condition', ncols=1, figsize=(4, 5),
+                   size=20, labels='annotation')
+        do.pl.umap(adata, 'CD4', split_by='condition',  size=50, labels='annotation', cmap='Reds')
+
+    or the expression of a gene
+
+    .. plot::
+        :context: close-figs
+
+        do.pl.umap(adata, 'CD4', split_by='condition',  size=50, labels='annotation', cmap='Reds')
+
     """
-    axis = umap(
+    axis = embedding(
         adata=adata,
         color=color,
         split_by=split_by,
@@ -352,7 +391,7 @@ def split_embeddding(
     show: bool = True,
     **kwargs,
 ) -> Union[plt.Axes, None]:
-    """Plot categorical data splited in an embedding.
+    """Plot categorical data split in an embedding.
 
     This function takes an AnnData and a categorical column in obs and generate a plot of subplots  highlighting the
     different categories of the obs column.
@@ -369,7 +408,18 @@ def split_embeddding(
     :param sp_size: spot size when plotting visium data.
     :param show: if set to True returns axes.
     :param kwargs: additional arguments for ``sc.pl.embedding()`` or ``sc.pl.spatial()`` if visium is True.
-    :return: matplotlib axis
+    :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
+
+    Example
+    -------
+
+    .. plot::
+        :context: close-figs
+
+        import dotools_py as do
+        adata = do.dt.example_10x_processed()
+        do.pl.split_embeddding(adata, 'annotation', ncols=3)
+
     """
     assert adata.obs[split_by].dtypes == "category", "Not a categorical column"
     sanitize_anndata(adata)
@@ -383,9 +433,10 @@ def split_embeddding(
     axs = axs.flatten()
     for idx, cat in enumerate(categories):
         if visium:
-            sc.pl.spatial(adata, ax=axs[idx], groups=[cat], size=sp_size, show=False,  **kwargs)
+            sc.pl.spatial(adata, ax=axs[idx], groups=[cat], size=sp_size, show=False, **kwargs)
         else:
-            sc.pl.embedding(adata, basis=basis, color=split_by, groups=[cat], ax=axs[idx], title=str(cat), show=False, **kwargs)
+            sc.pl.embedding(adata, basis=basis, color=split_by, groups=[cat], ax=axs[idx], title=str(cat), show=False,
+                            **kwargs)
         axs[idx].set_title(cat, fontdict=title_font)
         axs[idx].get_legend().remove()
         spine_format(axs[idx])
