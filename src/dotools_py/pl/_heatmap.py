@@ -400,7 +400,7 @@ def heatmap(
     if add_stats:
         df_x = pd.DataFrame([], index=df.index, columns=df.columns)
         df_x[df_x.isna()] = 'black'
-        df_x = df.applymap(lambda x: square_color(colormap(normalize(x))))
+        df_x = df.map(lambda x: square_color(colormap(normalize(x))))
         pos_rows, pos_cols = np.where(df_pvals < 0.05)
         pos = list(zip(pos_rows, pos_cols))
         colors = [df_x.iloc[row, col] for row, col in pos]
