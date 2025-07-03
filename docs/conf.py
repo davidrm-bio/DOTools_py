@@ -9,11 +9,13 @@ import sys
 from datetime import datetime
 from importlib.metadata import metadata
 from pathlib import Path, PurePosixPath
+import matplotlib
 
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE / "extensions"))
 
 import dotools_py
+matplotlib.use("agg")
 
 # -- Project information -----------------------------------------------------
 
@@ -152,6 +154,8 @@ plot_formats = [("png", 90)]
 plot_html_show_formats = False
 plot_html_show_source_link = False
 plot_working_directory = HERE.parent  # Project root
-
+plot_rcparams = {
+    "figure.autolayout": True  # Might not be needed
+}
 
 rtd_links_prefix = PurePosixPath("src")

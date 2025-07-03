@@ -336,8 +336,8 @@ def umap(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.umap(adata, 'annotation', split_by='condition', ncols=1, figsize=(4, 5),
-                   size=20, labels='annotation')
+        do.pl.umap(adata, 'annotation', split_by='condition', ncols=2, figsize=(4, 5),
+                   size=20)
         do.pl.umap(adata, 'CD4', split_by='condition',  size=50, labels='annotation', cmap='Reds')
 
     or the expression of a gene
