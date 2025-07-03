@@ -269,12 +269,12 @@ def heatmap(
 
     # Data Transformation
     if z_score is not None:
-        if z_score is 'var':
+        if z_score == 'var':
             if features[0] in list(df.index):
                 axis = 0
             else:
                 axis = 1
-        elif z_score is 'group':
+        elif z_score == 'group':
             if features[0] in list(df.index):
                 axis = 1
             else:
