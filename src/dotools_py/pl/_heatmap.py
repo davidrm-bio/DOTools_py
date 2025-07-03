@@ -259,6 +259,11 @@ def heatmap(
                 else:
                     df_pvals.loc[row['names'], row['group']] = row['pvals_adj']
             df_pvals[df_pvals.isna()] = 1
+        else:
+            if features[0] in list(df_pvals.index):
+                pass
+            else:
+                df_pvals = df_pvals.T
         # Replace pvals < 0.05 with an X
         annot_pvals = df_pvals.applymap(lambda x: "*" if x < pval_cutoff else "")
 
