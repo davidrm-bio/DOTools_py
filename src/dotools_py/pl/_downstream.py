@@ -215,6 +215,7 @@ def cell_props(
     path: Union[Path, str] = None,
     filename: str = "Proportions.svg",
     legend_cols: int = 1,
+    xticks_rotation: int = None,
     sep: float = 0.5,
     bar_width: float = 0.2,
     title: str = "",
@@ -250,6 +251,7 @@ def cell_props(
     :param path: path to save the figure.
     :param filename: name of the file.
     :param legend_cols: number of columns for the legend.
+    :param xticks_rotation: rotation for the xticks.
     :param sep: separation between bars.
     :param bar_width: bars width.
     :param title: title of the plot.
@@ -384,7 +386,12 @@ def cell_props(
                         b.set_edgecolor("black")
                         b.set_linewidth(1)
                         b.set_zorder(3)
-    axs.set_xticks(xtick, xtext, fontweight="bold")
+
+    if xticks_rotation is not None:
+        xticks_prop = {'rotation': xticks_rotation, 'ha': 'right', 'va': 'top'}
+    else:
+        xticks_prop = {'rotation': xticks_rotation}
+    axs.set_xticks(xtick, xtext, fontweight="bold", **xticks_prop)
     axs.set_title(title, fontsize=title_fontsize, fontweight="bold")
 
     # Legend Axis
