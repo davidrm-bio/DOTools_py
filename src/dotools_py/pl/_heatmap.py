@@ -260,7 +260,7 @@ def heatmap(
                     df_pvals.loc[row['names'], row['group']] = row['pvals_adj']
             df_pvals[df_pvals.isna()] = 1
         else:
-            if features[0] in list(df_pvals.index):
+            if list(df.index)[0] in list(df_pvals.index):
                 pass
             else:
                 df_pvals = df_pvals.T
