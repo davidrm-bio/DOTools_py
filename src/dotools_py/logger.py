@@ -44,9 +44,11 @@ def set_verbosity(
     elif level == 2:
         logger.setLevel(logging.INFO)
         sc.settings.verbosity = 2
+        sc.settings._root_logger.setLevel(logging.INFO)
     elif level == 3:
         logger.setLevel(logging.DEBUG)
         sc.settings.verbosity = 3
+        sc.settings._root_logger.setLevel(logging.DEBUG)
     else:
         raise ValueError("Verbosity must be 0, 1, 2, or 3.")
     return None

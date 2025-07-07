@@ -11,7 +11,6 @@ __version__ = version("DOTools_py")
 def _is_run_from_ipython():
     """Determine whether we're currently in IPython."""
     import builtins
-
     return getattr(builtins, "__IPYTHON__", False)
 
 
