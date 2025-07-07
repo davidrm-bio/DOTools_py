@@ -3,6 +3,7 @@ import warnings
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import  scanpy as sc
 from scanpy.plotting import palettes
 from cycler import cycler
 
@@ -93,6 +94,7 @@ def session_settings(
 
     # Scanpy Settings
     set_verbosity(verbosity)
+    sc.settings.verbosity = verbosity
     interactive_session(interactive)
 
     plt.rcParams.update({
