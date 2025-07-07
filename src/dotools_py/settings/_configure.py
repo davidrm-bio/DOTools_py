@@ -3,10 +3,11 @@ import warnings
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import scanpy as sc
+from scanpy.plotting import palettes
+from cycler import cycler
 
 from dotools_py import logger
-from dotools_py.logger import  set_verbosity
+from dotools_py.logger import set_verbosity
 
 warnings.filterwarnings("ignore")
 
@@ -60,9 +61,8 @@ def session_settings(
     axes_fontweight: str = 'bold',
     title_fontsize: int = 18,
     title_fontweight: str = 'bold',
-    legend_fontsize: int = 13,
     ticks_fontsize: int = 12,
-    figsize: tuple =(4, 5),
+    figsize: tuple = (4, 5),
     top_spine: bool = False,
     right_spine: bool = False,
     grid: bool = False,
@@ -83,7 +83,6 @@ def session_settings(
     :param axes_fontweight: Set the font-weight for the x and y labels.
     :param title_fontsize:  Set the fontsize for the title.
     :param title_fontweight: Set the font-weight for the title.
-    :param legend_fontsize: Set the fontsize for the legend.
     :param ticks_fontsize: Set the fontsize for the x and y ticks.
     :param figsize: Set the figsize.
     :param top_spine: remove the top spine.
@@ -93,9 +92,6 @@ def session_settings(
     """
 
     # Scanpy Settings
-    sc.settings.set_figure_params(dpi=dpi, dpi_save=dpi_save, facecolor=facecolor,
-        color_map=colormap, frameon=frameon, transparent=transparent
-    )
     set_verbosity(verbosity)
     interactive_session(interactive)
 
@@ -111,7 +107,27 @@ def session_settings(
         "axes.titleweight": title_fontweight,
         "xtick.labelsize": ticks_fontsize,
         "ytick.labelsize": ticks_fontsize,
-        "legend.fontsize": legend_fontsize,
+        "legend.fontsize": fontsize * 0.92,
+
+        # Same configuration as Scanpy
+        "savefig.dpi": dpi_save,
+        "savefig.transparent": transparent,
+        "figure.subplot.left": 0.18,
+        "figure.subplot.right": 0.96,
+        "figure.subplot.bottom": 0.15,
+        "figure.subplot.top": 0.91,
+        "lines.markeredgewidth": 1,
+        "legend.numpoints": 1,
+        "legend.scatterpoints": 1,
+        "legend.handlelength": 0.5,
+        "legend.handletextpad": 0.4,
+        "axes.prop_cycle": cycler(color=palettes.default_20),
+        "axes.edgecolor": "black",
+        "axes.facecolor": "white",
+        "xtick.color": "k",
+        "ytick.color": "k",
+        "image.cmap": mpl.rcParams["image.cmap"] if colormap is None else colormap,
+
 
         # Figure and axes
         "figure.figsize": figsize,  # Single column width (inches)
@@ -156,4 +172,3 @@ def session_settings(
     mpl.rcParams["pdf.fonttype"] = 42  # Use TrueType fonts in PDFs (editable text)
 
     return None
-
