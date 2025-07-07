@@ -11,8 +11,8 @@ from dotools_py.pl._StatsPlotter import TestData, StatsPlotter
 
 
 def barplot(adata: ad.AnnData,
-            feature: str,
             x_axis: str,
+            feature: str,
             batch_key: str = 'batch',
             layer: str = None,
             figsize: tuple = (3, 4.2),
@@ -45,8 +45,8 @@ def barplot(adata: ad.AnnData,
     and test for significance. The mean pseudo-bulk expression per sample will be plotted as dots.
 
     :param adata: annotated data matrix
-    :param feature: feature in `var_name` or `obs`.
     :param x_axis: categorical `obs` column to group-by.
+    :param feature: feature in `var_name` or `obs`.
     :param batch_key: `obs` column with batch information.
     :param layer: layer in the AnnData to use.
     :param figsize:  figure size.
@@ -175,8 +175,8 @@ def barplot(adata: ad.AnnData,
 
 
 def boxplot(adata: ad.AnnData,
-            feature: str,
             x_axis: str,
+            feature: str,
             layer: str = None,
             figsize: tuple = (5, 6),
             palette: Union[str, list] = 'tab10',
@@ -204,8 +204,8 @@ def boxplot(adata: ad.AnnData,
     and test for significance.
 
     :param adata: annotated data matrix
-    :param feature: feature in `var_name` or `obs`.
     :param x_axis: categorical `obs` column to groupby.
+    :param feature: feature in `var_name` or `obs`.
     :param layer: layer in the AnnData to use.
     :param figsize:  figure size.
     :param palette: dictionary or palette to use.
@@ -299,8 +299,8 @@ def boxplot(adata: ad.AnnData,
 
 
 def violin(adata: ad.AnnData,
-           feature: str,
            x_axis: str,
+           feature: str,
            layer: str = None,
            figsize: tuple = (5, 6),
            palette: Union[str, list] = 'tab10',
@@ -328,8 +328,8 @@ def violin(adata: ad.AnnData,
     and test for significance.
 
     :param adata: annotated data matrix
-    :param feature: feature in `var_name` or `obs`.
     :param x_axis: categorical `obs` column to groupby.
+    :param feature: feature in `var_name` or `obs`.
     :param layer: layer in the AnnData to use.
     :param figsize:  figure size.
     :param palette: dictionary or palette to use.
