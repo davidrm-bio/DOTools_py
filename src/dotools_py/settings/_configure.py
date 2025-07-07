@@ -128,7 +128,6 @@ def session_settings(
         "ytick.color": "k",
         "image.cmap": mpl.rcParams["image.cmap"] if colormap is None else colormap,
 
-
         # Figure and axes
         "figure.figsize": figsize,  # Single column width (inches)
         "figure.dpi": dpi,
