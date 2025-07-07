@@ -101,7 +101,7 @@ class StatsPlotter:
 
         self.txt_size = DEFAULT_TXT_SIZE if txt_size is None else txt_size
         self.txt = DEFAULT_TXT if txt is None else txt
-        self.line_offset = DEFAULT_LINES_OFFSET if line_offset is None else line_offset
+        self.line_offset = DEFAULT_LINES_OFFSET if line_offset is None else line_offset  # TODO should be adjusted depending on the y-values
 
         if pvals is not None:
             pvals = [float(p) for p in pvals]
