@@ -365,7 +365,7 @@ def heatmap(
 
     # Add Legend
     matplotlib.colorbar.Colorbar(color_legend_ax, mappable=mappable, orientation="horizontal")
-    color_legend_ax.set_title(legend_title, fontsize="small")
+    color_legend_ax.set_title(legend_title, fontsize="small", fontweight='bold')
     color_legend_ax.xaxis.set_tick_params(labelsize="small")
     return_ax_dict["legend_ax"] = color_legend_ax
 
@@ -376,7 +376,7 @@ def heatmap(
         sig_ax.text(x, y, '*', fontsize=18, ha='center', va='center', color='black')
         sig_ax.text(x + 0.03, y, 'FDR < 0.05', fontsize=12, va='center', fontweight='bold')
         sig_ax.set_xlim(x - 0.02, x + 0.1)
-        sig_ax.set_title('Significance', fontsize='small')
+        sig_ax.set_title('Significance', fontsize='small', fontweight='bold')
         plt.gca().set_aspect('equal')
         sig_ax.axis('off')  # Hide axes for clean display
         return_ax_dict["signifiance_ax"] = sig_ax
