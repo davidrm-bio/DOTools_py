@@ -92,7 +92,7 @@ def expr_correlation(
     # Define mask
     if mask == 'upper':
         mask = ~np.tril(df_corr.values).astype(bool)
-    elif mask is 'lower':
+    elif mask == 'lower':
         mask = ~np.triu(df_corr.values).astype(bool)
     elif mask is None:
         mask = None
@@ -133,14 +133,14 @@ def expr_correlation(
         edge_colors = np.array([(0, 0, 0, 0) if is_nan else (0, 0, 0, 1) for is_nan in nan_mask_flat])
         mesh.set_edgecolors(edge_colors)
 
-    if mode is 'letters' or annot is True:
+    if mode == 'letters' or annot == True:
         for i in range(df_corr.shape[0]):
             for j in range(df_corr.shape[1]):
                 if mask is not None:
                     if mask[i, j]:
                         continue
                 value = df_corr.iloc[i, j]
-                color = palette(norm_palette(value)) if mode is 'letters' else color_annot
+                color = palette(norm_palette(value)) if mode == 'letters' else color_annot
                 hm.text(j + 0.5,
                         i + 0.5,
                         f"{value:.2f}",
@@ -184,8 +184,8 @@ def expr_correlation(
                     remove_y.append(yticks[row])
         xticks = [tick for tick in xticks if tick not in remove_x]
         yticks = [tick for tick in yticks if tick not in remove_y]
-        xtickslabels = [label for label in xtickslabels if label is not '']
-        ytickslabels = [label for label in ytickslabels if label is not '']
+        xtickslabels = [label for label in xtickslabels if label != '']
+        ytickslabels = [label for label in ytickslabels if label != '']
 
     hm.set_xticks(xticks)
     hm.set_xticklabels(xtickslabels, fontweight='bold', fontsize=ticks_size)
