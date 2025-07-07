@@ -1,5 +1,6 @@
 import os
 import warnings
+import logging
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -96,6 +97,7 @@ def session_settings(
     set_verbosity(verbosity)
     sc.settings.verbosity = verbosity
     interactive_session(interactive)
+    logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 
     plt.rcParams.update({
         # Font settings
