@@ -7,5 +7,6 @@ from dotools_py.tl._get_stats import (go_analysis,
                                       generate_results,
                                       run_mast,
                                       rank_genes_consensus,
-                                      rank_genes_deseq2
+                                      rank_genes_pseudobulk,
+                                      pseudobulking
                                       )
