@@ -84,7 +84,7 @@ def barplot(adata: ad.AnnData,
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.barplot(adata, 'CD4', 'annotation', ctrl_cond = 'T_cells', groups_cond=['B_cells'], xtick_rotation=45)
+        do.pl.barplot(adata, 'annotation', 'CD4', ctrl_cond = 'T_cells', groups_cond=['B_cells'], xtick_rotation=45)
 
     """
     # Checks
@@ -238,7 +238,7 @@ def boxplot(adata: ad.AnnData,
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.boxplot(adata, 'CD4', 'annotation', ctrl_cond = 'pDC', groups_cond=['B_cells'], xtick_rotation=45)
+        do.pl.boxplot(adata,  'annotation', 'CD4', ctrl_cond = 'pDC', groups_cond=['B_cells'], xtick_rotation=45)
 
      """
     # Checks
@@ -363,7 +363,7 @@ def violin(adata: ad.AnnData,
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.violin(adata, 'CD4', 'annotation', ctrl_cond = 'pDC', groups_cond=['B_cells'], xtick_rotation=45)
+        do.pl.violin(adata,  'annotation', 'CD4', ctrl_cond = 'pDC', groups_cond=['B_cells'], xtick_rotation=45)
 
      """
     # Checks
