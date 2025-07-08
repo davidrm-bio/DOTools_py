@@ -75,7 +75,8 @@ including: `Seurat`, `MAST`, `scDblFinder`, `zellkonverter`,  and `optparse`.
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
-install.packages("optparse")
+install.packages("optparse", Ncpus=8)
+install.packages('remotes', Ncpus=8)
 remotes::install_github("satijalab/seurat", "seurat5", quiet = TRUE)  # Seurat
 BiocManager::install("MAST")
 BiocManager::install("scDblFinder")
