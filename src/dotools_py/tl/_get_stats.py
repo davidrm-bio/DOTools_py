@@ -585,10 +585,10 @@ def pseudobulking(
 
 
 def rank_genes_pseudobulk(
-    adata,
-    ctrl_cond,
-    disease_cond,
-    cluster_key,
+    adata: ad.AnnData,
+    ctrl_cond: str,
+    disease_cond: str,
+    cluster_key: str,
     method: Literal['deseq2', 'edger'] = 'deseq2',
     batch_key: str = 'batch',
     condition_key: str = 'condition',
@@ -698,10 +698,10 @@ def rank_genes_pseudobulk(
 
 
 def rank_genes_consensus(
-    adata,
-    ctrl_cond,
-    disease_cond,
-    cluster_key,
+    adata: ad.AnnData,
+    ctrl_cond: str,
+    disease_cond: str,
+    cluster_key: str,
     batch_key: str = 'batch',
     condition_key: str = 'condition',
     design: str = '~condition',
@@ -726,7 +726,7 @@ def rank_genes_consensus(
     This function performs differential gene expression analysis between two conditions for
     an all the clusters in the AnnData object using a single-cell level and pseudo-bulk level approach.
     For the single-cell level, it will test for DEGs using wilcoxon, MAST, t-test, logistic regression or
-    t-test overestimate. For the pseudobulk level it will test for DEGs using DESeq2.
+    t-test overestimate. For the pseudobulk level it will test for DEGs using DESeq2 or edgeR.
 
     A dataframe will be produce with the results of both tests including the foldchanges, p-values, statistics,
     percentage of cells in each group expressing the gene and the mean expression per sample in each cluster for each gene.

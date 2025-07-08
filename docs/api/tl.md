@@ -1,6 +1,6 @@
 # Tools `tl`
 
-The tools module {mod}`dotools_py.tl` contains funcstions for the downstream
+The tools module {mod}`dotools_py.tl` contains functions for the downstream
 analysis and statistical methods.
 
 
