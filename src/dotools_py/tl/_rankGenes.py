@@ -4,9 +4,12 @@
 #
 ########################################################################################################################
 from math import floor
-from typing import TYPE_CHECKING, Literal, get_args
+from typing import TYPE_CHECKING, Literal, get_args,  ParamSpec, TypeVar,overload, cast
 
 import numpy as np
+import numba  # Speed Up Wilcoxon
+import sys
+
 import pandas as pd
 import scipy
 from scanpy import _utils
@@ -17,19 +20,146 @@ from scanpy._utils import (
     raise_not_implemented_error_if_backed_type,
 )
 from scanpy.get import _check_mask
-from scanpy.preprocessing._utils import _get_mean_var
+
+# Use fast implementation python >= 3.11
+
+try:
+    from fast_array_utils.stats import mean_var
+    fast_array = True
+except ImportError:
+    from scanpy.preprocessing._utils import _get_mean_var
+    fast_array = False
+
 from scipy.sparse import issparse, vstack
 
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable, Callable
+from functools import cache, partial, wraps
 
 from anndata import AnnData
 from numpy.typing import NDArray
 from scipy import sparse
+import warnings
+
+def check_scanpy_version(fast: bool):
+    import scanpy
+    if scanpy.__version__ > '1.11.0' and fast:
+        return 'scanpy_parallel'
+    else:
+        return 'scapy_normal'
+
+scanpy_version = check_scanpy_version(fast_array)
 
 _CorrMethod = Literal["benjamini-hochberg", "bonferroni"]
 
 # Used with get_args
 _Method = Literal["logreg", "t-test", "wilcoxon", "t-test_overestim_var"]
+
+# New implementation from scanpy to speed up Wilcoxon test
+_CSArray = sparse.csr_array | sparse.csc_array  # noqa: TID251
+"""Only use if you want to specially handle arrays as opposed to matrices."""
+
+_CSMatrix = sparse.csr_matrix | sparse.csc_matrix  # noqa: TID251
+"""Only use if you want to specially handle matrices as opposed to arrays."""
+
+CSRBase = sparse.csr_matrix | sparse.csr_array  # noqa: TID251
+CSCBase = sparse.csc_matrix | sparse.csc_array  # noqa: TID251
+CSBase = _CSArray | _CSMatrix
+P = ParamSpec("P")
+R = TypeVar("R")
+LayerType = Literal["default", "safe", "threadsafe", "forksafe"]
+Layer = Literal["tbb", "omp", "workqueue"]
+_CONST_MAX_SIZE = 10000000
+
+
+LAYERS: dict[LayerType, set[Layer]] = {
+    "default": {"tbb", "omp", "workqueue"},
+    "safe": {"tbb"},
+    "threadsafe": {"tbb", "omp"},
+    "forksafe": {"tbb", "workqueue", *(() if sys.platform == "linux" else {"omp"})},
+}
+
+
+@cache
+def _numba_threading_layer() -> Layer:
+    """Get numba’s threading layer.
+
+    This function implements the algorithm as described in
+    <https://numba.readthedocs.io/en/stable/user/threading-layer.html>
+    """
+    import importlib
+
+    import numba
+
+    if (available := LAYERS.get(numba.config.THREADING_LAYER)) is None:
+        # given by direct name
+        return numba.config.THREADING_LAYER
+
+    # given by layer type (safe, …)
+    for layer in cast("list[Layer]", numba.config.THREADING_LAYER_PRIORITY):
+        if layer not in available:
+            continue
+        if layer != "workqueue":
+            try:  # `importlib.util.find_spec` doesn’t work here
+                importlib.import_module(f"numba.np.ufunc.{layer}pool")
+            except ImportError:
+                continue
+        # the layer has been found
+        return layer
+    msg = (
+        f"No loadable threading layer: {numba.config.THREADING_LAYER=} "
+        f" ({available=}, {numba.config.THREADING_LAYER_PRIORITY=})"
+    )
+    raise ValueError(msg)
+
+
+def _is_in_unsafe_thread_pool() -> bool:
+    import threading
+
+    current_thread = threading.current_thread()
+    # ThreadPoolExecutor threads typically have names like 'ThreadPoolExecutor-0_1'
+    return (
+        current_thread.name.startswith("ThreadPoolExecutor")
+        and _numba_threading_layer() not in LAYERS["threadsafe"]
+    )
+
+@overload
+def njit(fn: Callable[P, R], /) -> Callable[P, R]: ...
+@overload
+def njit() -> Callable[[Callable[P, R]], Callable[P, R]]: ...
+def njit(
+    fn: Callable[P, R] | None = None, /
+) -> Callable[P, R] | Callable[[Callable[P, R]], Callable[P, R]]:
+    """Jit-compile a function using numba.
+
+    On call, this function dispatches to a parallel or sequential numba function,
+    depending on if it has been called from a thread pool.
+
+    See <https://github.com/numbagg/numbagg/pull/201/files#r1409374809>
+    """
+
+    def decorator(f: Callable[P, R], /) -> Callable[P, R]:
+        import numba
+
+        fns: dict[bool, Callable[P, R]] = {
+            parallel: numba.njit(f, cache=True, parallel=parallel)  # noqa: TID251
+            for parallel in (True, False)
+        }
+
+        @wraps(f)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            parallel = not _is_in_unsafe_thread_pool()
+            if not parallel:
+                msg = (
+                    "Detected unsupported threading environment. "
+                    f"Trying to run {f.__name__} in serial mode. "
+                    "In case of problems, install `tbb`."
+                )
+                warnings.warn(msg, stacklevel=2)
+            return fns[parallel](*args, **kwargs)
+
+        return wrapper
+
+    return decorator if fn is None else decorator(fn)
 
 
 def _undo_logspace(input_data):
@@ -58,7 +188,82 @@ def _select_top_n(scores: NDArray, n_top: int):
     return global_indices
 
 
+@njit
+def _tiecorrect(rankvals: NDArray[np.number]) -> NDArray[np.float64]:
+    """Parallelized version of scipy.stats.tiecorrect."""
+    tc = np.ones(rankvals.shape[1], dtype=np.float64)
+    for j in numba.prange(rankvals.shape[1]):
+        arr = np.sort(np.ravel(rankvals[:, j]))
+        idx = np.flatnonzero(
+            np.concatenate((np.array([True]), arr[1:] != arr[:-1], np.array([True])))
+        )
+        cnt = np.diff(idx).astype(np.float64)
+
+        size = np.float64(arr.size)
+        if size >= 2:
+            tc[j] = 1.0 - (cnt**3 - cnt).sum() / (size**3 - size)
+
+    return tc
+
+@njit
+def rankdata(data: NDArray[np.number]) -> NDArray[np.float64]:
+    """Parallelized version of scipy.stats.rankdata."""
+    ranked = np.empty(data.shape, dtype=np.float64)
+    for j in numba.prange(data.shape[1]):
+        arr = np.ravel(data[:, j])
+        sorter = np.argsort(arr)
+
+        arr = arr[sorter]
+        obs = np.concatenate((np.array([True]), arr[1:] != arr[:-1]))
+
+        dense = np.empty(obs.size, dtype=np.int64)
+        dense[sorter] = obs.cumsum()
+
+        # cumulative counts of each unique value
+        count = np.concatenate((np.flatnonzero(obs), np.array([len(obs)])))
+        ranked[:, j] = 0.5 * (count[dense] + count[dense - 1] + 1)
+
+    return ranked
+
+
 def _ranks(
+    X: NDArray[np.number] | CSBase,
+    mask_obs: NDArray[np.bool_] | None = None,
+    mask_obs_rest: NDArray[np.bool_] | None = None,
+) -> Generator[tuple[NDArray[np.float64], int, int], None, None]:
+    n_genes = X.shape[1]
+
+    if isinstance(X, CSBase):
+        merge = lambda tpl: sparse.vstack(tpl).toarray()
+        adapt = lambda X: X.toarray()
+    else:
+        merge = np.vstack
+        adapt = lambda X: X
+
+    masked = mask_obs is not None and mask_obs_rest is not None
+
+    if masked:
+        n_cells = np.count_nonzero(mask_obs) + np.count_nonzero(mask_obs_rest)
+        get_chunk = lambda X, left, right: merge(
+            (X[mask_obs, left:right], X[mask_obs_rest, left:right])
+        )
+    else:
+        n_cells = X.shape[0]
+        get_chunk = lambda X, left, right: adapt(X[:, left:right])
+
+    # Calculate chunk frames
+    max_chunk = max(_CONST_MAX_SIZE // n_cells, 1)
+
+    for left in range(0, n_genes, max_chunk):
+        right = min(left + max_chunk, n_genes)
+
+        ranks = rankdata(get_chunk(X, left, right))
+        yield ranks, left, right
+
+
+###### Old fxs
+
+def _ranks_old(
     X: np.ndarray | sparse.csr_matrix | sparse.csc_matrix,
     mask_obs: NDArray | None = None,
     mask_obs_rest: NDArray | None = None,
@@ -94,7 +299,7 @@ def _ranks(
         yield ranks, left, right
 
 
-def _tiecorrect(ranks):
+def _tiecorrect_old(ranks):
     size = np.float64(ranks.shape[0])
     if size < 2:
         return np.repeat(ranks.shape[1], 1.0)
@@ -204,7 +409,12 @@ class _RankGenes:
             # X_rest has logcounts, undo the log space
             X_rest = _undo_logspace(X_rest)
 
-            self.means[self.ireference], self.vars[self.ireference] = _get_mean_var(X_rest)
+            if fast_array:
+                self.means[self.ireference], self.vars[self.ireference] = mean_var(
+                    X_rest, axis=0, correction=1
+                )
+            else:
+                self.means[self.ireference], self.vars[self.ireference] = _get_mean_var(X_rest)
 
             # Redo the log for the mean
             self.means[self.ireference] = _redo_logspace(self.means[self.ireference])
@@ -212,7 +422,7 @@ class _RankGenes:
             # deleting the next line causes a memory leak for some reason
             del X_rest
 
-        if issparse(self.X):
+        if isinstance(self.X, CSBase):
             get_nonzeros = lambda X: X.getnnz(axis=0)
         else:
             get_nonzeros = lambda X: np.count_nonzero(X, axis=0)
@@ -227,8 +437,12 @@ class _RankGenes:
 
             if self.ireference is not None and group_index == self.ireference:
                 continue
-
-            self.means[group_index], self.vars[group_index] = _get_mean_var(X_mask)
+            if fast_array:
+                self.means[group_index], self.vars[group_index] = mean_var(
+                    X_mask, axis=0, correction=1
+                )
+            else:
+                self.means[group_index], self.vars[group_index] = _get_mean_var(X_mask)
 
             # Redo the log for the mean
             self.means[group_index] = _redo_logspace(self.means[group_index])
@@ -237,11 +451,16 @@ class _RankGenes:
                 mask_rest = ~mask_obs
                 X_rest = self.X[mask_rest]
                 X_rest = _undo_logspace(X_rest)
-
-                (
-                    self.means_rest[group_index],
-                    self.vars_rest[group_index],
-                ) = _get_mean_var(X_rest)
+                if fast_array:
+                    (
+                        self.means_rest[group_index],
+                        self.vars_rest[group_index],
+                    ) = mean_var(X_rest, axis=0, correction=1)
+                else:
+                    (
+                        self.means_rest[group_index],
+                        self.vars_rest[group_index],
+                    ) = _get_mean_var(X_rest)
 
                 self.means_rest[group_index] = _redo_logspace(self.means_rest[group_index])
 
@@ -331,10 +550,16 @@ class _RankGenes:
                     logg.hint("Few observations in a group for normal approximation (<=25). Lower test accuracy.")
 
                 # Calculate rank sums for each chunk for the current mask
-                for ranks, left, right in _ranks(self.X, mask_obs, mask_obs_rest):
-                    scores[left:right] = ranks.iloc[0:n_active, :].sum(axis=0)
-                    if tie_correct:
-                        T[left:right] = _tiecorrect(ranks)
+                if scanpy_version == 'scanpy_parallel':
+                    for ranks, left, right in _ranks(self.X, mask_obs, mask_obs_rest):
+                        scores[left:right] = ranks[0:n_active, :].sum(axis=0)
+                        if tie_correct:
+                            T[left:right] = _tiecorrect(ranks)
+                else:
+                    for ranks, left, right in _ranks_old(self.X, mask_obs, mask_obs_rest):
+                        scores[left:right] = ranks.iloc[0:n_active, :].sum(axis=0)
+                        if tie_correct:
+                            T[left:right] = _tiecorrect_old(ranks)
 
                 std_dev = np.sqrt(T * n_active * m_active * (n_active + m_active + 1) / 12.0)
 
@@ -353,12 +578,20 @@ class _RankGenes:
             if tie_correct:
                 T = np.zeros((n_groups, n_genes))
 
-            for ranks, left, right in _ranks(self.X):
-                # sum up adjusted_ranks to calculate W_m,n
-                for group_index, mask_obs in enumerate(self.groups_masks_obs):
-                    scores[group_index, left:right] = ranks.iloc[mask_obs, :].sum(axis=0)
-                    if tie_correct:
-                        T[group_index, left:right] = _tiecorrect(ranks)
+            if scanpy_version == 'scanpy_parallel':
+                for ranks, left, right in _ranks(self.X):
+                    # sum up adjusted_ranks to calculate W_m,n
+                    for group_index, mask_obs in enumerate(self.groups_masks_obs):
+                        scores[group_index, left:right] = ranks[mask_obs, :].sum(axis=0)
+                        if tie_correct:
+                            T[group_index, left:right] = _tiecorrect(ranks)
+            else:
+                for ranks, left, right in _ranks_old(self.X):
+                    # sum up adjusted_ranks to calculate W_m,n
+                    for group_index, mask_obs in enumerate(self.groups_masks_obs):
+                        scores[group_index, left:right] = ranks.iloc[mask_obs, :].sum(axis=0)
+                        if tie_correct:
+                            T[group_index, left:right] = _tiecorrect_old(ranks)
 
             for group_index, mask_obs in enumerate(self.groups_masks_obs):
                 n_active = np.count_nonzero(mask_obs)

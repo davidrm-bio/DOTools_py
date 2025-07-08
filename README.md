@@ -34,24 +34,21 @@ in particular, the [API documentation](https://dotools-py.readthedocs.io/en/late
 ## Installation
 
 You need to have Python 3.10 or newer installed on your system. We recommend creating
-a dedicated conda environment.
+a dedicated [conda](https://www.anaconda.com/docs/getting-started/miniconda/main) environment.
 
 ```bash
-conda create -n do_py10 python=3.10
-conda activate do_py10
+conda create -n do_py11 python=3.11
+conda activate do_py11
 ```
 
 There are several alternative options to install DOTools_py:
 
-<!---
 1. Install the latest release of `DOTools_py` from [PyPI][]:
-    ```bash
-    pip install DOTools_py
-    ```
---->
+```bash
+pip install DOTools_py  # Not yet available
+```
 
-1. Install the latest development version:
-
+2. Install the latest development version:
  ```bash
 pip install git+https://github.com/davidrm-bio/DOTools_py.git@main
 ```
@@ -59,7 +56,7 @@ pip install git+https://github.com/davidrm-bio/DOTools_py.git@main
 Finally, to use this environment in jupyter notebook, add jupyter kernel for this environment:
 
 ```bash
-python -m ipykernel install --user --name=do_py10 --display-name=do_py10
+python -m ipykernel install --user --name=do_py11 --display-name=do_py11
 ```
 
 We also have an R implementation of the  [DOTools](https://github.com/MarianoRuzJurado/DOtools). This can be
