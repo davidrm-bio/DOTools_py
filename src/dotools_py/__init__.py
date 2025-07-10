@@ -24,6 +24,9 @@ def is_interactive():
     except ImportError:
         return False
 
+if os.environ.get("READTHEDOCS", "").lower() =='true':
+    settings.session_settings(verbosity=0, interactive=False)
 if is_interactive() and os.environ.get("READTHEDOCS", "").lower() != "true":
     settings.session_settings()
+
 
