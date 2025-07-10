@@ -18,7 +18,7 @@ def heart_markers(
     ['Nfatc1', 'Npr3', 'Nrg1', 'Pecam1', 'Cdh5', 'Etv2']
 
 
-    .. image:: api/figures/MarkersCellsHeart.png
+    .. image:: MarkersCellsHeart.png
 
     """
     logger.info(f'Getting {species} markers')
