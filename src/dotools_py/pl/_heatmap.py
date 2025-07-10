@@ -252,7 +252,7 @@ def heatmap(
                 table_filt = table[table['names'].isin(features)]
 
             # Dataframe with gene x groups with the pvals
-            table_filt['group'] = table_filt['group'].str.replace('-', '_')  # Correction used in get_expr()
+            table_filt['group'] = table_filt['group'].str.replace('-', '_')  # Correction used in do.tl.get_expr()
             df_pvals = pd.DataFrame([], index=df.index, columns=df.columns)
             for idx, row in table_filt.iterrows():
                 if row['group'] in list(df.index):
