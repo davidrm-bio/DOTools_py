@@ -154,13 +154,13 @@ def expr_correlation(
     sm = ScalarMappable(norm=norm_palette, cmap=palette)
     sm.set_array([])  # Needed for colorbar to work
 
-    if annot_kws is not None:
-        annot_kws.update({'orientation': annot_kws.get('orientation', 'horizontal'),
-                          'fraction': annot_kws.get('fraction', 0.05),
-                          'pad': annot_kws.get('pad', 0.2),
-                          'shrink': annot_kws.get('shrink', 0.5)})
-    else:
-        annot_kws = {'orientation': annot_kws.get('orientation', 'horizontal'),}
+    if annot_kws is None:
+        annot_kws = {}
+
+    annot_kws.update({'orientation': annot_kws.get('orientation', 'horizontal'),
+                      'fraction': annot_kws.get('fraction', 0.05),
+                      'pad': annot_kws.get('pad', 0.2),
+                      'shrink': annot_kws.get('shrink', 0.5)})
 
     cbar = fig.colorbar(sm, ax=axs, **annot_kws)
     cbar.ax.set_title(f"Correlation {method}", fontdict={'size': 12})

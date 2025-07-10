@@ -748,7 +748,7 @@ def rank_genes_groups(
     """\
     Rank genes for characterizing groups.
 
-    Adaptation from `sc.tl.rank_genes_groups` but only expects logarithmized data.
+    Adaptation from `sc.tl.rank_genes_groups` which expects logarithmized data if `logcounts` is set to `True`.
 
     Parameters
     ----------
