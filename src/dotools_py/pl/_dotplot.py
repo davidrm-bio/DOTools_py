@@ -1128,7 +1128,7 @@ def dotplot(
         import dotools_py as do
         adata = do.dt.example_10x_processed()
         markers = ['CD79A', 'CD4', 'CDK1']
-        do.pl.dotplot(adata, 'annotation', markers, figsize=(4, 2.1))
+        do.pl.dotplot(adata, 'annotation', markers, figsize=(4, 3))
 
     Create a 3d dotplot grouping also by condition
 

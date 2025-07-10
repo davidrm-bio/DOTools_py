@@ -325,6 +325,7 @@ class _RankGenes:
         use_raw: bool = True,
         layer: str | None = None,
         comp_pts: bool = False,
+        logcounts: bool = True,
     ) -> None:
         self.mask_var = mask_var
         if (base := adata.uns.get("log1p", {}).get("base")) is not None:
@@ -384,6 +385,7 @@ class _RankGenes:
         self.pts_rest = None
 
         self.stats = None
+        self.logcounts = logcounts
 
         # for logreg only
         self.grouping_mask = adata.obs[groupby].isin(self.groups_order)
@@ -407,7 +409,8 @@ class _RankGenes:
             X_rest = self.X[mask_rest]
 
             # X_rest has logcounts, undo the log space
-            X_rest = _undo_logspace(X_rest)
+            if self.logcounts:
+                X_rest = _undo_logspace(X_rest)
 
             if fast_array:
                 self.means[self.ireference], self.vars[self.ireference] = mean_var(
@@ -417,7 +420,8 @@ class _RankGenes:
                 self.means[self.ireference], self.vars[self.ireference] = _get_mean_var(X_rest)
 
             # Redo the log for the mean
-            self.means[self.ireference] = _redo_logspace(self.means[self.ireference])
+            if self.logcounts:
+                self.means[self.ireference] = _redo_logspace(self.means[self.ireference])
 
             # deleting the next line causes a memory leak for some reason
             del X_rest
@@ -429,8 +433,8 @@ class _RankGenes:
 
         for group_index, mask_obs in enumerate(self.groups_masks_obs):
             X_mask = self.X[mask_obs]
-
-            X_mask = _undo_logspace(X_mask)
+            if self.logcounts:
+                X_mask = _undo_logspace(X_mask)
 
             if self.comp_pts:
                 self.pts[group_index] = get_nonzeros(X_mask) / X_mask.shape[0]
@@ -445,12 +449,14 @@ class _RankGenes:
                 self.means[group_index], self.vars[group_index] = _get_mean_var(X_mask)
 
             # Redo the log for the mean
-            self.means[group_index] = _redo_logspace(self.means[group_index])
+            if self.logcounts:
+                self.means[group_index] = _redo_logspace(self.means[group_index])
 
             if self.ireference is None:
                 mask_rest = ~mask_obs
                 X_rest = self.X[mask_rest]
-                X_rest = _undo_logspace(X_rest)
+                if self.logcounts:
+                    X_rest = _undo_logspace(X_rest)
                 if fast_array:
                     (
                         self.means_rest[group_index],
@@ -462,7 +468,8 @@ class _RankGenes:
                         self.vars_rest[group_index],
                     ) = _get_mean_var(X_rest)
 
-                self.means_rest[group_index] = _redo_logspace(self.means_rest[group_index])
+                if self.logcounts:
+                    self.means_rest[group_index] = _redo_logspace(self.means_rest[group_index])
 
                 # this can be costly for sparse data
                 if self.comp_pts:
@@ -728,32 +735,35 @@ def rank_genes_groups(
     reference: str = "rest",
     n_genes: int | None = None,
     rankby_abs: bool = False,
-    pts: bool = False,
+    pts: bool = True,
     key_added: str | None = None,
     copy: bool = False,
     method: _Method | None = None,
     corr_method: _CorrMethod = "benjamini-hochberg",
-    tie_correct: bool = False,
+    tie_correct: bool = True,
     layer: str | None = None,
+    logcounts: bool = True,
     **kwds,
 ) -> AnnData | None:
     """\
     Rank genes for characterizing groups.
 
-    Expects logarithmized data.
+    Adaptation from `sc.tl.rank_genes_groups` but only expects logarithmized data.
 
     Parameters
     ----------
     adata
         Annotated data matrix.
     groupby
-        The key of the observations grouping to consider.
+        The column in `obs` to group.
     mask_var
-        Select subset of genes to use in statistical tests.
+        Select a subset of genes to use in statistical tests.
     use_raw
         Use `raw` attribute of `adata` if present.
     layer
         Key from `adata.layers` whose value will be used to perform tests on.
+    logcounts
+        The input are logarithmize counts
     groups
         Subset of groups, e.g. [`'g1'`, `'g2'`, `'g3'`], to which comparison
         shall be restricted, or `'all'` (default), for all groups. Note that if
@@ -766,9 +776,9 @@ def rank_genes_groups(
         The number of genes that appear in the returned tables.
         Defaults to all genes.
     method
-        The default method is `'t-test'`,
+        The default method is `'wilcoxon'` which uses Wilcoxon rank-sum,
+        `'t-test'`,
         `'t-test_overestim_var'` overestimates variance of each group,
-        `'wilcoxon'` uses Wilcoxon rank-sum,
         `'logreg'` uses logistic regression.
         `here <https://github.com/scverse/scanpy/issues/95>`__ and `here
         <https://www.nxn.se/valent/2018/3/5/actionable-scrna-seq-clusters>`__,
@@ -827,13 +837,6 @@ def rank_genes_groups(
     There are slight inconsistencies depending on whether sparse
     or dense data are passed. See `here <https://github.com/scverse/scanpy/blob/main/tests/test_rank_genes_groups.py>`__.
 
-    Examples
-    --------
-    >>> import scanpy as sc
-    >>> adata = sc.datasets.pbmc68k_reduced()
-    >>> sc.tl.rank_genes_groups(adata, 'bulk_labels', method='wilcoxon')
-    >>> # to visualize the results
-    >>> sc.pl.rank_genes_groups(adata)
     """
     if mask_var is not None:
         mask_var = _check_mask(adata, mask_var, "var")
@@ -844,7 +847,7 @@ def rank_genes_groups(
         raise ValueError("Received `use_raw=True`, but `adata.raw` is empty.")
 
     if method is None:
-        method = "t-test"
+        method = "wilcoxon"
 
     if "only_positive" in kwds:
         rankby_abs = not kwds.pop("only_positive")  # backwards compat
@@ -896,6 +899,7 @@ def rank_genes_groups(
         use_raw=use_raw,
         layer=layer,
         comp_pts=pts,
+        logcounts=logcounts,
     )
 
     if check_nonnegative_integers(test_obj.X) and method != "logreg":
@@ -1019,17 +1023,6 @@ def filter_rank_genes_groups(
     -------
     Same output as :func:`scanpy.tl.rank_genes_groups` but with filtered genes names set to
     `nan`
-
-    Examples
-    --------
-    >>> import scanpy as sc
-    >>> adata = sc.datasets.pbmc68k_reduced()
-    >>> sc.tl.rank_genes_groups(adata, 'bulk_labels', method='wilcoxon')
-    >>> sc.tl.filter_rank_genes_groups(adata, min_fold_change=3)
-    >>> # visualize results
-    >>> sc.pl.rank_genes_groups(adata, key='rank_genes_groups_filtered')
-    >>> # visualize results using dotplot
-    >>> sc.pl.rank_genes_groups_dotplot(adata, key='rank_genes_groups_filtered')
     """
     if key is None:
         key = "rank_genes_groups"

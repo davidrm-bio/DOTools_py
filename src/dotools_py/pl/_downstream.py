@@ -160,7 +160,7 @@ def expr_correlation(
                           'pad': annot_kws.get('pad', 0.2),
                           'shrink': annot_kws.get('shrink', 0.5)})
     else:
-        annot_kws = {}
+        annot_kws = {'orientation': annot_kws.get('orientation', 'horizontal'),}
 
     cbar = fig.colorbar(sm, ax=axs, **annot_kws)
     cbar.ax.set_title(f"Correlation {method}", fontdict={'size': 12})
