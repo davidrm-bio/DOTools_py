@@ -17,6 +17,9 @@ def heart_markers(
     >>> df_mouse['EndoEC']
     ['Nfatc1', 'Npr3', 'Nrg1', 'Pecam1', 'Cdh5', 'Etv2']
 
+
+    .. image:: ./MarkersCellsHeart.png
+
     """
     logger.info(f'Getting {species} markers')
     species = species.lower()
@@ -40,7 +43,7 @@ def heart_markers(
         'CM': ['Ryr2', 'Mlip', 'Ttn', 'Fhl2', 'Rbm20', 'Ankrd1', 'Tecrl', 'Mybpc3', 'Tnni3', 'Myh7', 'Mybpc3',
                'Irx4'],  # Refined
         'B_cells': ['Igkc', 'Ighm', 'Aff3', 'Cd74', 'Bank1', 'Ms4a1', 'Cd79a', 'Cd69'],  # Refined
-        's': ['Il7r', 'Themis', 'Skap1', 'Cd247', 'Itk', 'Ptprc', 'Camk4', 'Cd3e', 'Cd3d', 'Cd4', 'Cd8a'],
+        'T_cells': ['Il7r', 'Themis', 'Skap1', 'Cd247', 'Itk', 'Ptprc', 'Camk4', 'Cd3e', 'Cd3d', 'Cd4', 'Cd8a'],
         # Refined
         'Myeloid': ['F13a1', 'Rbpj', 'Cd163', 'Rbm47', 'Mrc1', 'Fmn1', 'Msr1', 'Frmd4b', 'Mertk',
                     'Lyz2'],  # Refined
