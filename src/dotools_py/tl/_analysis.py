@@ -593,7 +593,9 @@ def full_recluster(
 ) -> None:
     """Re-clustering of all clusters in dataset.
 
-    Perform reclustering on an integrated AnnData object over all clusters. Can recluster for the following integration methods:
+    Perform reclustering on an integrated AnnData object over all clusters. Can recluster for the following
+    integration methods:
+
         * CCA (v4/v5) integration from Seurat.
         * Harmony integration.
         * BBKNN integration.
