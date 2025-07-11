@@ -211,6 +211,13 @@ def run_mast(
     :param disease: disease conditions.
     :param covariates: extra covariates to account for.
     :return: pandas dataframe with DGEs.
+
+    See Also
+    --------
+        :func:`dotools_py.tl.rank_genes_groups`: run DEA at single-cell level
+        :func:`dotools_py.tl.grouped_ttest`: run DEA at pseudobulk level
+
+
     """
 
     rscript = get_paths_utils("_Run_MAST.R")

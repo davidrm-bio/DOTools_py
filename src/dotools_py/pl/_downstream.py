@@ -61,7 +61,7 @@ def expr_correlation(
     :param cmap: name of the colormap, list of colors to generate a colormap or a custom colormap.
     :param linecolor: color of the lines that will divide each cell.
     :param color_annot: color of the correlation values. Will use the cmap in letters mode.
-    :param annot_kws: keyword arguments for matplotlib.axes.Axes.text() when annot is True.
+    :param annot_kws: keyword arguments for `matplotlib.axes.Axes.text() <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.text.html>`_ when annot is True.
     :param ticks_size: size of the x and y ticks.
     :param path: path to save plot.
     :param filename: name of the file.

@@ -29,7 +29,7 @@ def layers(
     :param ncols:  number of columns in the plot.
     :param normalise: do log-normalisation on the layers.
     :param show: if set to False, return axis.
-    :param kwargs: additional arguments for sc.pl.spatial.
+    :param kwargs: additional arguments for `sc.pl.spatial <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.spatial.html>`_.
     :return:  None or plt.axes.
     """
 
