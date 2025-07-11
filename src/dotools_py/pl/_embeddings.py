@@ -37,7 +37,8 @@ def embedding(
 ) -> Union[plt.Axes, None]:
     """Make Embedding Plot.
 
-    This function builds on `sc.pl.embedding()` and add extra functionalities like splitting by a categorical column in obs.
+    This function builds on `sc.pl.embedding() <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.embedding.html>`_
+    and add extra functionalities like splitting by a categorical column in obs.
 
     :param adata: annotated data matrix.
     :param color: `.obs` column or `.var_names` value.
@@ -60,7 +61,7 @@ def embedding(
     :param ax: matplotlib axis.
     :param path: path to save plot.
     :param filename: filename of the plot.
-    :param kwargs: additional parameters pass to ``sc.pl.umap()``.
+    :param kwargs: additional parameters pass to `sc.pl.embedding() <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.embedding.html>`_.
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
     """
     sanitize_anndata(adata)
@@ -294,13 +295,12 @@ def umap(
     labels: str = None,
     labels_fontproporties: dict = None,
     labels_repel: dict = {},
-    basis: str = "X_umap",
     ax: plt.Axes = None,
     **kwargs,
 ) -> Union[None, plt.Axes]:
     """Make UMAP Plot.
 
-    This function builds on `sc.pl.embedding()` and add extra functionalities like
+    This function builds on `sc.pl.embedding() <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.embedding.html>`_ and add extra functionalities like
     splitting by a categorical column in `.obs`.
 
     :param adata: annotated data matrix.
@@ -320,11 +320,10 @@ def umap(
     :param labels: `.obs` column name with categorical values to add to the plot.
     :param labels_fontproporties: fontproperties for the labels.
     :param labels_repel: additional arguments pass to adjust_text.
-    :param basis: embedding to use.
     :param ax: matplotlib axis.
     :param path: path to save plot.
     :param filename: filename of the plot.
-    :param kwargs: additional parameters pass to ``sc.pl.embedding()``
+    :param kwargs: additional parameters pass to `sc.pl.embedding() <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.embedding.html>`_
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
 
     Example
@@ -336,8 +335,7 @@ def umap(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.umap(adata, 'annotation', split_by='condition', ncols=2, figsize=(9, 4),
-                   size=20)
+        do.pl.umap(adata, 'annotation', split_by='condition', ncols=2, figsize=(9, 4), size=20)
         do.pl.umap(adata, 'CD4', split_by='condition',  size=50, labels='annotation', cmap='Reds')
 
     or the expression of a gene
@@ -366,7 +364,7 @@ def umap(
         labels=labels,
         labels_fontproporties=labels_fontproporties,
         labels_repel=labels_repel,
-        basis=basis,
+        basis='X_umap',
         ax=ax,
         **kwargs,
     )
@@ -407,7 +405,7 @@ def split_embeddding(
     :param visium: set to True if you anndata has visium data.
     :param sp_size: spot size when plotting visium data.
     :param show: if set to True returns axes.
-    :param kwargs: additional arguments for ``sc.pl.embedding()`` or ``sc.pl.spatial()`` if visium is True.
+    :param kwargs: additional arguments for `sc.pl.embedding() <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.embedding.html>`_ or `sc.pl.spatial() <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.spatial.html>`_ if visium is True.
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
 
     Example

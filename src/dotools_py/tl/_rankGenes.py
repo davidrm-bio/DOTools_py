@@ -748,7 +748,8 @@ def rank_genes_groups(
     """\
     Rank genes for characterizing groups.
 
-    Adaptation from `sc.tl.rank_genes_groups` which expects logarithmized data if `logcounts` is set to `True`.
+    Adaptation from `sc.tl.rank_genes_groups <https://scanpy.readthedocs.io/en/stable/generated/scanpy.tl.rank_genes_groups.html>`_
+    which expects logarithmized data if `logcounts` is set to `True`.
 
     Parameters
     ----------
@@ -837,6 +838,10 @@ def rank_genes_groups(
     There are slight inconsistencies depending on whether sparse
     or dense data are passed. See `here <https://github.com/scverse/scanpy/blob/main/tests/test_rank_genes_groups.py>`__.
 
+    See Also
+    -------
+        :func:`dotools_py.tl.grouped_ttest`: run DEA at pseudobulk level between condition for all genes
+        :func:`dotools_py.tl.run_mast`: run MAST test
     """
     if mask_var is not None:
         mask_var = _check_mask(adata, mask_var, "var")

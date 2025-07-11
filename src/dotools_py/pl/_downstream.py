@@ -265,7 +265,7 @@ def cell_props(
                       are performed for more accurate results.
     :param linewidth: thickness of the lines connecting significant bars.
     :param get_props: get a dataframe with the proportions and pvals.
-    :param kwargs: additional arguments pass to scanpro().
+    :param kwargs: additional arguments pass to `scanpro() <https://scanpro.readthedocs.io/en/latest/API.html#scanpro.scanpro.scanpro>`_.
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
     """
     ########################

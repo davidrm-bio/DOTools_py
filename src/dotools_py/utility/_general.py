@@ -27,7 +27,7 @@ def transfer_labels(
     original_labels: list,
     copy: bool = False
 ) -> Union[ad.AnnData, None]:
-    """Transfer annotation from a subseted AnnData to an AnnData.
+    """Transfer annotation from a subset AnnData to an AnnData.
 
     :param adata_original: original AnnData.
     :param adata_subset: subsetted AnnData.

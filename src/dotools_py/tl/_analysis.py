@@ -158,7 +158,11 @@ def integrate_data(
     """Integrate a concatenated AnnData.
 
     Integrate and perform batch correction for an AnnData with several samples. Different batch correction methods are
-    available: Harmony, Scanorama, BBKNN, scVI and CCA (v4 or v5).
+    available: `Harmony <https://www.nature.com/articles/s41592-019-0619-0>`_,
+    `Scanorama <https://www.nature.com/articles/s41587-019-0113-3>`_,
+    `BBKNN <https://academic.oup.com/bioinformatics/article/36/3/964/5545955?login=true>`_,
+    `scVI <https://www.nature.com/articles/s41587-021-01206-w>`_ and
+    `CCA <https://www.cell.com/cell/fulltext/S0092-8674%2819%2930559-8>`_ (v4 or v5).
 
     .. note::
         The integration method CCA is based on Seurat. The v4 will generate a corrected expression matrix of all the
@@ -177,8 +181,63 @@ def integrate_data(
     :param resolution: resolution for the leiden clustering.
     :param categorical_covariates: categorical covariates for scVI.
     :param continuos_covariates: continuous covariates for scVI.
-    :param kwargs: extra arguments for scVI integration.
+    :param kwargs: additional arguments for `scVI model <https://docs.scvi-tools.org/en/stable/api/reference/scvi.model.SCVI.html>`_.
     :return: annotated data matrix integrated.
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> adata = do.tl.integrate_data(adata, batch_key='batch', harmony=True)
+    >>> adata
+    2025-07-11 10:52:17,913 - Computing HVGs
+    extracting highly variable genes
+        finished (0:00:00)
+    ... as `zero_center=True`, sparse input is densified and may lead to large memory consumption
+    computing PCA
+        with n_comps=50
+        finished (0:00:00)
+    2025-07-11 10:52:18,091 - Integration using Harmony
+    2025-07-11 10:52:18,580 - harmonypy - INFO - Computing initial centroids with sklearn.KMeans...
+    Computing initial centroids with sklearn.KMeans...
+    2025-07-11 10:52:19,387 - harmonypy - INFO - sklearn.KMeans initialization complete.
+    sklearn.KMeans initialization complete.
+    2025-07-11 10:52:19,405 - harmonypy - INFO - Iteration 1 of 100
+    Iteration 1 of 100
+    2025-07-11 10:52:19,620 - harmonypy - INFO - Iteration 2 of 100
+    Iteration 2 of 100
+    2025-07-11 10:52:19,826 - harmonypy - INFO - Iteration 3 of 100
+    Iteration 3 of 100
+    2025-07-11 10:52:19,862 - harmonypy - INFO - Iteration 4 of 100
+    Iteration 4 of 100
+    2025-07-11 10:52:19,874 - harmonypy - INFO - Iteration 5 of 100
+    Iteration 5 of 100
+    2025-07-11 10:52:19,888 - harmonypy - INFO - Iteration 6 of 100
+    Iteration 6 of 100
+    2025-07-11 10:52:19,918 - harmonypy - INFO - Iteration 7 of 100
+    Iteration 7 of 100
+    2025-07-11 10:52:19,928 - harmonypy - INFO - Iteration 8 of 100
+    Iteration 8 of 100
+    2025-07-11 10:52:19,937 - harmonypy - INFO - Iteration 9 of 100
+    Iteration 9 of 100
+    2025-07-11 10:52:19,944 - harmonypy - INFO - Iteration 10 of 100
+    Iteration 10 of 100
+    2025-07-11 10:52:19,956 - harmonypy - INFO - Iteration 11 of 100
+    Iteration 11 of 100
+    2025-07-11 10:52:19,970 - harmonypy - INFO - Iteration 12 of 100
+    Iteration 12 of 100
+    2025-07-11 10:52:19,980 - harmonypy - INFO - Converged after 12 iterations
+    Converged after 12 iterations
+    2025-07-11 10:52:19,980 - Finding neighbors
+    computing batch balanced neighbors
+        finished (0:00:00)
+    2025-07-11 10:52:20,755 - Run UMAP
+    computing UMAP
+        finished (0:00:00)
+    2025-07-11 10:52:21,288 - Clustering cells using Leiden (resolution 0.3)
+    running Leiden clustering
+        finished (0:00:00)
+
     """
     logger.info("Computing HVGs")
     hvg_batch = batch_key if hvg_batch else None
@@ -271,7 +330,7 @@ def auto_annot(
     """Semi-automatic annotation based on CellTypist.
 
     This function takes an AnnData object with log-counts in `.X` and annotate the clusters employing a model available
-    for celltypist.
+    for `Celltypist <https://www.celltypist.org/>`_.
 
     :param adata: annotated data matrix
     :param cluster_key: `.obs` column with clusters.
@@ -294,7 +353,17 @@ def auto_annot(
     Example
     -------
     >>> import dotools_py as do
-    >>> adata = do.tl.auto_annot(adata, 'leiden', pl_cell_prob=True)
+    >>> adata = do.dt.example_10x_processed()
+    >>> adata = do.tl.auto_annot(adata, 'leiden', model='Healthy_COVID19_PBMC.pkl',  pl_cell_prob=False, convert=False)
+    🔬 Input data has 700 cells and 1851 genes
+    🔗 Matching reference genes in the model
+    🧬 358 features used for prediction
+    ⚖️ Scaling input data
+    🖋️ Predicting labels
+    ✅ Prediction done!
+    🗳️ Majority voting the predictions
+    ✅ Majority voting done!
+
     """
     if update_models:
         celltypist.models.download_models(force_update=True)
@@ -368,6 +437,7 @@ def reclustering(
     """Re-clustering of dataset.
 
     Perform reclustering on an integrated AnnData object. Can recluster for the following integration methods:
+
         * CCA (v4/v5) integration from Seurat.
         * Harmony integration.
         * BBKNN integration.
@@ -398,6 +468,11 @@ def reclustering(
     :param get_subset: if set to True, returns an AnnData of `use_clusters` after re-clustering
     :param key_added: column name in obs to save reclustering information.
     :return: input AnnData with reclustering or subsetted anndata with reclusters
+
+    See Also
+    -------
+        :func:`dotools_py.tl.full_recluster`: Recluster all clusters automatically
+
     """
     if key_added in adata.obs.columns:
         logger.warn(f'{key_added} will be overwritten')
@@ -533,8 +608,6 @@ def full_recluster(
         (CCA v5) and the latent space (scvi) to be in `.obsm`. When re-clustering with harmony and
         BBKNN the pipeline will be re-run over the clusters.
 
-    Check :func:`dotools_py.tl.reclustering` to re-cluster specific clusters.
-
     :param adata: annotated dt matrix.
     :param cluster_key: `.obs` column name with clusters.
     :param batch_key: `.obs` column name with batch information.
@@ -549,6 +622,11 @@ def full_recluster(
     :param model: model name of celltypist to use.
     :param key_added: column name in obs with reclustering information.
     :return: input AnnData with reclustering or subsetted anndata with reclusters.
+
+    See Also
+    -------
+        :func:`dotools_py.tl.reclustering`: re-cluster specific clusters.
+
     """
 
     celltype = list(adata.obs[cluster_key].unique())

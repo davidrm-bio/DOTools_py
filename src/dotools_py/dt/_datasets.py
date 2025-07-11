@@ -66,7 +66,6 @@ def example_10x(
     return None
 
 
-
 def example_10x_processed(
 ) -> ad.AnnData:
     """Load example datasets from 10x processed.

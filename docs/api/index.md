@@ -9,12 +9,12 @@ import dotools_py as do
 :maxdepth: 1
 
 settings
+dt
 ```
 
 ```{toctree}
 :maxdepth: 2
 
-dt
 pp
 tl
 pl

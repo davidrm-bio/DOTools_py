@@ -73,7 +73,7 @@ def barplot(adata: ad.AnnData,
     :param ylabel: Y-axis label.
     :param line_offset: line offset for the stat
     :param ylim_max: set maximum Y limit.
-    :param kwargs: additional arguments passed to `sns.barplot()`
+    :param kwargs: additional arguments passed to `sns.barplot() <https://seaborn.pydata.org/generated/seaborn.barplot.html>`_
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
 
     Example
@@ -227,7 +227,7 @@ def boxplot(adata: ad.AnnData,
     :param txt: text for indicating significance. If not set, only the p-value is shown.
     :param ylabel: Y-axis label.
     :param line_offset: offset from the stats.
-    :param kwargs: additional arguments passed to `sns.boxplot()`
+    :param kwargs: additional arguments passed to `sns.boxplot() <https://seaborn.pydata.org/generated/seaborn.boxplot.html>`_
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
 
     Example
@@ -352,7 +352,7 @@ def violin(adata: ad.AnnData,
     :param txt: text for indicating significance. If not set, only the p-value is shown.
     :param ylabel: Y-axis label.
     :param line_offset: offset for the stat
-    :param kwargs: additional arguments passed to `sns.barplot()`
+    :param kwargs: additional arguments passed to `sns.barplot() <https://seaborn.pydata.org/generated/seaborn.violinplot.html>`_
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
 
     Example

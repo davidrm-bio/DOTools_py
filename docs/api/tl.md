@@ -20,19 +20,27 @@ analysis and statistical methods.
     tl.pseudobulking
 ```
 
-## Statistical
+## Data Extraction
 ```{eval-rst}
 .. autosummary::
     :toctree: generated
 
     tl.get_expr
     tl.mean_expr
+    tl.generate_results
+```
+
+## Statistical Analysis
+```{eval-rst}
+.. autosummary::
+    :toctree: generated
+
     tl.rank_genes_groups
     tl.rank_genes_condition
     tl.rank_genes_pseudobulk
     tl.rank_genes_consensus
     tl.grouped_ttest
     tl.run_mast
-    tl.generate_results
 ```
+
 

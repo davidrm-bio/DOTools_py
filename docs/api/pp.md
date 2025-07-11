@@ -19,7 +19,7 @@ such as [scDblFinder](https://github.com/plger/scDblFinder),
     pp.importer_py
 ```
 
-## Utility functions
+## Normalisation
 ```{eval-rst}
 .. autosummary::
     :toctree: generated

@@ -58,8 +58,8 @@ def run_cellbender(
 ) -> None:
     """Run cellbender to remove ambient RNA.
 
-    Remove ambient RNA using `cellbender <https://cellbender.readthedocs.io/en/latest/>`_. Assumes that the FASTQ files
-    have been mapped with CellRanger.
+    Remove ambient RNA using `Cellbender <https://cellbender.readthedocs.io/en/latest/>`_. Assumes that the FASTQ files
+    have been mapped with `CellRanger <https://www.10xgenomics.com/support/software/cell-ranger/latest>`_.
 
     .. warning::
         It is recommended to have access to GPU when running cellbender. Running CellBender on

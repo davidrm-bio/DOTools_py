@@ -58,6 +58,20 @@ def mean_expr(
     :param out_format: format of the dataframe returned. This can be wide or long format.
     :param layer: layer of the anndata to use. If not set use `.X`.
     :return: DataFrame in long (or wide) format with average expression
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> df = do.tl.mean_expr(adata, 'annotation')
+    >>> df.head(5)
+             gene   group0      expr
+    0  ATP2A1-AS1  B_cells  0.000000
+    1      STK17A  B_cells  1.453713
+    2    C19orf18  B_cells  0.000000
+    3        TPP2  B_cells  0.126846
+    4       MFSD1  B_cells  0.053630
+
     """
     features = [features] if isinstance(features, str) else features
     group_by = [group_by] if isinstance(group_by, str) else group_by
@@ -122,6 +136,20 @@ def get_expr(
     :param out_format: format of the dataframe (wide or long).
     :param layer: layer in the anndata object to extract the expression from.
     :return: dataframe with expression values.
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> df = do.tl.get_expr(adata, 'CD4', 'annotation')
+    >>> df.head(5)
+      annotation genes  expr
+    0    B_cells   CD4   0.0
+    1         NK   CD4   0.0
+    2    T_cells   CD4   0.0
+    3    T_cells   CD4   0.0
+    4    T_cells   CD4   0.0
+
     """
     # Set-up configuration
     if features is not None:
@@ -315,7 +343,8 @@ def rank_genes_condition(
     """Run DGE Analysis.
 
     Run differential expression analysis. Besides the methods implemented in scanpy (wilcoxon, t-test, logreg and
-    t-test_overestim_var), the MAST test can be used. If subset_by is provided the DGE analysis will be run over each
+    t-test_overestim_var), the `MAST <https://genomebiology.biomedcentral.com/articles/10.1186/s13059-015-0844-5>`_
+    test can be used. If subset_by is provided the DGE analysis will be run over each
     category. Benjamini-hochberg correction method is used for multiple testing.
 
     After running DGE analysis and if path is provided an ExcelSheet will be generated with 3 sheets: 1) AllGenes
@@ -337,6 +366,12 @@ def rank_genes_condition(
     :param covariates: extra covariates to correct for in the MAST test.
     :param get_results: results a dataframe with results.
     :return: DGE dataframe. If a path is provided, the DataFrame with DGEs will be saved under the specified path. Results are saved in the uns attribute
+
+    See Also
+    -------
+        :func:`dotools_py.tl.rank_genes_pseudobulk`: run DEA at pseudobulk level between condition for all clusters
+        :func:`dotools_py.tl.rank_genes_consensus`: run DEA at pseudobulk and single-cell level between condition for all clusters
+
     """
 
     sanitize_anndata(adata)
@@ -418,6 +453,11 @@ def grouped_ttest(
     :param key_added: key to use in uns.
     :param layer: layer of the anndata object to use.
     :return: anndata object with results in uns attribute
+
+    See Also
+    -------
+        :func:`dotools_py.tl.rank_genes_groups`: run DEA at single-cell level between condition for all genes
+
     """
     if layer is not None:
         adata.X = adata.layers[layer].copy()  # Select the specified layer
@@ -464,7 +504,7 @@ def go_analysis(
 ) -> Union[pd.DataFrame, None]:
     """Run Gene Ontology using EnrichR API.
 
-    Perform gene ontology analysis base on the enrichR interface.
+    Perform gene ontology analysis base on the `EnrichR <https://maayanlab.cloud/Enrichr/>`_ interface.
 
     :param df: dataframe with results of differential gene expression analysis.
     :param gene_key: column with genes.
@@ -524,6 +564,23 @@ def pseudobulking(
     :param min_counts: minimum number of counts for a gene to be included.
     :param layer: layer to use
     :return: AnnData with pseudobulk counts for each cluster.
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> pdata = do.tl.pseudobulking(adata, batch_key='batch', cluster_key='annotation')
+    Pseudo-bulked clusters:   0%|          | 0/5 [00:00<?, ?it/s]
+    2025-07-11 11:07:28,709 - The samples ['batch1'] have < 30 in cluster B_cells. Skipping cluster
+    2025-07-11 11:07:28,712 - The samples ['batch2'] have < 30 in cluster NK. Skipping cluster
+    2025-07-11 11:07:29,149 - Removed 941 genes for having less than 10 total counts
+    2025-07-11 11:07:29,152 - The samples ['batch1', 'batch2'] have < 30 in cluster pDC. Skipping cluster
+    2025-07-11 11:07:29,155 - The samples ['batch2'] have < 30 in cluster Monocytes. Skipping cluster
+    Pseudo-bulked clusters: 100%|██████████| 5/5 [00:00<00:00, 11.01it/s]
+    >>> pdata
+    AnnData object with n_obs × n_vars = 2 × 910
+        obs: 'batch', 'condition', 'doublet_class', 'cell_type', 'autoAnnot', 'annotation', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'pct_counts_in_top_50_genes', 'pct_counts_in_top_100_genes', 'pct_counts_in_top_200_genes', 'pct_counts_in_top_500_genes'
+
     """
     list_pdata = []
     clusters_name = []
@@ -610,10 +667,6 @@ def rank_genes_pseudobulk(
     `do.tl.rank_genes_condition`. For each cluster it will test for differential gene expression between two conditions.
     The input is expected to be raw counts.
 
-    See Also
-    -------
-        :func:`dotools_py.tl.rank_genes_condition` - Run DEA at single-cell level
-
     :param adata: annotated data matrix
     :param ctrl_cond: control condition
     :param disease_cond: disease condition
@@ -634,6 +687,12 @@ def rank_genes_pseudobulk(
     :param get_results: get dataframe with DEA results
     :param key_added: name of the uns attribute with the results
     :return: a dataframe with DEA results. The results are also saved under the uns attribute.
+
+    See Also
+    -------
+        :func:`dotools_py.tl.rank_genes_condition`: run DEA at single-cell level between condition for all clusters
+        :func:`dotools_py.tl.rank_genes_consensus`: run DEA at pseudobulk and single-cell level between condition for all clusters
+
     """
     # Step 1 - Generate Pseudo-bulk data
     logger.info('Generating Pseudo-bulk data')
@@ -756,6 +815,12 @@ def rank_genes_consensus(
     :param get_results: get a dataframe with the consensus results
     :param key_added: name of the uns attribute with the results
     :return: a dataframe with DEA results. The results are also saved under the uns attribute.
+
+    See Also
+    -------
+        :func:`dotools_py.tl.rank_genes_condition`: run DEA at single-cell level between condition for all clusters
+        :func:`dotools_py.tl.rank_genes_pseudobulk`: run DEA at pseudobulk level between condition for all clusters
+
     """
 
     # Run single-cell dge

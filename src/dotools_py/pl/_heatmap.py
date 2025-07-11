@@ -190,7 +190,7 @@ def heatmap(
     :param square: whether to make the cell square or not.
     :param show: if set to false return a dictionary with the axis.
     :param logcounts: whether the input is logcounts or not.
-    :param kargs: additional arguments pass to `sns.heatmap()`.
+    :param kargs: additional arguments pass to `sns.heatmap() <https://seaborn.pydata.org/generated/seaborn.heatmap.html>`_.
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
 
     Example

@@ -81,6 +81,7 @@ remotes::install_github("satijalab/seurat", "seurat5", quiet = TRUE)  # Seurat
 BiocManager::install("MAST")
 BiocManager::install("scDblFinder")
 BiocManager::install("zellkonverter")
+BiocManager::install('glmGamPoi')
 ```
 
 For old CPU architectures there can be problems with [polars](https://docs.pola.rs/) making the kernel die

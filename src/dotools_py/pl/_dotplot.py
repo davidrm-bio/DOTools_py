@@ -1063,9 +1063,7 @@ def dotplot(
 
     There are two type of visualisation:
         * 2d dotplot: X_axis shows ``x_axis`` categories and Y_axis the ``features``. The color represents the logarithmize mean
-                    nUMI and the size of the dots the fractions of cells expressing the feature. Uses a modified implementation of
-                    the ``sc.pl.dotplot()`` function of scanpy. It may fall back to scanpy in case of missing implementation
-                    features.
+                    nUMI and the size of the dots the fractions of cells expressing the feature.
         * 3d dotplot: X_axis shows ``x_axis`` categories and Y_axis shows ``y_axis`` categories. For each feature the
                       ``x_axis`` categories will be duplicated, to show how is the expressing across 2 categorical columns
                       in `.obs`. The color represents the logarithmize mean nUMI and the size the fraction of cells expressing the
@@ -1112,9 +1110,9 @@ def dotplot(
                     All fractions smaller than dot_min are clipped to this value.
     :param dot_max: If `None`, the maximum dot size is set to the maximum fraction value found. If given, the value
                     should be a number between 0 and 1. All Fractions larger than dot_max are clipped to this value.
-    :param swap_axes: swap axis, only used in sc.pl.dotplot(). Default is True to match the 3d dotplot arguments
+    :param swap_axes: swap axis. Default is True to match the 3d dotplot arguments
     :param rect_height: height of the boxes of the features in 3d dotplot
-    :param kwargs: additional arguments passed to sc.pl.dotplot
+    :param kwargs: additional arguments passed to the `Dotplot class <https://scanpy.readthedocs.io/en/stable/api/generated/classes/scanpy.pl.DotPlot.html#scanpy.pl.DotPlot>`_
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes
 
     Example

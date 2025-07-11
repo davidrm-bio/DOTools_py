@@ -335,24 +335,26 @@ def importer_py(
 ) -> ad.AnnData:
     """Quality control analysis for sc/snRNA.
 
-    The input is a list with paths to H5 files generated with CellRanger, CellBender or STARsolo and a list with
-    the batch name for each sample. A dictionary with extra metadata information can be provided. The order
-    should always be mainted.
+    The input is a list with paths to H5 files generated with `CellRanger <https://www.10xgenomics.com/support/software/cell-ranger/latest>`_,
+    `Cellbender <https://cellbender.readthedocs.io/en/latest/>`_
+    or `STARsolo <https://github.com/alexdobin/STAR>`_ and a list with the batch name for each sample. A dictionary
+    with extra metadata information can be provided. The order should always be mainted.
 
     For each sample a several quality and filtering steps are applied:
+
         * Filter genes express in low number of cells.
         * Filter cells with low number of genes.
         * Filter cells with high mitochondrial content. Recommended to use 5% for scRNA and 3% for snRNA.
-        * Filter cells based on UMI and features. There are two modes:
-            - Absolute filtering: set absolute values for the maximum and minimum number of UMI and features.
-            - Quantile filtering: filter the top and/or quantile.
+        * Filter cells based on UMI and features. There are two modes: **Absolute filtering**, which set
+          absolute values for the maxnimum and minimum number of UMI and features or **Quantile filtering**, which filter
+          the top and/or lower quantile.
         * Remove doublets using scDblFinder, Scrublet or DoubletDetection.
 
     An ExcelSheet with stats on how many cells and features were removed in each step, and violin plots showing the
-    distribution of `total_counts`, `n_genes` and `pct_mt_content` per  cell before and after the quality control will
-    be generated. These files will be saved under the folder containing the H5 files.
+    distribution of `total_counts`, `n_genes_by_counts` and `pct_mt_content` per  cell before and after the quality
+    control will be generated. These files will be saved under the folder containing the H5 files.
 
-    After the quality control, the dt will be log-normalised and scaled. Adiitionaly, the highly variable genes and PCA
+    After the quality control, the dt will be log-normalised and scaled. Aditionaly, the highly variable genes and PCA
     will be calculated.
 
     :param paths: list with the path to the H5 files.
@@ -463,14 +465,38 @@ def sctransform_normalise(
     batch_key: str = None,
     layer=None
 ) -> ad.AnnData:
-    """Normalisation based on SCTransform.
+    """Normalisation based on `SCTransform <https://github.com/satijalab/sctransform>`_.
 
     This function performs an alternative normalisation base on the SCTransform.
 
-    :param adata: AnnData object.
+    :param adata: AnnData object with counts in `X`.
     :param batch_key: obs metadata with batch information.
     :param layer: layer to use.
     :return: AnnData object with layers containing the SCT counts and SCT normalise data.
+
+    Example
+    ------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> adata
+    AnnData object with n_obs × n_vars = 700 × 1851
+    obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo', 'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster'
+    var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches', 'highly_variable_intersection'
+    uns: 'annotation_colors', 'annotation_recluster_colors', 'batch_colors', 'hvg', 'leiden', 'leiden_colors', 'log1p', 'neighbors', 'pca', 'umap'
+    obsm: 'X_CCA', 'X_pca', 'X_umap'
+    varm: 'PCs'
+    layers: 'counts', 'logcounts'
+    obsp: 'connectivities', 'distances'
+    >>>
+    >>> adata = do.pp.sctransform_normalise(adata, batch_key='batch', layer='counts')
+    >>> adata
+    AnnData object with n_obs × n_vars = 700 × 1181
+    obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo', 'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster'
+    var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches', 'highly_variable_intersection', 'SCT_rm'
+    obsm: 'SCT_rm'
+    varm: 'PCs'
+    layers: 'counts', 'logcounts', 'SCT_norm', 'SCT_counts'
+    obsp: 'connectivities', 'distances'
     """
     from scipy import sparse
     rscript = get_paths_utils("_run_SCTransform.R")
