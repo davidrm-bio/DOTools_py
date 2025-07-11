@@ -594,14 +594,8 @@ def full_recluster(
     """Re-clustering of all clusters in dataset.
 
     Perform reclustering on an integrated AnnData object over all clusters. Can recluster for the following
-    integration methods:
-
-        * CCA (v4/v5) integration from Seurat.
-        * Harmony integration.
-        * BBKNN integration.
-        * SCVI integration.
-        * PCA.
-    We assume that `X` has logcounts.
+    integration methods: CCA (v4/v5) integration from Seurat; Harmony integration; BBKNN integration; SCVI integration and
+    PCA. We assume that `X` has logcounts.
 
     .. note::
         For CCA (v4/v5) and scVI the corrected expression matrix (CC4 v5), the CCA representation
