@@ -615,11 +615,73 @@ def full_recluster(
     :param convert: convert the gene format. Useful if using a human model in celltypist and input is mouse or viceverse.
     :param model: model name of celltypist to use.
     :param key_added: column name in obs with reclustering information.
-    :return: input AnnData with reclustering or subsetted anndata with reclusters.
+    :return: A new metadata is added to the input AnnData with reclustering or subsetted anndata with reclusters.
 
     See Also
     -------
         :func:`dotools_py.tl.reclustering`: re-cluster specific clusters.
+
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> do.tl.full_recluster(adata, cluster_key='annotation', batch_key='batch', recluster_apporach='cca5', use_rep='X_CCA',automatic_annot=False)
+    2025-07-14 14:00:10,112 - annotation_recluster will be overwritten
+    2025-07-14 14:00:10,114 - Reclustering using CCA5 approach
+    computing batch balanced neighbors
+        finished (0:00:00)
+    computing UMAP
+        finished (0:00:00)
+    running Leiden clustering
+        finished (0:00:00)
+    2025-07-14 14:00:10,145 - annotation_recluster will be overwritten
+    2025-07-14 14:00:10,146 - Reclustering using CCA5 approach
+    computing batch balanced neighbors
+        finished (0:00:00)
+    computing UMAP
+        finished (0:00:00)
+    running Leiden clustering
+        finished (0:00:00)
+    2025-07-14 14:00:10,214 - annotation_recluster will be overwritten
+    2025-07-14 14:00:10,216 - Reclustering using CCA5 approach
+    computing batch balanced neighbors
+        finished (0:00:00)
+    computing UMAP
+        finished (0:00:00)
+    running Leiden clustering
+        finished (0:00:00)
+    2025-07-14 14:00:10,458 - annotation_recluster will be overwritten
+    2025-07-14 14:00:10,459 - Reclustering using CCA5 approach
+    computing batch balanced neighbors
+        finished (0:00:00)
+    computing UMAP
+        finished (0:00:00)
+    running Leiden clustering
+        finished (0:00:00)
+    2025-07-14 14:00:10,470 - annotation_recluster will be overwritten
+    2025-07-14 14:00:10,471 - Reclustering using CCA5 approach
+    computing batch balanced neighbors
+    computing neighbors
+        finished (0:00:00)
+    computing UMAP
+        finished (0:00:00)
+    running Leiden clustering
+        finished (0:00:00)
+    >>> adata
+    AnnData object with n_obs × n_vars = 700 × 1851
+    obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts',
+    ...  'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo',
+    ...  'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot',
+    ...  'celltypist_conf_score', 'annotation', 'annotation_fullrecluster'
+    var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches',
+    ...  'highly_variable_intersection'
+    uns: 'annotation_colors', 'annotation_recluster_colors', 'batch_colors', 'hvg', 'leiden', 'leiden_colors', 'log1p',
+    ...  'neighbors', 'pca', 'umap'
+    obsm: 'X_CCA', 'X_pca', 'X_umap'
+    varm: 'PCs'
+    layers: 'counts', 'logcounts'
+    obsp: 'connectivities', 'distances'
 
     """
 
