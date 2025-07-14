@@ -466,7 +466,8 @@ def reclustering(
     :param model: model name of celltypist to use.
     :param get_subset: if set to True, returns an AnnData of `use_clusters` after re-clustering
     :param key_added: column name in obs to save reclustering information.
-    :return: input AnnData with reclustering or subsetted anndata with reclusters
+    :return:  A new metadata is added to the input AnnData with reclustering or subsetted anndata with reclusters. If `get_subset` is set to `True`
+             the subsetted AnnData object will also be returned
 
     See Also
     -------
