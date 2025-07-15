@@ -1,8 +1,7 @@
 from dotools_py.pl._dotplot import dotplot
-from dotools_py.pl._embeddings import embedding, umap, split_embeddding
-from dotools_py.pl._downstream import cell_props, split_bar_gsea, volcano_plot, expr_correlation
-from dotools_py.pl._visium import slides, layers
-from dotools_py.pl._expression import barplot, violin, boxplot
-from dotools_py.pl._StatsPlotter import TestData, StatsPlotter
+from dotools_py.pl._downstream import cell_props, expr_correlation, split_bar_gsea, volcano_plot
+from dotools_py.pl._embeddings import embedding, split_embeddding, umap
+from dotools_py.pl._expression import barplot, boxplot, violin
 from dotools_py.pl._heatmap import heatmap
-
+from dotools_py.pl._StatsPlotter import StatsPlotter, TestData
+from dotools_py.pl._visium import layers, slides

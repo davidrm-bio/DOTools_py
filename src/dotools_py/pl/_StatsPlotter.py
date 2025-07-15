@@ -1,22 +1,21 @@
 import sys
+
 import anndata as ad
-import scanpy as sc
 import matplotlib.pyplot as plt
-from scipy.stats import shapiro
 import numpy as np
 import pandas as pd
-from matplotlib.patches import PathPatch, Rectangle
+import scanpy as sc
 from matplotlib.collections import PolyCollection
+from matplotlib.patches import PathPatch
+from scipy.stats import f_oneway, kruskal, mannwhitneyu, shapiro, ttest_ind
 
 from dotools_py import logger
-from scipy.stats import ttest_ind, f_oneway, mannwhitneyu, kruskal
-
 
 DEFAULT_TXT_SIZE = 13
-DEFAULT_TXT = 'p'
+DEFAULT_TXT = "p"
 DEFAULT_LINES_OFFSET = 0.05
-DEFAULT_TEST = 'wilcoxon'
-DEFAULT_MULTIPLE_TEST_CORRECTION = 'benjamini-hochberg'
+DEFAULT_TEST = "wilcoxon"
+DEFAULT_MULTIPLE_TEST_CORRECTION = "benjamini-hochberg"
 
 
 class StatsPlotter:
@@ -55,18 +54,20 @@ class StatsPlotter:
         :func:`dotools_py.pl.TestData`: useful class to calculate statistics
 
     """
-    def __init__(self,
-                 axis: plt.Axes,
-                 x_axis: str,
-                 y_axis: str,
-                 ctrl: str,
-                 groups: list,
-                 pvals: list,
-                 txt_size: int = None,
-                 txt: str = None,
-                 kind: str = None,
-                 line_offset: float = None
-                 ):
+
+    def __init__(
+        self,
+        axis: plt.Axes,
+        x_axis: str,
+        y_axis: str,
+        ctrl: str,
+        groups: list,
+        pvals: list,
+        txt_size: int = None,
+        txt: str = None,
+        kind: str = None,
+        line_offset: float = None,
+    ):
         """Initialise.
 
         :param axis: matplotlib axis.
@@ -80,9 +81,8 @@ class StatsPlotter:
         :param kind: kind of plot: box, bar, violin.
         :param line_offset: offset from the bars/violin/boxplot for the stats.
         """
-
-        if kind not in ['bar', 'box', 'violin']:
-            raise NotImplemented(f'{kind} not implemented')
+        if kind not in ["bar", "box", "violin"]:
+            raise NotImplementedError(f"{kind} not implemented")
 
         self.axis = axis
         self.kind = kind
@@ -102,15 +102,20 @@ class StatsPlotter:
 
         self.txt_size = DEFAULT_TXT_SIZE if txt_size is None else txt_size
         self.txt = DEFAULT_TXT if txt is None else txt
-        self.line_offset = DEFAULT_LINES_OFFSET if line_offset is None else line_offset  # TODO should be adjusted depending on the y-values
+        self.line_offset = (
+            DEFAULT_LINES_OFFSET if line_offset is None else line_offset
+        )  # TODO should be adjusted depending on the y-values
 
         if pvals is not None:
             pvals = [float(p) for p in pvals]
             self.pvals = [
-                str(np.round(p, 2)) if p > 0.05 else
-                str(np.round(p, 4)) if p > 0.009 else
-                '{:0.2e}'.format(sys.float_info.min if p == 0 else p)
-                for p in pvals]
+                str(np.round(p, 2))
+                if p > 0.05
+                else str(np.round(p, 4))
+                if p > 0.009
+                else f"{sys.float_info.min if p == 0 else p:0.2e}"
+                for p in pvals
+            ]
         else:
             self.pvals = pvals
         return
@@ -121,21 +126,22 @@ class StatsPlotter:
         :return: Self
         """
         # For bars (with capsize) and boxplots
-        heights = {key: 0 for key in self.x_tick_pos}
+        heights = dict.fromkeys(self.x_tick_pos, 0)
         # ViolinPlots use Polycollection (Priority) and line2D(boxplot inside)
-        if self.kind == 'violin':
+        if self.kind == "violin":
             for _, pc in enumerate(self.axis.collections):
                 if isinstance(pc, PolyCollection):
                     y_vals = pc.get_paths()[0].vertices[:, 1]  # The second column is the y-values
                     x_vals = int(pc.get_paths()[0].vertices[:, 0].mean())
                     if x_vals in heights:
-                        heights[x_vals] = max(max(y_vals), heights[
-                            x_vals])  # We expect X to be Categorical and have always pos 0, 1, 2, ...
-        if self.kind in ['bar', 'box']:
+                        heights[x_vals] = max(
+                            max(y_vals), heights[x_vals]
+                        )  # We expect X to be Categorical and have always pos 0, 1, 2, ...
+        if self.kind in ["bar", "box"]:
             #  Bars with errorbars and boxplots (with/without outliers)
             for line in self.axis.lines:
                 x_data, y_data = line.get_xdata(), line.get_ydata()
-                for x, y in zip(x_data, y_data):
+                for x, y in zip(x_data, y_data, strict=False):
                     if x in heights:
                         heights[x] = max(heights[x], y)
 
@@ -162,12 +168,16 @@ class StatsPlotter:
         pairs_xpos, pairs_ypos = [], []
         for group in self.groups:
             # Position in X Axis [[x0_start, x0_end], [x1_start, x1_end]]
-            xpair = [self.x_tick_pos[self.x_ticks_labels.index(self.ctrl)],
-                     self.x_tick_pos[self.x_ticks_labels.index(group)]]
+            xpair = [
+                self.x_tick_pos[self.x_ticks_labels.index(self.ctrl)],
+                self.x_tick_pos[self.x_ticks_labels.index(group)],
+            ]
             pairs_xpos.append(xpair)
             # Position in Y Axis  [y0, y1]
-            ypair = [self.heights[self.x_tick_pos[self.x_ticks_labels.index(self.ctrl)]],
-                     self.heights[self.x_tick_pos[self.x_ticks_labels.index(group)]]]
+            ypair = [
+                self.heights[self.x_tick_pos[self.x_ticks_labels.index(self.ctrl)]],
+                self.heights[self.x_tick_pos[self.x_ticks_labels.index(group)]],
+            ]
             pairs_ypos.append(max(max(ypair), max(self.heights.values())))  # Start in the highest spot
         self.pairs_xpos = pairs_xpos
         self.pairs_ypos = pairs_ypos
@@ -189,7 +199,7 @@ class StatsPlotter:
                         break
                     offset_added += 0.05
                     new_pos = val + val * offset_added
-                    cont +=1
+                    cont += 1
             pairs_offset[key] = new_pos
         self.heights_offset = list(pairs_offset.values())
         return
@@ -207,18 +217,19 @@ class StatsPlotter:
                 stem_length = (self.heights_offset[_stat] - np.max(list(self.heights.values()))) / 3
             else:
                 try:
-                    stem_length = (self.heights_offset[_stat+1] - self.heights_offset[_stat]) / 3
+                    stem_length = (self.heights_offset[_stat + 1] - self.heights_offset[_stat]) / 3
                 except IndexError:
-                    stem_length =  np.abs((self.heights_offset[_stat-1] - self.heights_offset[_stat]) / 3)
+                    stem_length = np.abs((self.heights_offset[_stat - 1] - self.heights_offset[_stat]) / 3)
 
-            verts = [(self.pairs_xpos[_stat][0], self.heights_offset[_stat] - stem_length),
-                     (self.pairs_xpos[_stat][0], self.heights_offset[_stat]),
-                     (self.pairs_xpos[_stat][1], self.heights_offset[_stat]),
-                     (self.pairs_xpos[_stat][1], self.heights_offset[_stat] - stem_length),
-                     ]
+            verts = [
+                (self.pairs_xpos[_stat][0], self.heights_offset[_stat] - stem_length),
+                (self.pairs_xpos[_stat][0], self.heights_offset[_stat]),
+                (self.pairs_xpos[_stat][1], self.heights_offset[_stat]),
+                (self.pairs_xpos[_stat][1], self.heights_offset[_stat] - stem_length),
+            ]
             codes = [Path.MOVETO, Path.LINETO, Path.LINETO, Path.LINETO]
             patch_path = Path(verts, codes)
-            patch = PathPatch(patch_path, linewidth=1, facecolor='none', edgecolor='k', clip_on=False)
+            patch = PathPatch(patch_path, linewidth=1, facecolor="none", edgecolor="k", clip_on=False)
             rects.append(patch)
         self.brackets_patchs = rects
         return
@@ -234,7 +245,9 @@ class StatsPlotter:
             # Add text in the center of the box
             txt_x = (self.pairs_xpos[_stat][0] + self.pairs_xpos[_stat][1]) / 2
             txt_y = self.heights_offset[_stat]
-            self.axis.text(txt_x, txt_y, f'{self.txt}' + self.pvals[_stat], ha="center", va="bottom", fontsize=self.txt_size)
+            self.axis.text(
+                txt_x, txt_y, f"{self.txt}" + self.pvals[_stat], ha="center", va="bottom", fontsize=self.txt_size
+            )
 
         bottom_y = self.axis.get_ylim()[0]
         top_y = max(self.heights_offset)
@@ -289,15 +302,17 @@ class TestData:
         :func:`dotools_py.pl.StatsPlotter`: class to plot the p-values in barplots, boxplots or violinplots
 
     """
-    def __init__(self,
-                 data,
-                 feature,
-                 cond_key,
-                 ctrl,
-                 groups,
-                 test: str = None,
-                 test_correction: str = None,
-                 ):
+
+    def __init__(
+        self,
+        data,
+        feature,
+        cond_key,
+        ctrl,
+        groups,
+        test: str = None,
+        test_correction: str = None,
+    ):
         """Initialise,
 
         :param data: annotated data matrix or pandas dataframe.
@@ -308,22 +323,27 @@ class TestData:
         :param test: method to use for testing. Available: ['wilcoxon', 't-test', 'kruskal', 'anova', 'logreg', 't-test_overestim_var'].
         :param test_correction: correction method to use. Available: ['benjamini-hochberg', 'bonferroni'].
         """
-
-        assert isinstance(data, ad.AnnData) or isinstance(data, pd.DataFrame), 'Provide a DataFrame in long format or AnnData'
+        assert isinstance(data, ad.AnnData) or isinstance(data, pd.DataFrame), (
+            "Provide a DataFrame in long format or AnnData"
+        )
         self.data = data
         feature = [feature] if isinstance(feature, str) else feature
-        assert len(feature) == 1, f'{len(feature)} features provided. Please provide only 1'
+        assert len(feature) == 1, f"{len(feature)} features provided. Please provide only 1"
         self.key = feature[0]  # We only plot 1 feature
         if isinstance(data, pd.DataFrame):
-            assert (cond_key in list(data.columns)), f'{cond_key} not in adata.obs or df.columns'
+            assert cond_key in list(data.columns), f"{cond_key} not in adata.obs or df.columns"
         if isinstance(data, ad.AnnData):
-            assert (cond_key in list(data.obs.columns)), f'{cond_key} not in adata.obs or df.columns'
+            assert cond_key in list(data.obs.columns), f"{cond_key} not in adata.obs or df.columns"
         self.cond_key = cond_key
         self.ctrl = ctrl
         self.groups = [groups] if isinstance(groups, str) else groups
-        assert test in ['wilcoxon', 't-test', 'kruskal', 'anova', 'logreg', 't-test_overestim_var'], f'{test} not a valid test, use: "wilcoxon", "t-test", "kruskal", "anova", "logreg", "t-test_overestim_var"'
+        assert test in ["wilcoxon", "t-test", "kruskal", "anova", "logreg", "t-test_overestim_var"], (
+            f'{test} not a valid test, use: "wilcoxon", "t-test", "kruskal", "anova", "logreg", "t-test_overestim_var"'
+        )
         self.test = test  # ['wilcoxon', 't-test', 'kruskal', 'anova', 'logreg', 't-test_overestim_var']
-        assert test_correction in ['benjamini-hochberg', 'bonferroni'], f'{test_correction} not a valid test correction method, use: "benjamini-hochberg", "bonferroni"'
+        assert test_correction in ["benjamini-hochberg", "bonferroni"], (
+            f'{test_correction} not a valid test correction method, use: "benjamini-hochberg", "bonferroni"'
+        )
         self.test_corr = test_correction  # ['benjamini-hochberg', 'bonferroni']
         self.pvals = None
         self.correction = test_correction if test_correction is not None else DEFAULT_MULTIPLE_TEST_CORRECTION
@@ -336,31 +356,39 @@ class TestData:
         """
         pvals = []
         if self.key in self.data.var_names:
-            sc.tl.rank_genes_groups(self.data, groupby=self.cond_key, method=self.test, tie_correct=True,
-                                    reference=self.ctrl, groups=self.groups, corr_method=self.test_corr)
+            sc.tl.rank_genes_groups(
+                self.data,
+                groupby=self.cond_key,
+                method=self.test,
+                tie_correct=True,
+                reference=self.ctrl,
+                groups=self.groups,
+                corr_method=self.test_corr,
+            )
             df = sc.get.rank_genes_groups_df(self.data, group=None)
-            df = df[df['names'] == self.key]
+            df = df[df["names"] == self.key]
 
             if len(self.groups) == 1:
-                pvals += df['pvals_adj'].tolist()
+                pvals += df["pvals_adj"].tolist()
             else:
-                df.set_index('group', inplace=True)
+                df.set_index("group", inplace=True)
                 for group in self.groups:
-                    pvals.append(df.loc[group, 'pvals_adj'])
+                    pvals.append(df.loc[group, "pvals_adj"])
 
         elif self.key in self.data.obs.columns:
             df_tmp = self.data.obs[[self.cond_key, self.key]]
             for group in self.groups:
-                _, p = mannwhitneyu(df_tmp[df_tmp[self.cond_key] == self.ctrl][self.key],
-                                    df_tmp[df_tmp[self.cond_key] == group][self.key],
-                                    use_continuity=True,
-                                    nan_policy='omit')
+                _, p = mannwhitneyu(
+                    df_tmp[df_tmp[self.cond_key] == self.ctrl][self.key],
+                    df_tmp[df_tmp[self.cond_key] == group][self.key],
+                    use_continuity=True,
+                    nan_policy="omit",
+                )
                 pvals.append(p)
         else:
-            raise Exception(f'{self.key} is not in adata.obs or adata.var_names')
+            raise Exception(f"{self.key} is not in adata.obs or adata.var_names")
         self.pvals = pvals
         return None
-
 
     def _test_df(self):
         """Run test on DataFrame.
@@ -369,37 +397,36 @@ class TestData:
         """
         pvals = []
 
-        if self.test in ['t-test', 'anova']:
+        if self.test in ["t-test", "anova"]:
             # Test for normality
             for group in self.groups + [self.ctrl]:
                 _, p = shapiro(self.data[self.data[self.cond_key] == group][self.key])
                 if p > 0.05:
-                    new_test = 'wilcoxon' if self.test == 't-test' else 'anova'
-                    logger.warn(f'Data does not follow normality but {self.test} was set, changing to {new_test}')
+                    new_test = "wilcoxon" if self.test == "t-test" else "anova"
+                    logger.warn(f"Data does not follow normality but {self.test} was set, changing to {new_test}")
                     self.test = new_test
                     break
 
-        if len(self.groups) == 1 and self.test in ['t-test', 'wilcoxon']:
-            logger.warn(f'Running {self.test} but testing {len(self.groups)} conditions')
+        if len(self.groups) == 1 and self.test in ["t-test", "wilcoxon"]:
+            logger.warn(f"Running {self.test} but testing {len(self.groups)} conditions")
 
         for group in self.groups:
             x = self.data[self.data[self.cond_key] == self.ctrl][self.key]
             y = self.data[self.data[self.cond_key] == group][self.key]
-            if self.test == 't-test':
+            if self.test == "t-test":
                 _, p = ttest_ind(x, y)
-            elif self.test == 'anova':
+            elif self.test == "anova":
                 _, p = f_oneway(x, y)
-            elif self.test == 'wilcoxon':
+            elif self.test == "wilcoxon":
                 _, p = mannwhitneyu(x, y, use_continuity=True)
-            elif self.test == 'kruskal':
+            elif self.test == "kruskal":
                 _, p = kruskal(x, y)
             else:
-                raise Exception(f'{self.test} not implemented')
+                raise Exception(f"{self.test} not implemented")
             pvals.append(p)
 
         self.pvals = pvals
-        return  None
-
+        return None
 
     def run_test(self):
         """Method to run test.
@@ -411,4 +438,4 @@ class TestData:
         elif isinstance(self.data, pd.DataFrame):
             self._test_df()
         else:
-            raise Exception('Input can only be an AnnData or DataFrame')
+            raise Exception("Input can only be an AnnData or DataFrame")

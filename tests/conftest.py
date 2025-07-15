@@ -7,6 +7,6 @@ import pytest
 def adata():
     adata = ad.AnnData(X=np.array([[1.2, 2.3], [3.4, 4.5], [5.6, 6.7]]).astype(np.float32))
     adata.layers["scaled"] = np.array([[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]]).astype(np.float32)
-    adata.obs['group'] = 'group1'
-    adata.var_names = ['gene1', 'gene2']
+    adata.obs["group"] = "group1"
+    adata.var_names = ["gene1", "gene2"]
     return adata

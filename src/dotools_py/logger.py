@@ -1,12 +1,12 @@
 import logging
-import scanpy as sc
 import sys
+
+import scanpy as sc
 
 logger = logging.getLogger("dotools")
 
 
-def _setup_logger(
-) -> None:
+def _setup_logger() -> None:
     """Logger settings.
 
     :return:
@@ -21,9 +21,7 @@ def _setup_logger(
     return None
 
 
-def set_verbosity(
-    level: int = 2
-) -> None:
+def set_verbosity(level: int = 2) -> None:
     """Set verbosity.
 
     :param level: 0 - Silent;

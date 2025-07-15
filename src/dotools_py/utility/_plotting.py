@@ -1,11 +1,9 @@
-from matplotlib.colors import LinearSegmentedColormap
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 
 
-def generate_cmap(
-    *args
-) -> LinearSegmentedColormap:
+def generate_cmap(*args) -> LinearSegmentedColormap:
     """Generate a custom colormap.
 
     This functions returns a color map. Specify colors to set a gradient in the specified order. Use
@@ -32,12 +30,10 @@ def generate_cmap(
 
     """
     colors = [col for col in args]
-    return LinearSegmentedColormap.from_list('Custom', colors, N=256)
+    return LinearSegmentedColormap.from_list("Custom", colors, N=256)
 
 
-def get_hex_colormaps(
-    colormap: str
-) -> list:
+def get_hex_colormaps(colormap: str) -> list:
     """Get a list with Hexa IDs for a colormap.
 
     :param colormap: colormap name.
@@ -46,7 +42,7 @@ def get_hex_colormaps(
     Example
     -------
     >>> import dotools_py as do
-    >>> hex_list = do.utility.get_hex_colormaps('Reds')
+    >>> hex_list = do.utility.get_hex_colormaps("Reds")
     >>> hex_list[:5]
     ['#fff5f0', '#fff4ef', '#fff4ee', '#fff3ed', '#fff2ec']
 
@@ -55,9 +51,7 @@ def get_hex_colormaps(
     return [mpl.colors.rgb2hex(cmap(i)) for i in range(cmap.N)]
 
 
-def extended_tab20(
-    n_shades: int = 6
-) -> list:
+def extended_tab20(n_shades: int = 6) -> list:
     """Extends the colormap tab20 to more shades for a color.
 
     :param n_shades: number of shades.
@@ -88,19 +82,12 @@ def extended_tab20(
         for j in range(n_shades):
             # Linear interpolation between the main and secondary color
             interp = j / (n_shades - 1)
-            color = [
-                main_color[k] * (1 - interp) + secondary_color[k] * interp
-                for k in range(3)
-            ]
+            color = [main_color[k] * (1 - interp) + secondary_color[k] * interp for k in range(3)]
             extended_colors.append(color)
     return extended_colors
 
 
-def spine_format(
-    axis: plt.Axes,
-    txt: str = "UMAP",
-    fontsize: int = 12
-) -> None:
+def spine_format(axis: plt.Axes, txt: str = "UMAP", fontsize: int = 12) -> None:
     """Formatting the spines for embeddings.
 
     :param axis: matplotlib axes object.
@@ -112,4 +99,3 @@ def spine_format(
     axis.set_xlabel(txt + "1", loc="left", fontsize=fontsize, fontweight="bold")
     axis.set_ylabel(txt + "2", loc="bottom", fontsize=fontsize, fontweight="bold")
     return None
-

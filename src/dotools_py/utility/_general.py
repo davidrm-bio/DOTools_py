@@ -1,9 +1,7 @@
 import anndata as ad
-from typing import Union
 
 
-def free_memory(
-) -> None:
+def free_memory() -> None:
     """Garbage collector.
 
     :return:
@@ -25,8 +23,8 @@ def transfer_labels(
     original_key: str,
     subset_key: str,
     original_labels: list,
-    copy: bool = False
-) -> Union[ad.AnnData, None]:
+    copy: bool = False,
+) -> ad.AnnData | None:
     """Transfer annotation from a subset AnnData to an AnnData.
 
     :param adata_original: original AnnData.
@@ -38,17 +36,17 @@ def transfer_labels(
     :return: If `copy` is set to `True`, returns the original AnnData with the updated labels, otherwise returns `None`.
              The  original_labels in original_key will be updated with the labels in subset_key.
     """
-
     if copy:
         adata_original = adata_original.copy()
         adata_subset = adata_subset.copy()
-    assert adata_subset.n_obs < adata_original.n_obs, 'adata_subset is not a subset of adata_original'
+    assert adata_subset.n_obs < adata_original.n_obs, "adata_subset is not a subset of adata_original"
 
     labels_original = [original_labels] if isinstance(original_labels, str) else original_labels
     adata_original.obs[original_key] = adata_original.obs[original_key].astype(str)
     adata_original.obs[original_key] = adata_original.obs[original_key].where(
         ~adata_original.obs[original_key].isin(labels_original),
-        adata_original.obs.index.map(adata_subset.obs[subset_key]))
+        adata_original.obs.index.map(adata_subset.obs[subset_key]),
+    )
 
     if copy:
         return adata_original

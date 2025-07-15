@@ -1,17 +1,16 @@
+from pathlib import Path
+
+import anndata as ad
 import requests
 from tqdm import tqdm
-from pathlib import Path
-from typing import Union
+
 from dotools_py import logger
 from dotools_py.utils import convert_path
-import anndata as ad
 
 HERE = Path(__file__).parent
 
 
-def example_10x(
-    path: Union[str, Path] = '/tmp/dootools_datasets/'
-) -> None:
+def example_10x(path: str | Path = "/tmp/dootools_datasets/") -> None:
     """Download 10X datasets.
 
     Downloads a datasets of PBMC from healty and malignant B cells. Two H5 files will be downloaded
@@ -23,51 +22,55 @@ def example_10x(
 
     Example
     -------
-    >>> import  dotools_py as do
+    >>> import dotools_py as do
     >>> import scanpy as sc
-    >>> do.dt.example_10x('/tmp/dootools_datasets/')
-    >>> adata = sc.read_10x_h5('/tmp/dootools_datasets/healthy/outs/filtered_feature_bc_matrix.h5')
+    >>> do.dt.example_10x("/tmp/dootools_datasets/")
+    >>> adata = sc.read_10x_h5("/tmp/dootools_datasets/healthy/outs/filtered_feature_bc_matrix.h5")
     >>> adata
     AnnData object with n_obs × n_vars = 7865 × 33538
     var: 'gene_ids', 'feature_types', 'genome', 'pattern', 'read', 'sequence'
 
     """
-    logger.info(f'Downloading data to {path}')
+    logger.info(f"Downloading data to {path}")
     path = convert_path(path)
     path.mkdir(parents=True, exist_ok=True)
-    healthy_path = path / 'healthy' / 'outs'
+    healthy_path = path / "healthy" / "outs"
     healthy_path.mkdir(parents=True, exist_ok=True)
-    disease_path = path / 'disease' / 'outs'
+    disease_path = path / "disease" / "outs"
     disease_path.mkdir(parents=True, exist_ok=True)
 
-    healthy_link1 = 'https://cf.10xgenomics.com/samples/cell-exp/3.0.0/pbmc_10k_protein_v3/pbmc_10k_protein_v3_filtered_feature_bc_matrix.h5'
-    healthy_link2 = 'https://cf.10xgenomics.com/samples/cell-exp/3.0.0/pbmc_10k_protein_v3/pbmc_10k_protein_v3_raw_feature_bc_matrix.h5'
-    disease_link1 = 'https://cf.10xgenomics.com/samples/cell-exp/3.0.0/malt_10k_protein_v3/malt_10k_protein_v3_filtered_feature_bc_matrix.h5'
-    disease_link2 = 'https://cf.10xgenomics.com/samples/cell-exp/3.0.0/malt_10k_protein_v3/malt_10k_protein_v3_raw_feature_bc_matrix.h5'
-    for name, link in [('healthy filtered', healthy_link1),
-                       ('healthy raw', healthy_link2),
-                       ('disease filtered', disease_link1),
-                       ('disease raw', disease_link2)]:
-        filename = link.split('10k_protein_v3_')[-1]
+    healthy_link1 = "https://cf.10xgenomics.com/samples/cell-exp/3.0.0/pbmc_10k_protein_v3/pbmc_10k_protein_v3_filtered_feature_bc_matrix.h5"
+    healthy_link2 = "https://cf.10xgenomics.com/samples/cell-exp/3.0.0/pbmc_10k_protein_v3/pbmc_10k_protein_v3_raw_feature_bc_matrix.h5"
+    disease_link1 = "https://cf.10xgenomics.com/samples/cell-exp/3.0.0/malt_10k_protein_v3/malt_10k_protein_v3_filtered_feature_bc_matrix.h5"
+    disease_link2 = "https://cf.10xgenomics.com/samples/cell-exp/3.0.0/malt_10k_protein_v3/malt_10k_protein_v3_raw_feature_bc_matrix.h5"
+    for name, link in [
+        ("healthy filtered", healthy_link1),
+        ("healthy raw", healthy_link2),
+        ("disease filtered", disease_link1),
+        ("disease raw", disease_link2),
+    ]:
+        filename = link.split("10k_protein_v3_")[-1]
         response = requests.get(link, stream=True)  # Download in chunks
-        total_size = int(response.headers.get('content-length', 0))
+        total_size = int(response.headers.get("content-length", 0))
         block_size = 1024  # 1 Kibibyte
-        current_path = healthy_path if 'healthy' in name else disease_path
-        with open(current_path / filename, 'wb') as file, tqdm(
-            desc=f"Downloading {name}",
-            total=total_size,
-            unit='iB',
-            unit_scale=True,
-            unit_divisor=1024,
-        ) as bar:
+        current_path = healthy_path if "healthy" in name else disease_path
+        with (
+            open(current_path / filename, "wb") as file,
+            tqdm(
+                desc=f"Downloading {name}",
+                total=total_size,
+                unit="iB",
+                unit_scale=True,
+                unit_divisor=1024,
+            ) as bar,
+        ):
             for data in response.iter_content(block_size):
                 file.write(data)
                 bar.update(len(data))
     return None
 
 
-def example_10x_processed(
-) -> ad.AnnData:
+def example_10x_processed() -> ad.AnnData:
     """Load example datasets from 10x processed.
 
     Loads a reduced version of the example datasets from healthy and malignant B cells from 10x use in the
@@ -90,6 +93,4 @@ def example_10x_processed(
     obsp: 'connectivities', 'distances'
 
     """
-    return  ad.read_h5ad(HERE / 'example_reduced.h5ad')
-
-
+    return ad.read_h5ad(HERE / "example_reduced.h5ad")

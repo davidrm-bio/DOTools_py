@@ -1,17 +1,15 @@
 import os
 import subprocess
-from typing import Union
-import anndata as ad
 
+import anndata as ad
 import numpy as np
 import scanpy as sc
+
 from dotools_py import logger
-from dotools_py.utils import get_paths_utils, convert_path
+from dotools_py.utils import convert_path, get_paths_utils
 
 
-def _run_barcoderanks(
-    adata: ad.AnnData
-) -> tuple[int, int]:
+def _run_barcoderanks(adata: ad.AnnData) -> tuple[int, int]:
     """Run BarcodeRanks from DropletUtils to estimate the lower and upper bound of true cells.
 
     :param adata: annotated dt matrix of shape with `.X` containing raw counts.
@@ -46,14 +44,14 @@ def _run_barcoderanks(
 def run_cellbender(
     cellranger_path: str,
     output_path: str,
-    samplenames: Union[list, None] = None,
+    samplenames: list | None = None,
     cuda: bool = True,
     cpu_threads: int = 15,
     epochs: int = 150,
     lr: float = 0.00001,
     estimator_multiple_cpu: bool = False,
     log: bool = True,
-    conda_path: Union[str, None] = None,
+    conda_path: str | None = None,
     run_dropletutils: bool = False,
 ) -> None:
     """Run cellbender to remove ambient RNA.
@@ -83,8 +81,8 @@ def run_cellbender(
     Example
     --------
     >>> import dotools_py as do
-    >>> in_path = '/path/to/cellranger'
-    >>> out_path = '/path/to/output'
+    >>> in_path = "/path/to/cellranger"
+    >>> out_path = "/path/to/output"
     >>> do.pp.run_cellbender(in_path, out_path)
     """
     # Check-Ups and Information
@@ -115,12 +113,12 @@ def run_cellbender(
             subprocess.run(
                 command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
             )  # Quiet installation
-            command = ['conda', 'run', '-p', conda_path, 'pip', 'install', 'cellbender', 'lxml-html-clean']
+            command = ["conda", "run", "-p", conda_path, "pip", "install", "cellbender", "lxml-html-clean"]
             subprocess.run(
                 command, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
             )  # Quiet installation
             logger.info("Environment created")
-            logger.info(f'Conda environment create in {conda_path}')
+            logger.info(f"Conda environment create in {conda_path}")
         except subprocess.CalledProcessError as err:
             raise Exception("Error installing cellbender, provide a valid conda environment") from err
     else:
@@ -161,7 +159,7 @@ def run_cellbender(
             "--epochs",
             str(epochs),
             "--lr",
-            str(lr)
+            str(lr),
         ]
         command += ["--expected-cells", expected_cells] if expected_cells is not None else []
         command += ["--total-droplets", total_droplets] if total_droplets is not None else []
@@ -170,7 +168,7 @@ def run_cellbender(
         command += ["--estimator_multiple_cpu"] if estimator_multiple_cpu else []
 
         try:
-            logger.info(f'Running Cellbender for {batch}, might take a while')
+            logger.info(f"Running Cellbender for {batch}, might take a while")
             subprocess.run(command, check=True, cwd=output_path)
         except subprocess.CalledProcessError as e:
             logger.info(f"Error running CellBender in conda environment: {e}")

@@ -7,15 +7,15 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 from adjustText import adjust_text
-from typing import Union
+
 from dotools_py.tl import get_expr
-from dotools_py.utils import convert_path, get_centroids, get_subplot_shape, remove_extra, sanitize_anndata
 from dotools_py.utility import spine_format
+from dotools_py.utils import convert_path, get_centroids, get_subplot_shape, remove_extra, sanitize_anndata
 
 
 def embedding(
     adata: ad.AnnData,
-    color: Union[str, list],
+    color: str | list,
     split_by: str | None = None,
     order_catgs: list = None,
     ncols: int = 4,
@@ -30,11 +30,11 @@ def embedding(
     show: bool = True,
     labels: str = None,
     labels_fontproporties: dict = None,
-    labels_repel: dict = {},
+    labels_repel: dict = None,
     basis: str = "X_umap",
     ax: plt.Axes = None,
     **kwargs,
-) -> Union[plt.Axes, None]:
+) -> plt.Axes | None:
     """Make Embedding Plot.
 
     This function builds on `sc.pl.embedding() <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.embedding.html>`_
@@ -92,15 +92,18 @@ def embedding(
         if labels_fontproporties is None:
             labels_fontproporties = {}
 
-        labels_fontproporties.update({'size': labels_fontproporties.get('size', 12),
-                                      'weight': labels_fontproporties.get('weight', 'bold'),
-                                      'outline': labels_fontproporties.get('outline', 1.5)})
-        (labels_fontweight,
-         labels_fontsize,
-         labels_fontoutline) = (labels_fontproporties['weight'],
-                                labels_fontproporties['size'],
-                                labels_fontproporties['outline'])
-
+        labels_fontproporties.update(
+            {
+                "size": labels_fontproporties.get("size", 12),
+                "weight": labels_fontproporties.get("weight", "bold"),
+                "outline": labels_fontproporties.get("outline", 1.5),
+            }
+        )
+        (labels_fontweight, labels_fontsize, labels_fontoutline) = (
+            labels_fontproporties["weight"],
+            labels_fontproporties["size"],
+            labels_fontproporties["outline"],
+        )
 
     # We consider that the input is always a list;
     color = [color] if isinstance(color, str) else color
@@ -109,13 +112,13 @@ def embedding(
     if title_font is None:
         title_font = {}
 
-    title_font.update({'size': title_font.get('size', 18),
-                       'weight': title_font.get('weight', 'bold')
-                       })
+    title_font.update({"size": title_font.get("size", 18), "weight": title_font.get("weight", "bold")})
 
     # When plotting only one thing, we can define the title
     if title is None and len(color) == 1:
         title = color[0]
+    if labels_repel is None:
+        labels_repel = {}
 
     if basis == "X_umap":
         txt_basis = "UMAP"
@@ -176,7 +179,9 @@ def embedding(
     if ncatgs == 1:
         if len(color) == 1:
             color = color[0]  # Color is always a list
-            sc.pl.embedding(adata, basis=basis, color=color, ax=axs, vmax=vmax, show=False, **kwargs)  # Use embedding to generalise
+            sc.pl.embedding(
+                adata, basis=basis, color=color, ax=axs, vmax=vmax, show=False, **kwargs
+            )  # Use embedding to generalise
             axs.set_title(title, fontdict=title_font)
             spine_format(axs, txt_basis)
             if labels is not None:
@@ -249,7 +254,14 @@ def embedding(
             vmax = vmax_genes if color in adata.var_names else vmax
 
             sc.pl.embedding(
-                adata_subset, basis=basis, color=color, ax=axs[idx], colorbar_loc=cb_loc, vmax=vmax, show=False, **kwargs
+                adata_subset,
+                basis=basis,
+                color=color,
+                ax=axs[idx],
+                colorbar_loc=cb_loc,
+                vmax=vmax,
+                show=False,
+                **kwargs,
             )  # embedding to generalise
             spine_format(axs[idx], txt_basis)
             remove_extra(nExtra, nrows, ncols, axs)
@@ -283,7 +295,7 @@ def umap(
     split_by: str | None = None,
     order_catgs: list = None,
     ncols: int = 4,
-    title_font: dict =None,
+    title_font: dict = None,
     figsize: tuple = (12, 6),
     common_legend=False,
     title: str = None,
@@ -294,10 +306,10 @@ def umap(
     show: bool = True,
     labels: str = None,
     labels_fontproporties: dict = None,
-    labels_repel: dict = {},
+    labels_repel: dict = None,
     ax: plt.Axes = None,
     **kwargs,
-) -> Union[None, plt.Axes]:
+) -> None | plt.Axes:
     """Make UMAP Plot.
 
     This function builds on `sc.pl.embedding() <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.embedding.html>`_ and add extra functionalities like
@@ -364,7 +376,7 @@ def umap(
         labels=labels,
         labels_fontproporties=labels_fontproporties,
         labels_repel=labels_repel,
-        basis='X_umap',
+        basis="X_umap",
         ax=ax,
         **kwargs,
     )
@@ -379,7 +391,7 @@ def split_embeddding(
     adata: ad.AnnData,
     split_by: str,
     ncols: int = 4,
-    title_font: dict = {"size": 18, "weight": "bold"},
+    title_font: dict = None,
     path: str = None,
     filename: str = "UMAP.svg",
     figsize: tuple = (10, 8),
@@ -388,7 +400,7 @@ def split_embeddding(
     sp_size: float = 1.5,
     show: bool = True,
     **kwargs,
-) -> Union[plt.Axes, None]:
+) -> plt.Axes | None:
     """Plot categorical data split in an embedding.
 
     This function takes an AnnData and a categorical column in obs and generate a plot of subplots  highlighting the
@@ -422,6 +434,11 @@ def split_embeddding(
     assert adata.obs[split_by].dtypes == "category", "Not a categorical column"
     sanitize_anndata(adata)
 
+    if title_font is None:
+        title_font = {}
+
+    title_font.update({"size": title_font.get("size", 18), "weight": title_font.get("weight", "bold")})
+
     # Set-Up
     categories = adata.obs[split_by].cat.categories
     nrows, ncols, nextra = get_subplot_shape(len(categories), ncols)
@@ -433,8 +450,9 @@ def split_embeddding(
         if visium:
             sc.pl.spatial(adata, ax=axs[idx], groups=[cat], size=sp_size, show=False, **kwargs)
         else:
-            sc.pl.embedding(adata, basis=basis, color=split_by, groups=[cat], ax=axs[idx], title=str(cat), show=False,
-                            **kwargs)
+            sc.pl.embedding(
+                adata, basis=basis, color=split_by, groups=[cat], ax=axs[idx], title=str(cat), show=False, **kwargs
+            )
         axs[idx].set_title(cat, fontdict=title_font)
         axs[idx].get_legend().remove()
         spine_format(axs[idx])

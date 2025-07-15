@@ -4,7 +4,7 @@ import subprocess
 import uuid
 from datetime import date
 from pathlib import Path
-from typing import Literal, Union
+from typing import Literal
 
 import anndata as ad
 import doubletdetection
@@ -25,7 +25,7 @@ def _qc_vln(
     path: [str, None] = None,
     filename: str = "ViolinPlots.png",
     stats: list = ("total_counts", "n_genes_by_counts", "pct_counts_mt"),
-    colors: Union[str, list] = "lightsteelblue",
+    colors: str | list = "lightsteelblue",
 ) -> None:
     """Violin Plots showing basic QC stats.
 
@@ -66,8 +66,8 @@ def _qc_vln(
 
 def _filter_quantiles(
     adata: ad.AnnData,
-    low: Union[int, None] = None,
-    high: Union[int, None] = None,
+    low: int | None = None,
+    high: int | None = None,
 ) -> ad.AnnData:
     """Filter cells based on total nUMI counts using quantiles.
 
@@ -87,7 +87,7 @@ def _filter_quantiles(
 
 def _run_scdblfinder(
     adata: ad.AnnData,
-    batch_key: Union[str, None] = None,
+    batch_key: str | None = None,
 ) -> None:
     """Find doublets.
 
@@ -117,12 +117,7 @@ def _run_scdblfinder(
     return
 
 
-def _normalise(
-    adata: ad.AnnData,
-    n_reads: int = 10_000,
-    max_val: Union[float, None] = None,
-    scale: bool = True
-) -> None:
+def _normalise(adata: ad.AnnData, n_reads: int = 10_000, max_val: float | None = None, scale: bool = True) -> None:
     """Normalise raw counts.
 
     The input is an unnormalise anndata object. The dt in X will be log-normalise to 10,000 reads per cell.
@@ -154,20 +149,20 @@ def _normalise(
 def _qc_scrna(
     adata: ad.AnnData,
     ids: str,
-    qc_path: Union[str, Path, None] = None,
-    batch_key: Union[str, None] = None,
+    qc_path: str | Path | None = None,
+    batch_key: str | None = None,
     min_genes_in_cell: int = 300,
     min_cells_with_genes: int = 5,
     cut_mt: int = 5,
-    min_counts: Union[int, None] = None,
-    max_counts: Union[int, None] = None,
-    min_genes: Union[int, None] = None,
-    max_genes: Union[int, None] = None,
-    low_quantile: Union[int, None] = None,
-    high_quantile: Union[int, None] = None,
+    min_counts: int | None = None,
+    max_counts: int | None = None,
+    min_genes: int | None = None,
+    max_genes: int | None = None,
+    low_quantile: int | None = None,
+    high_quantile: int | None = None,
     include_rbs: bool = True,
     remove_doublets: bool = False,
-    doublet_tool: str = 'scDblFinder',
+    doublet_tool: str = "scDblFinder",
     metrics: bool = True,
 ) -> ad.AnnData:
     """Basic QC.
@@ -257,14 +252,14 @@ def _qc_scrna(
 
     # Step 5 -
     if remove_doublets:
-        if doublet_tool == 'scDblFinder':
+        if doublet_tool == "scDblFinder":
             adata.layers["counts"] = adata.X.copy()  # needed for scDblFinder
             _run_scdblfinder(adata, batch_key)
-        elif doublet_tool == 'Scrublet':
+        elif doublet_tool == "Scrublet":
             sc.pp.scrublet(adata)
-            adata.obs['doublet_class'] = adata.obs['predicted_doublet'].map({False: 'singlet', True: 'doublet'})
-            del adata.obs['predicted_doublet']
-        elif doublet_tool == 'DoubletDetection':
+            adata.obs["doublet_class"] = adata.obs["predicted_doublet"].map({False: "singlet", True: "doublet"})
+            del adata.obs["predicted_doublet"]
+        elif doublet_tool == "DoubletDetection":
             clf = doubletdetection.BoostClassifier(
                 n_iters=15,
                 clustering_algorithm="leiden",
@@ -275,12 +270,12 @@ def _qc_scrna(
             )
             doublets = clf.fit(adata.X).predict()
             doublet_score = clf.doublet_score()
-            mapped = np.full(doublets.shape, 'singlet', dtype=object)
-            mapped[doublets == 1.0] = 'doublet'
-            adata.obs["doublet_class"] = pd.Categorical(mapped, categories=['singlet', 'doublet'])
+            mapped = np.full(doublets.shape, "singlet", dtype=object)
+            mapped[doublets == 1.0] = "doublet"
+            adata.obs["doublet_class"] = pd.Categorical(mapped, categories=["singlet", "doublet"])
             adata.obs["doublet_score"] = doublet_score
         else:
-            raise Exception('Doublet detection tool available: scDblFinder, Scrublet and DoubletDetection')
+            raise Exception("Doublet detection tool available: scDblFinder, Scrublet and DoubletDetection")
 
         n_doublets = adata.obs["doublet_class"].value_counts()["doublet"]
         adata = adata[adata.obs["doublet_class"] == "singlet"].copy()
@@ -318,20 +313,20 @@ def _qc_scrna(
 def importer_py(
     paths: list,
     ids: list,
-    metadata: Union[dict, None] = None,
+    metadata: dict | None = None,
     batch_key: str = "batch",
     remove_doublets: bool = True,
-    doublet_tool: Literal['scDblFinder', 'Scrublet', 'DoubletDetection'] = 'scDblFinder',
+    doublet_tool: Literal["scDblFinder", "Scrublet", "DoubletDetection"] = "scDblFinder",
     min_genes_in_cell: int = 300,
     min_cells_with_genes: int = 5,
     cut_mt: int = 5,
     n_reads: int = 10_000,
-    min_counts: Union[int, None] = None,
-    max_counts: Union[int, None] = None,
-    min_genes: Union[int, None] = None,
-    max_genes: Union[int, None] = None,
-    low_quantile: Union[int, None] = None,
-    high_quantile: Union[int, None] = None,
+    min_counts: int | None = None,
+    max_counts: int | None = None,
+    min_genes: int | None = None,
+    max_genes: int | None = None,
+    low_quantile: int | None = None,
+    high_quantile: int | None = None,
 ) -> ad.AnnData:
     """Quality control analysis for sc/snRNA.
 
@@ -378,23 +373,25 @@ def importer_py(
     Example
     -------
     >>> import dotools_py as do
-    >>> paths = ['/path/sample1', '/path/sample2']
-    >>> batchname = ['sample1', 'sample2']
-    >>> metadata = {'condition': ['WT', 'KO'],
-    ...             'age': ['3m', '3m'],
-    ...             }
-    >>> adata = do.pp.importer_py(paths=paths,
-    ...                           ids=batchname,
-    ...                           metadata=metadata,
-    ...                           batch_key='batch',
-    ...                           remove_doublets=True,
-    ...                           min_genes_in_cell=300,
-    ...                           min_cells_with_genes=5,
-    ...                           n_reads=10_000,
-    ...                           cut_mt=5,
-    ...                           high_quantile=95,
-    ...                           min_counts=500
-    ...                           )
+    >>> paths = ["/path/sample1", "/path/sample2"]
+    >>> batchname = ["sample1", "sample2"]
+    >>> metadata = {
+    ...     "condition": ["WT", "KO"],
+    ...     "age": ["3m", "3m"],
+    ... }
+    >>> adata = do.pp.importer_py(
+    ...     paths=paths,
+    ...     ids=batchname,
+    ...     metadata=metadata,
+    ...     batch_key="batch",
+    ...     remove_doublets=True,
+    ...     min_genes_in_cell=300,
+    ...     min_cells_with_genes=5,
+    ...     n_reads=10_000,
+    ...     cut_mt=5,
+    ...     high_quantile=95,
+    ...     min_counts=500,
+    ... )
     """
     # Checks
     assert isinstance(paths, list) and isinstance(ids, list), "Please provide a list of paths and ids"
@@ -456,15 +453,11 @@ def importer_py(
     sc.pp.highly_variable_genes(adata_concat, batch_key=batch_key)
 
     logger.info("Run PCA")
-    sc.pp.pca(adata_concat, layer='scaled')
+    sc.pp.pca(adata_concat, layer="scaled")
     return adata_concat
 
 
-def sctransform_normalise(
-    adata: ad.AnnData,
-    batch_key: str = None,
-    layer=None
-) -> None:
+def sctransform_normalise(adata: ad.AnnData, batch_key: str = None, layer=None) -> None:
     """Normalisation based on `SCTransform <https://github.com/satijalab/sctransform>`_.
 
     This function performs an alternative normalisation base on the SCTransform.
@@ -488,7 +481,7 @@ def sctransform_normalise(
     layers: 'counts', 'logcounts'
     obsp: 'connectivities', 'distances'
     >>>
-    >>> do.pp.sctransform_normalise(adata, batch_key='batch', layer='counts')
+    >>> do.pp.sctransform_normalise(adata, batch_key="batch", layer="counts")
     >>> adata
     AnnData object with n_obs × n_vars = 700 × 1181
     obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo', 'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster'
@@ -499,11 +492,12 @@ def sctransform_normalise(
     obsp: 'connectivities', 'distances'
     """
     from scipy import sparse
+
     rscript = get_paths_utils("_run_SCTransform.R")
     tmpdir_path = Path("/tmp") / f"SCTransform_{uuid.uuid4().hex}"
     tmpdir_path.mkdir(parents=True, exist_ok=False)
 
-    logger.info('Preparing to transfer to R')
+    logger.info("Preparing to transfer to R")
     adata_copy = adata.copy()
     if layer is not None:
         adata.X = adata.layers[layer].copy()
@@ -511,32 +505,32 @@ def sctransform_normalise(
     del adata.obsm
 
     if batch_key is not None:
-        adata_copy.obs['batch'] = adata_copy.obs[batch_key].copy()
+        adata_copy.obs["batch"] = adata_copy.obs[batch_key].copy()
     else:
-        adata_copy.obs['batch'] = 'batch1'
+        adata_copy.obs["batch"] = "batch1"
     adata_copy.write(tmpdir_path / "adata_tmp.h5ad")
 
-    logger.info('Running SCTransform in R')
-    subprocess.call(['Rscript', rscript, '--input=' + str(tmpdir_path) + '/', '--out=' + str(tmpdir_path) + '/'])
+    logger.info("Running SCTransform in R")
+    subprocess.call(["Rscript", rscript, "--input=" + str(tmpdir_path) + "/", "--out=" + str(tmpdir_path) + "/"])
 
-    raw_counts = polars.read_csv(os.path.join(tmpdir_path, 'SCTransform_raw.csv'), infer_schema_length=0)
+    raw_counts = polars.read_csv(os.path.join(tmpdir_path, "SCTransform_raw.csv"), infer_schema_length=0)
     raw_counts = raw_counts.to_pandas().astype(float)
     raw_counts = raw_counts.set_index(adata.obs_names)
 
-    norm_counts = polars.read_csv(os.path.join(tmpdir_path, 'SCTransform_norm.csv'), infer_schema_length=0)
+    norm_counts = polars.read_csv(os.path.join(tmpdir_path, "SCTransform_norm.csv"), infer_schema_length=0)
     norm_counts = norm_counts.to_pandas().astype(float)
     norm_counts = norm_counts.set_index(adata.obs_names)
 
     # Transfer genes not kept during normalisation to .obsm
     excluded_genes = [gene for gene in adata.var_names if gene not in norm_counts.columns]
-    adata.var['SCT_rm'] = [True if gene in excluded_genes else False for gene in adata.var_names]
-    adata.obsm['SCT_rm'] = adata[:, adata.var['SCT_rm'].values].X.toarray()
-    adata = adata[:, ~adata.var['SCT_rm'].values]
+    adata.var["SCT_rm"] = [True if gene in excluded_genes else False for gene in adata.var_names]
+    adata.obsm["SCT_rm"] = adata[:, adata.var["SCT_rm"].values].X.toarray()
+    adata = adata[:, ~adata.var["SCT_rm"].values]
 
     # Make sure we have the same order or barcodes and features
     norm_counts = norm_counts.reindex(index=adata.obs_names, columns=adata.var_names)
     raw_counts = raw_counts.reindex(index=adata.obs_names, columns=adata.var_names)
 
-    adata.layers['SCT_norm'] = sparse.csr_matrix(norm_counts.values)
-    adata.layers['SCT_counts'] = sparse.csr_matrix(raw_counts.values)
+    adata.layers["SCT_norm"] = sparse.csr_matrix(norm_counts.values)
+    adata.layers["SCT_counts"] = sparse.csr_matrix(raw_counts.values)
     return None

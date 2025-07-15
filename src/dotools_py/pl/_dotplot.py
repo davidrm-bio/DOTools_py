@@ -32,14 +32,15 @@ from dotools_py.utils import convert_path, sanitize_anndata
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-    from typing import Literal, Union
-    from typing_extensions import Self
+    from typing import Literal
+
     import pandas as pd
     from anndata import AnnData
     from matplotlib.axes import Axes
     from matplotlib.colors import Colormap, Normalize
     from scanpy._utils import Empty
     from scanpy.plotting._utils import ColorLike, _AxesSubplot
+    from typing_extensions import Self
 
 
 ########################################################################################################################
@@ -56,7 +57,8 @@ def _dk(dendrogram: bool | str | None) -> str | None:
 
 @_doc_params(common_plot_args=doc_common_plot_args)
 class DotPlot(BasePlot):
-    """\
+    """Dotplot class.
+
     Allows the visualization of two values that are encoded as
     dot size and color. The size usually represents the fraction
     of cells (obs) that have a non-zero value for genes (var).
@@ -104,13 +106,13 @@ class DotPlot(BasePlot):
     --------
     >>> import scanpy as sc
     >>> adata = sc.datasets.pbmc68k_reduced()
-    >>> markers = ['C1QA', 'PSAP', 'CD79A', 'CD79B', 'CST3', 'LYZ']
-    >>> sc.pl.DotPlot(adata, markers, groupby='bulk_labels').show()
+    >>> markers = ["C1QA", "PSAP", "CD79A", "CD79B", "CST3", "LYZ"]
+    >>> sc.pl.DotPlot(adata, markers, groupby="bulk_labels").show()
 
     Using var_names as dict:
 
-    >>> markers = {{'T-cell': 'CD3D', 'B-cell': 'CD79A', 'myeloid': 'CST3'}}
-    >>> sc.pl.DotPlot(adata, markers, groupby='bulk_labels').show()
+    >>> markers = {{"T-cell": "CD3D", "B-cell": "CD79A", "myeloid": "CST3"}}
+    >>> sc.pl.DotPlot(adata, markers, groupby="bulk_labels").show()
 
     """
 
@@ -319,8 +321,7 @@ class DotPlot(BasePlot):
         x_padding: float | Empty = _empty,
         y_padding: float | Empty = _empty,
     ) -> Self:
-        r"""\
-        Modifies plot visual parameters
+        r"""Modifies plot visual parameters.
 
         Parameters
         ----------
@@ -427,7 +428,7 @@ class DotPlot(BasePlot):
         width: float | None = DEFAULT_LEGENDS_WIDTH,
     ) -> Self:
         """\
-        Configures dot size and the colorbar legends
+        Configures dot size and the colorbar legends.
 
         Parameters
         ----------
@@ -457,9 +458,9 @@ class DotPlot(BasePlot):
 
         >>> import scanpy as sc
         >>> adata = sc.datasets.pbmc68k_reduced()
-        >>> markers = {'T-cell': 'CD3D', 'B-cell': 'CD79A', 'myeloid': 'CST3'}
-        >>> dp = sc.pl.DotPlot(adata, markers, groupby='bulk_labels')
-        >>> dp.legend(colorbar_title='log(UMI counts + 1)').show()
+        >>> markers = {"T-cell": "CD3D", "B-cell": "CD79A", "myeloid": "CST3"}
+        >>> dp = sc.pl.DotPlot(adata, markers, groupby="bulk_labels")
+        >>> dp.legend(colorbar_title="log(UMI counts + 1)").show()
         """
         if not show:
             # turn of legends by setting width to 0
@@ -630,7 +631,8 @@ class DotPlot(BasePlot):
         norm: Normalize | None,
         **kwds,
     ):
-        """\
+        """Make a dotplot.
+
         Makes a *dot plot* given two dt frames, one containing
         the doc size and other containing the dot color. The indices and
         columns of the dt frame are used to label the output image
@@ -1025,38 +1027,38 @@ def dotplot_scanpy(
 def dotplot(
     adata: ad.AnnData,
     x_axis: str,
-    features: Union[str, list],
+    features: str | list,
     y_axis: str = None,
-    layer: Union[str, None] = None,
-    x_categories_order: Union[list, None] = None,
-    y_categories_order: Union[list, None] = None,
+    layer: str | None = None,
+    x_categories_order: list | None = None,
+    y_categories_order: list | None = None,
     subset_adata: bool = False,
     logcounts: bool = True,
     expression_cutoff: float = 0.0,
     mean_only_expressed: bool = False,
-    z_score: Union[str, None] = None,
+    z_score: str | None = None,
     cmap: str = "Reds",
-    vmax: Union[float, None] = None,
-    vmin: Union[float, None] = None,
-    vcenter: Union[float, None] = None,
+    vmax: float | None = None,
+    vmin: float | None = None,
+    vcenter: float | None = None,
     size_legend_title: str = "Fraction of cells\nin group (%)",
     color_legend_title: str = "LogMean(nUMI)\nin group",
     feature_fontsize: float = 15,
     xticks_rotation: float = 90,
-    ax: Union[plt.Axes, None]= None,
+    ax: plt.Axes | None = None,
     figsize: tuple = (8, 4),
-    path: Union[str, Path, None] = None,
+    path: str | Path | None = None,
     filename: str = "Dotplot.svg",
     smallest_dot: float = 0.0,
     largest_dot: float = 200.0,
     show: bool = True,
     swap_axes: bool = True,
-    rect_height: Union[float, None] = None,
+    rect_height: float | None = None,
     size_exponent: float = 1.5,
     edge_lw: float = 0.2,
     edge_color: str = "black",
-    dot_max: Union[float, None] = None,
-    dot_min: Union[float, None] = None,
+    dot_max: float | None = None,
+    dot_min: float | None = None,
     **kwargs,
 ) -> plt.Axes:
     """Makes a 2d dotplot or 3d dotplot.
@@ -1152,7 +1154,7 @@ def dotplot(
         height_ratios: float = None,
     ):
         # Taken from Scanpy
-        kw = dict(wspace=wspace, hspace=hspace, width_ratios=width_ratios, height_ratios=height_ratios)
+        kw = {"wspace": wspace, "hspace": hspace, "width_ratios": width_ratios, "height_ratios": height_ratios}
 
         if isinstance(ax_or_figsize, tuple):
             fig = plt.figure(figsize=ax_or_figsize)
@@ -1220,7 +1222,7 @@ def dotplot(
 
         if height is None:
             height = len(adata.obs[y_axis].cat.categories) * 0.37
-            width = len(features) * len(x_axis) * 0.37 + 0.8
+            # width = len(features) * len(x_axis) * 0.37 + 0.8
 
         min_figure_height = max([0.35, height])
         cbar_legend_height = min_figure_height * 0.08
@@ -1353,7 +1355,7 @@ def dotplot(
                 swap_axes=swap_axes,
                 **kwargs,
             )
-        except:  # Fallback to scanpy
+        except Exception:  # Fallback to scanpy
             axis_dict = sc.pl.dotplot(
                 adata,
                 groupby=x_axis,

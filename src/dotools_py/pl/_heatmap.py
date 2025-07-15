@@ -1,20 +1,21 @@
-import seaborn as sns
-from scipy.cluster.hierarchy import linkage, dendrogram
-import matplotlib.pyplot as plt
-import scanpy as sc
-import matplotlib.gridspec as gridspec
-import matplotlib.colors
-from matplotlib.cm import ScalarMappable
-import matplotlib.patches as patches
-from scipy.stats import zscore
-from typing import Literal, Union
-import anndata as ad
-import pandas as pd
-import numpy as np
+from typing import Literal
 
-from dotools_py.utils import convert_path, sanitize_anndata
-from dotools_py.tl import rank_genes_groups, mean_expr
+import anndata as ad
+import matplotlib.colors
+import matplotlib.gridspec as gridspec
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import scanpy as sc
+import seaborn as sns
+from matplotlib.cm import ScalarMappable
+from scipy.cluster.hierarchy import dendrogram, linkage
+from scipy.stats import zscore
+
 from dotools_py.logger import logger
+from dotools_py.tl import mean_expr, rank_genes_groups
+from dotools_py.utils import convert_path, sanitize_anndata
 
 
 def make_grid_spec(
@@ -24,11 +25,11 @@ def make_grid_spec(
     ncols: int,
     wspace: float = None,
     hspace: float = None,
-    width_ratios: Union[float, list] = None,
-    height_ratios: Union[float, list] = None,
+    width_ratios: float | list = None,
+    height_ratios: float | list = None,
 ):
     # Taken from Scanpy
-    kw = dict(wspace=wspace, hspace=hspace, width_ratios=width_ratios, height_ratios=height_ratios)
+    kw = {"wspace": wspace, "hspace": hspace, "width_ratios": width_ratios, "height_ratios": height_ratios}
 
     if isinstance(ax_or_figsize, tuple):
         fig = plt.figure(figsize=ax_or_figsize)
@@ -42,12 +43,7 @@ def make_grid_spec(
         return ax.figure, ax.get_subplotspec().subgridspec(nrows, ncols, **kw)
 
 
-def check_colornorm(
-    vmin=None,
-    vmax=None,
-    vcenter=None,
-    norm=None
-):
+def check_colornorm(vmin=None, vmax=None, vcenter=None, norm=None):
     from matplotlib.colors import Normalize
 
     try:
@@ -68,9 +64,7 @@ def check_colornorm(
     return norm
 
 
-def square_color(
-    rgba: list
-) -> str:
+def square_color(rgba: list) -> str:
     """Determine if the background is dark or clear and return black or white.
 
     :param rgba: list with rgba values
@@ -81,16 +75,10 @@ def square_color(
     r, g, b = [int(c * 255) for c in (r, g, b)]
     # Use brightness heuristic
     brightness = (r * 299 + g * 587 + b * 114) / 1000
-    return 'black' if brightness > 128 else 'white'
+    return "black" if brightness > 128 else "white"
 
 
-def small_squares(
-    ax: plt.Axes,
-    pos: list,
-    color: list,
-    size: float = 1,
-    linewidth: float = 0.8
-) -> None:
+def small_squares(ax: plt.Axes, pos: list, color: list, size: float = 1, linewidth: float = 0.8) -> None:
     """Add small squares.
 
     :param ax: matplotlib axis
@@ -103,30 +91,36 @@ def small_squares(
     for idx, xy in enumerate(pos):
         x, y = xy
         margin = (1 - size) / 2
-        rect = patches.Rectangle((y + margin, x + margin), size, size,
-                                 linewidth=linewidth, edgecolor=color[idx],
-                                 facecolor="none", zorder=20, )
+        rect = patches.Rectangle(
+            (y + margin, x + margin),
+            size,
+            size,
+            linewidth=linewidth,
+            edgecolor=color[idx],
+            facecolor="none",
+            zorder=20,
+        )
         ax.add_patch(rect)
     return None
 
 
 def heatmap(
     adata: ad.AnnData,
-    group_by: Union[str, list],
-    features: Union[str, list],
-    z_score: Literal['var', 'group'] = None,  # x_axis is the group_by
+    group_by: str | list,
+    features: str | list,
+    z_score: Literal["var", "group"] = None,  # x_axis is the group_by
     path: str = None,
-    filename: str = 'Heatmap.svg',
+    filename: str = "Heatmap.svg",
     layer: str = None,
     swap_axes: bool = True,
-    cmap: str = 'Reds',
+    cmap: str = "Reds",
     title: str = None,
     title_fontprop: dict = None,
-    clustering_method: str = 'complete',
-    clustering_metric: str = 'euclidean',
+    clustering_method: str = "complete",
+    clustering_metric: str = "euclidean",
     cluster_x_axis: bool = False,
     cluster_y_axis: bool = False,
-    axs: Union[plt.Axes, None] = None,
+    axs: plt.Axes | None = None,
     figsize: tuple = (5, 6),
     linewidth: float = 0.1,
     ticks_fontdict: dict = None,
@@ -135,12 +129,12 @@ def heatmap(
     vmin: float = 0.0,
     vcenter: float = None,
     vmax: float = None,
-    legend_title: str = 'LogMean(nUMI)\nin group',
+    legend_title: str = "LogMean(nUMI)\nin group",
     add_stats: bool = True,
     df_pvals: pd.DataFrame = None,
     stats_x_size: float = None,
     square_x_size: dict = None,
-    test: Literal['wilcoxon', 't-test'] = 'wilcoxon',
+    test: Literal["wilcoxon", "t-test"] = "wilcoxon",
     correction_method: Literal["benjamini-hochberg", "bonferroni"] = "benjamini-hochberg",
     pval_cutoff: float = 0.05,
     log2fc_cutoff: float = 0.0,
@@ -148,7 +142,7 @@ def heatmap(
     show: bool = True,
     logcounts: bool = True,
     **kargs,
-) -> Union[dict, None]:
+) -> dict | None:
     """Heatmap of the mean expression of genes across a groups.
 
     Generate a heatmap of showing the average nUMI for a set of genes in different groups. Differential gene
@@ -211,20 +205,31 @@ def heatmap(
     # Get Data for the Heatmap
     if all(item in list(adata.var_names) for item in features):
         if logcounts:
-            df = mean_expr(adata, group_by=group_by, features=features, layer=layer,
-                           out_format='wide')  # genes x groups
+            df = mean_expr(
+                adata, group_by=group_by, features=features, layer=layer, out_format="wide"
+            )  # genes x groups
         else:
-            raise Exception('Not implemented, specified var_name value but logcounts is set to False')
+            raise Exception("Not implemented, specified var_name value but logcounts is set to False")
     elif all(item in list(adata.obs.columns) for item in features):
-        df = adata.obs[[group_by] + features].groupby(group_by).agg('mean')
+        df = adata.obs[[group_by] + features].groupby(group_by).agg("mean")
     else:
-        raise Exception('Provide features either var_names or obs.columns')
+        raise Exception("Provide features either var_names or obs.columns")
 
     # Hierarchical clustering
-    new_index = df.index[dendrogram(linkage(df.values, method=clustering_method, metric=clustering_metric),
-                                    no_plot=True)['leaves']] if cluster_x_axis else list(df.index)
-    new_column = df.columns[dendrogram(linkage(df.T.values, method=clustering_method, metric=clustering_metric),
-                                       no_plot=True)['leaves']] if cluster_y_axis else list(df.columns)
+    new_index = (
+        df.index[
+            dendrogram(linkage(df.values, method=clustering_method, metric=clustering_metric), no_plot=True)["leaves"]
+        ]
+        if cluster_x_axis
+        else list(df.index)
+    )
+    new_column = (
+        df.columns[
+            dendrogram(linkage(df.T.values, method=clustering_method, metric=clustering_metric), no_plot=True)["leaves"]
+        ]
+        if cluster_y_axis
+        else list(df.columns)
+    )
     df = df.reindex(index=new_index, columns=new_column)
 
     # Layout
@@ -236,29 +241,36 @@ def heatmap(
     if add_stats:
         if df_pvals is None:
             if all(item in list(adata.var_names) for item in features):
-                rank_genes_groups(adata, groupby=group_by, method=test, tie_correct=True,
-                                  corr_method=correction_method)
-                table = sc.get.rank_genes_groups_df(adata, group=None, pval_cutoff=pval_cutoff,
-                                                    log2fc_min=log2fc_cutoff)
-                table_filt = table[table['names'].isin(features)]
+                rank_genes_groups(adata, groupby=group_by, method=test, tie_correct=True, corr_method=correction_method)
+                table = sc.get.rank_genes_groups_df(
+                    adata, group=None, pval_cutoff=pval_cutoff, log2fc_min=log2fc_cutoff
+                )
+                table_filt = table[table["names"].isin(features)]
             elif all(item in list(adata.obs.columns) for item in features):
                 tdf = adata.obs[[group_by] + features]
                 tdata = ad.AnnData(tdf.iloc[:, 1:].values, obs=pd.DataFrame(tdf[group_by]), var=list(tdf.columns)[1:])
                 tdata.var_names = tdata.var[0].copy()
-                rank_genes_groups(tdata, groupby=group_by, method=test, tie_correct=True,
-                                  corr_method=correction_method, logcounts=False)
-                table = sc.get.rank_genes_groups_df(tdata, group=None, pval_cutoff=pval_cutoff,
-                                                    log2fc_min=log2fc_cutoff)
-                table_filt = table[table['names'].isin(features)]
+                rank_genes_groups(
+                    tdata,
+                    groupby=group_by,
+                    method=test,
+                    tie_correct=True,
+                    corr_method=correction_method,
+                    logcounts=False,
+                )
+                table = sc.get.rank_genes_groups_df(
+                    tdata, group=None, pval_cutoff=pval_cutoff, log2fc_min=log2fc_cutoff
+                )
+                table_filt = table[table["names"].isin(features)]
 
             # Dataframe with gene x groups with the pvals
-            table_filt['group'] = table_filt['group'].str.replace('-', '_')  # Correction used in get_expr()
+            table_filt["group"] = table_filt["group"].str.replace("-", "_")  # Correction used in get_expr()
             df_pvals = pd.DataFrame([], index=df.index, columns=df.columns)
             for idx, row in table_filt.iterrows():
-                if row['group'] in list(df.index):
-                    df_pvals.loc[row['group'], row['names']] = row['pvals_adj']
+                if row["group"] in list(df.index):
+                    df_pvals.loc[row["group"], row["names"]] = row["pvals_adj"]
                 else:
-                    df_pvals.loc[row['names'], row['group']] = row['pvals_adj']
+                    df_pvals.loc[row["names"], row["group"]] = row["pvals_adj"]
             df_pvals[df_pvals.isna()] = 1
         else:
             if list(df.index)[0] in list(df_pvals.index):
@@ -270,12 +282,12 @@ def heatmap(
 
     # Data Transformation
     if z_score is not None:
-        if z_score == 'var':
+        if z_score == "var":
             if features[0] in list(df.index):
                 axis = 0
             else:
                 axis = 1
-        elif z_score == 'group':
+        elif z_score == "group":
             if features[0] in list(df.index):
                 axis = 1
             else:
@@ -283,13 +295,14 @@ def heatmap(
         else:
             raise Exception(f'{z_score} not a valid key for z_score, use "var" or "group"')
 
-        df = df.apply(zscore, axis=axis, result_type='expand')  # z_score over the genes
-        if cmap == 'Reds':
+        df = df.apply(zscore, axis=axis, result_type="expand")  # z_score over the genes
+        if cmap == "Reds":
             logger.warn(
-                'Z-score set to True, but the cmap is Reds, setting to RdBu_r')  # Make sure to use divergent colormap
-            cmap = 'RdBu_r'
-        if legend_title == 'LogMean(nUMI)\nin group':
-            legend_title = 'Z-score'
+                "Z-score set to True, but the cmap is Reds, setting to RdBu_r"
+            )  # Make sure to use divergent colormap
+            cmap = "RdBu_r"
+        if legend_title == "LogMean(nUMI)\nin group":
+            legend_title = "Z-score"
         vmin, vcenter, vmax = round(df.min().min() * 20) / 20, 0.0, None
 
     # ------ Arguments for the layout -------------
@@ -312,13 +325,12 @@ def heatmap(
     ]
 
     textprops = {} if ticks_fontdict is None else ticks_fontdict
-    textprops = {'weight': textprops.get('weight', 'bold'), 'size': textprops.get('size', 13)}
-    tick_weight = textprops['weight']
-    tick_size = textprops['size']
+    textprops = {"weight": textprops.get("weight", "bold"), "size": textprops.get("size", 13)}
+    tick_weight = textprops["weight"]
+    tick_size = textprops["size"]
 
     title_fontprop = {} if title_fontprop is None else title_fontprop
-    title_fontprop = {'weight': title_fontprop.get('weight', 'bold'),
-                      'size': title_fontprop.get('size', 15)}
+    title_fontprop = {"weight": title_fontprop.get("weight", "bold"), "size": title_fontprop.get("size", 15)}
     # Parameters for colorbar
     vmin = 0.0 if vmin is None else vmin
     vmax = round(df.max().max() * 20) / 20 if vmax is None else vmax  # Normalise to round to 5 or 0
@@ -331,8 +343,7 @@ def heatmap(
 
     # Parameter for stats
     square_x_size = {} if square_x_size is None else square_x_size
-    square_x_size = {'width': square_x_size.get('weight', 1),
-                     'size': square_x_size.get('size', 0.8)}
+    square_x_size = {"width": square_x_size.get("weight", 1), "size": square_x_size.get("size", 0.8)}
     stats_x_size = height * width if stats_x_size is None else stats_x_size
 
     # Save the axis
@@ -340,8 +351,9 @@ def heatmap(
     # ---------------------------------------
 
     # Generate figure
-    fig, gs = make_grid_spec(axs or (width, height), nrows=1, ncols=2, wspace=legends_width_spacer,
-                             width_ratios=[mainplot_width + 0, 1.5])
+    fig, gs = make_grid_spec(
+        axs or (width, height), nrows=1, ncols=2, wspace=legends_width_spacer, width_ratios=[mainplot_width + 0, 1.5]
+    )
     main_ax = fig.add_subplot(gs[0])
     legend_ax = fig.add_subplot(gs[1])
 
@@ -351,59 +363,61 @@ def heatmap(
         sig_ax = fig.add_subplot(legend_gs[2])
 
     # Add Main Plot
-    hm = sns.heatmap(data=df,
-                     cmap=cmap,
-                     ax=main_ax,
-                     linewidths=linewidth,
-                     cbar=False,
-                     annot_kws={"color": 'black', "size": stats_x_size,
-                                "ha": 'center', "va": 'center'},
-                     annot=annot_pvals,
-                     fmt="s",
-                     square=square,
-                     **kargs
-                     )
+    hm = sns.heatmap(
+        data=df,
+        cmap=cmap,
+        ax=main_ax,
+        linewidths=linewidth,
+        cbar=False,
+        annot_kws={"color": "black", "size": stats_x_size, "ha": "center", "va": "center"},
+        annot=annot_pvals,
+        fmt="s",
+        square=square,
+        **kargs,
+    )
 
     # Add Legend
     matplotlib.colorbar.Colorbar(color_legend_ax, mappable=mappable, orientation="horizontal")
-    color_legend_ax.set_title(legend_title, fontsize="small", fontweight='bold')
+    color_legend_ax.set_title(legend_title, fontsize="small", fontweight="bold")
     color_legend_ax.xaxis.set_tick_params(labelsize="small")
     return_ax_dict["legend_ax"] = color_legend_ax
 
     # Significance Legend
     if add_stats:
         x, y = 0, 0.5
-        sig_ax.scatter(x, y, s=500, facecolors='none', edgecolors='black', marker='s')
-        sig_ax.text(x, y, '*', fontsize=18, ha='center', va='center', color='black')
-        sig_ax.text(x + 0.03, y, 'FDR < 0.05', fontsize=12, va='center', fontweight='bold')
+        sig_ax.scatter(x, y, s=500, facecolors="none", edgecolors="black", marker="s")
+        sig_ax.text(x, y, "*", fontsize=18, ha="center", va="center", color="black")
+        sig_ax.text(x + 0.03, y, "FDR < 0.05", fontsize=12, va="center", fontweight="bold")
         sig_ax.set_xlim(x - 0.02, x + 0.1)
-        sig_ax.set_title('Significance', fontsize='small', fontweight='bold')
-        plt.gca().set_aspect('equal')
-        sig_ax.axis('off')  # Hide axes for clean display
+        sig_ax.set_title("Significance", fontsize="small", fontweight="bold")
+        plt.gca().set_aspect("equal")
+        sig_ax.axis("off")  # Hide axes for clean display
         return_ax_dict["signifiance_ax"] = sig_ax
 
     # Modify layout from main plot
-    hm.spines[['top', 'right', 'bottom', 'left']].set_visible(True)
-    hm.set_xlabel('')
-    hm.set_ylabel('')
+    hm.spines[["top", "right", "bottom", "left"]].set_visible(True)
+    hm.set_xlabel("")
+    hm.set_ylabel("")
 
-    rotation_props_x, rotation_props_y = {'rotation': None}, {'rotation': None}
-    rotation_props_x = {'rotation': xticks_rotation,
-                        'va': 'top', 'ha': 'right'} if xticks_rotation is not None else rotation_props_x
-    rotation_props_y = {'rotation': yticks_rotation,
-                        'va': 'top', 'ha': 'right'} if yticks_rotation is not None else rotation_props_y
-    hm.set_xticklabels(hm.get_xticklabels(), fontdict={'weight': tick_weight, 'size': tick_size}, **rotation_props_x)
-    hm.set_yticklabels(hm.get_yticklabels(), fontdict={'weight': tick_weight, 'size': tick_size}, **rotation_props_y)
+    rotation_props_x, rotation_props_y = {"rotation": None}, {"rotation": None}
+    rotation_props_x = (
+        {"rotation": xticks_rotation, "va": "top", "ha": "right"} if xticks_rotation is not None else rotation_props_x
+    )
+    rotation_props_y = (
+        {"rotation": yticks_rotation, "va": "top", "ha": "right"} if yticks_rotation is not None else rotation_props_y
+    )
+    hm.set_xticklabels(hm.get_xticklabels(), fontdict={"weight": tick_weight, "size": tick_size}, **rotation_props_x)
+    hm.set_yticklabels(hm.get_yticklabels(), fontdict={"weight": tick_weight, "size": tick_size}, **rotation_props_y)
     hm.set_title(title, **title_fontprop)
-    return_ax_dict['mainplot_ax'] = hm
+    return_ax_dict["mainplot_ax"] = hm
 
     # Add Square around the Xs
     if add_stats:
         df_x = pd.DataFrame([], index=df.index, columns=df.columns)
-        df_x[df_x.isna()] = 'black'
+        df_x[df_x.isna()] = "black"
         df_x = df.map(lambda x: square_color(colormap(normalize(x))))
         pos_rows, pos_cols = np.where(df_pvals < 0.05)
-        pos = list(zip(pos_rows, pos_cols))
+        pos = list(zip(pos_rows, pos_cols, strict=False))
         colors = [df_x.iloc[row, col] for row, col in pos]
 
         small_squares(
@@ -415,11 +429,11 @@ def heatmap(
         )
 
         # Now set colors manually on each annotation text base on the background
-        for text, color in zip(hm.texts, df_x.values.flatten()):
+        for text, color in zip(hm.texts, df_x.values.flatten(), strict=False):
             text.set_color(color)
 
     if path is not None:
-        plt.savefig(convert_path(path) / filename, bbox_inches='tight')
+        plt.savefig(convert_path(path) / filename, bbox_inches="tight")
     if show:
         return plt.show()
     else:

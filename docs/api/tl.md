@@ -42,5 +42,3 @@ analysis and statistical methods.
     tl.grouped_ttest
     tl.run_mast
 ```
-
-

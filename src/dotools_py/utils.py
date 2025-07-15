@@ -1,24 +1,21 @@
+import functools
+import importlib
+import subprocess
+import sys
 from pathlib import Path
-from typing import Union
 
 import anndata as ad
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import functools
-import importlib
-import subprocess
-import sys
 
 
 class DeprecatedFunctionError(Exception):
     pass
 
 
-def get_paths_utils(
-    script: str
-) -> Path:
+def get_paths_utils(script: str) -> Path:
     """Get path for a script within the project.
 
     :param script: name of the script in util_scripts
@@ -28,9 +25,7 @@ def get_paths_utils(
     return (module_dir / "util_scripts" / script).resolve()
 
 
-def convert_path(
-    path: Union[Path, str]
-) -> Path:
+def convert_path(path: Path | str) -> Path:
     """Convert to Path format if string is provided.
 
     :param path: string or Path variable.
@@ -42,9 +37,7 @@ def convert_path(
         return path
 
 
-def sanitize_anndata(
-    adata: ad.AnnData
-) -> None:
+def sanitize_anndata(adata: ad.AnnData) -> None:
     """Transform string metadata to categorical.
 
     :param adata: AnnData
@@ -54,11 +47,7 @@ def sanitize_anndata(
     return None
 
 
-def get_centroids(
-    adata: ad.AnnData,
-    cluster_key: str,
-    basis: str = "X_umap"
-) -> pd.DataFrame:
+def get_centroids(adata: ad.AnnData, cluster_key: str, basis: str = "X_umap") -> pd.DataFrame:
     """Get centroids for clusters in anndata object.
 
     :param adata: AnnData.
@@ -71,10 +60,7 @@ def get_centroids(
     return all_pos.groupby("group", observed=True).median().sort_index()
 
 
-def get_subplot_shape(
-    n_samples: int,
-    ncols: int
-) -> tuple:
+def get_subplot_shape(n_samples: int, ncols: int) -> tuple:
     """Compute the number of rows and columns to use for defining the figure base on a desired number of samples and columns.
 
     :param n_samples: number of samples to plot.
@@ -88,11 +74,7 @@ def get_subplot_shape(
     return nrows, ncols, extras
 
 
-def spine_format(
-    axis: plt.Axes,
-    txt: str = "UMAP",
-    fontsize: int = 10
-) -> None:
+def spine_format(axis: plt.Axes, txt: str = "UMAP", fontsize: int = 10) -> None:
     """Formatting the spines for Embeddings.
 
     Removes the top and right spines and set the x- and y-label for the left and bottom spine
@@ -109,12 +91,7 @@ def spine_format(
     return
 
 
-def remove_extra(
-    extras: int,
-    nrows: int,
-    ncols: int,
-    axs: plt.Axes
-) -> None:
+def remove_extra(extras: int, nrows: int, ncols: int, axs: plt.Axes) -> None:
     """Hide the last subplots.
 
     :param extras: number of subplots to remove.
@@ -166,11 +143,7 @@ def make_grid_spec(
         return ax.figure, ax.get_subplotspec().subgridspec(nrows, ncols, **kw)
 
 
-def format_terms_gsea(
-    df: pd.DataFrame,
-    term_col: str,
-    cutoff: int = 35
-) -> pd.DataFrame:
+def format_terms_gsea(df: pd.DataFrame, term_col: str, cutoff: int = 35) -> pd.DataFrame:
     """Format Terms from Gene Set Enrichment Analysis.
 
     :param df: dataframe with GSEA terms.
@@ -210,8 +183,8 @@ def transfer_labels(
     col_original: str,
     col_subset: str,
     labels_original: list,
-    copy: bool = False
-)-> Union[ad.AnnData, None]:
+    copy: bool = False,
+) -> ad.AnnData | None:
     """Transfer annotation from a subset of an anndata.
 
     :param adata_original: original anndata
@@ -222,17 +195,17 @@ def transfer_labels(
     :param copy: if copy is True, returns the updated anndata, else changes are inplace
     :return: Nothing, changes are saved inplace
     """
-
     if copy:
         adata_original = adata_original.copy()
         adata_subset = adata_subset.copy()
-    assert adata_subset.n_obs < adata_original.n_obs, 'adata_subset is not a subset of adata_original'
+    assert adata_subset.n_obs < adata_original.n_obs, "adata_subset is not a subset of adata_original"
 
     labels_original = [labels_original] if isinstance(labels_original, str) else labels_original
     adata_original.obs[col_original] = adata_original.obs[col_original].astype(str)
     adata_original.obs[col_original] = adata_original.obs[col_original].where(
         ~adata_original.obs[col_original].isin(labels_original),
-        adata_original.obs.index.map(adata_subset.obs[col_subset]))
+        adata_original.obs.index.map(adata_subset.obs[col_subset]),
+    )
 
     if copy:
         return adata_original
@@ -240,29 +213,37 @@ def transfer_labels(
 
 
 def require_dependencies(required_packages):
+    """Display required dependencies and ask if the user wants to install it.
+
+    :param required_packages: name of the package required
+    :return:
+    """
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             missing = []
             for pkg in required_packages:
-                import_name = pkg.get('import', pkg['name'])
+                import_name = pkg.get("import", pkg["name"])
                 try:
                     importlib.import_module(import_name)
                 except ImportError:
-                    missing.append(pkg['name'])
+                    missing.append(pkg["name"])
 
             if missing:
                 print("The following packages are missing:")
                 for pkg in missing:
                     print(f" - {pkg}")
                 choice = input("Do you want to install them now? [y/N]: ").strip().lower()
-                if choice == 'y':
-                    subprocess.check_call([sys.executable, '-m', 'pip', 'install', *missing])
+                if choice == "y":
+                    subprocess.check_call([sys.executable, "-m", "pip", "install", *missing])
                 else:
                     raise ImportError("Missing required packages.")
 
             return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -272,12 +253,9 @@ def deprecated_function(func):
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        warnings.warn(
-            f"{func.__name__} is deprecated and cannot be called.",
-            category=DeprecationWarning,
-            stacklevel=2
-        )
+        warnings.warn(f"{func.__name__} is deprecated and cannot be called.", category=DeprecationWarning, stacklevel=2)
         raise DeprecatedFunctionError(f"{func.__name__} is no longer available.")
+
     return wrapper
 
 

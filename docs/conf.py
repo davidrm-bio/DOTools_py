@@ -14,7 +14,6 @@ import matplotlib
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE / "extensions"))
 
-import dotools_py
 matplotlib.use("agg")
 
 # -- Project information -----------------------------------------------------
@@ -40,7 +39,7 @@ needs_sphinx = "4.0"
 html_context = {
     "display_github": True,  # Integrate GitHub
     "github_user": "davidrm-bio",
-    "github_repo": 'DOTools_py',
+    "github_repo": "DOTools_py",
     "github_version": "main",
     "conf_py_path": "/docs/",
 }
@@ -105,9 +104,9 @@ intersphinx_mapping = {
     "scanpy": ("https://scanpy.readthedocs.io/en/stable/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
-    'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
+    "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
     "sklearn": ("https://scikit-learn.org/stable/", None),
-    'scipy': ('https://docs.scipy.org/doc/scipy/', None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
 }
 
 # List of patterns, relative to source directory, that match files and
@@ -125,18 +124,17 @@ html_theme = "sphinx_book_theme"
 html_static_path = ["_static"]
 html_css_files = ["css/custom.css"]
 html_logo = "_static/figures/LogoDoTools.png"
-html_favicon = '_static/figures/LogoDoTools.png'
+html_favicon = "_static/figures/LogoDoTools.png"
 nbsphinx_allow_errors = True
 
 html_title = project_name
 
 html_theme_options = {
-    "repository_url":  "https://github.com/davidrm-bio/DOTools_py",
+    "repository_url": "https://github.com/davidrm-bio/DOTools_py",
     "use_repository_button": True,
     "path_to_docs": "docs/",
     "navigation_with_keys": False,
 }
-
 
 
 pygments_style = "default"

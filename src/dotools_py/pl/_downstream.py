@@ -1,43 +1,43 @@
 import sys
 from pathlib import Path
+from typing import Literal, Union
 
 import anndata as ad
 import matplotlib.lines as mlines
-from matplotlib.cm import ScalarMappable
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 import matplotlib.pyplot as plt
-import seaborn as sns
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from adjustText import adjust_text
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import LinearSegmentedColormap, ListedColormap
 
 from dotools_py import logger
-from dotools_py.utils import convert_path, format_terms_gsea, make_grid_spec, sanitize_anndata, require_dependencies
-from typing import Union, Literal
 from dotools_py.tl import mean_expr
 from dotools_py.utility import generate_cmap
+from dotools_py.utils import convert_path, format_terms_gsea, make_grid_spec, require_dependencies, sanitize_anndata
 
 
 def expr_correlation(
-        adata: ad.AnnData,
-        group_by: str = 'batch',
-        method: Literal['spearman', 'pearson', 'kendall'] = 'pearson',
-        mask: Literal['upper', 'lower'] = None,
-        square: bool = True,
-        linewidths: float = 0.1,
-        annot: bool = True,
-        figsize: tuple = (3, 4),
-        axs: Union[plt.Axes, None] = None,
-        mode: Literal['colors', 'letters'] = 'letters',
-        cmap: Union['str', 'list'] = 'RdBu_r',
-        linecolor: str = 'black',
-        color_annot: str = 'white',
-        annot_kws: Union[dict, None] = None,
-        ticks_size: int = 12,
-        path: Union[str, None] = None,
-        filename: str = 'Correlation.svg',
-        show: bool = True,
-) -> Union[plt.Axes, None]:
+    adata: ad.AnnData,
+    group_by: str = "batch",
+    method: Literal["spearman", "pearson", "kendall"] = "pearson",
+    mask: Literal["upper", "lower"] = None,
+    square: bool = True,
+    linewidths: float = 0.1,
+    annot: bool = True,
+    figsize: tuple = (3, 4),
+    axs: plt.Axes | None = None,
+    mode: Literal["colors", "letters"] = "letters",
+    cmap: Union["str", "list"] = "RdBu_r",
+    linecolor: str = "black",
+    color_annot: str = "white",
+    annot_kws: dict | None = None,
+    ticks_size: int = 12,
+    path: str | None = None,
+    filename: str = "Correlation.svg",
+    show: bool = True,
+) -> plt.Axes | None:
     """Calculate correlation between samples.
 
     Calculates the pearson, spearman or kendall correlation between categorical metadata for
@@ -80,19 +80,19 @@ def expr_correlation(
 
     """
     # Checks
-    assert method in ['spearman', 'pearson', 'kendall'], 'Not a valid method use spearman, pearson or kendall'
-    assert mode in ['colors', 'letters'], 'Not a valid method use spearman, pearson or kendall'
+    assert method in ["spearman", "pearson", "kendall"], "Not a valid method use spearman, pearson or kendall"
+    assert mode in ["colors", "letters"], "Not a valid method use spearman, pearson or kendall"
     part_removed = mask
 
     # Extract the Average Expression
     df = mean_expr(adata, group_by=group_by, features=list(adata.var_names))  # All Genes
-    df_pivot = df.pivot(index='gene', columns='group0', values='expr')
+    df_pivot = df.pivot(index="gene", columns="group0", values="expr")
     df_corr = df_pivot.corr(method=method)
 
     # Define mask
-    if mask == 'upper':
+    if mask == "upper":
         mask = ~np.tril(df_corr.values).astype(bool)
-    elif mask == 'lower':
+    elif mask == "lower":
         mask = ~np.triu(df_corr.values).astype(bool)
     elif mask is None:
         mask = None
@@ -108,23 +108,25 @@ def expr_correlation(
     elif isinstance(cmap, LinearSegmentedColormap):
         palette = cmap
     else:
-        raise Exception('Provide the name of a colormap, a list of colors or a custom colormap')
+        raise Exception("Provide the name of a colormap, a list of colors or a custom colormap")
 
     white_cmap = ListedColormap(["white"])
-    palette_cbar = white_cmap if mode == 'letters' else palette
+    palette_cbar = white_cmap if mode == "letters" else palette
 
     if axs is None:
         fig, axs = plt.subplots(1, 1, figsize=figsize)
 
-    hm = sns.heatmap(df_corr,
-                     mask=mask,
-                     cmap=palette_cbar,
-                     square=square,
-                     linewidths=linewidths,
-                     annot=False,
-                     ax=axs,
-                     linecolor=linecolor,
-                     cbar=False)
+    hm = sns.heatmap(
+        df_corr,
+        mask=mask,
+        cmap=palette_cbar,
+        square=square,
+        linewidths=linewidths,
+        annot=False,
+        ax=axs,
+        linecolor=linecolor,
+        cbar=False,
+    )
 
     # Remove the gridlines around masked data
     if mask is not None:
@@ -133,23 +135,17 @@ def expr_correlation(
         edge_colors = np.array([(0, 0, 0, 0) if is_nan else (0, 0, 0, 1) for is_nan in nan_mask_flat])
         mesh.set_edgecolors(edge_colors)
 
-    if mode == 'letters' or annot == True:
+    if mode == "letters" or annot:
         for i in range(df_corr.shape[0]):
             for j in range(df_corr.shape[1]):
                 if mask is not None:
                     if mask[i, j]:
                         continue
                 value = df_corr.iloc[i, j]
-                color = palette(norm_palette(value)) if mode == 'letters' else color_annot
-                hm.text(j + 0.5,
-                        i + 0.5,
-                        f"{value:.2f}",
-                        color=color,
-                        ha='center',
-                        va='center',
-                        fontsize=18,
-                        weight='bold'
-                        )
+                color = palette(norm_palette(value)) if mode == "letters" else color_annot
+                hm.text(
+                    j + 0.5, i + 0.5, f"{value:.2f}", color=color, ha="center", va="center", fontsize=18, weight="bold"
+                )
     # Add Colorbar
     sm = ScalarMappable(norm=norm_palette, cmap=palette)
     sm.set_array([])  # Needed for colorbar to work
@@ -157,62 +153,67 @@ def expr_correlation(
     if annot_kws is None:
         annot_kws = {}
 
-    annot_kws.update({'orientation': annot_kws.get('orientation', 'horizontal'),
-                      'fraction': annot_kws.get('fraction', 0.05),
-                      'pad': annot_kws.get('pad', 0.2),
-                      'shrink': annot_kws.get('shrink', 0.5)})
+    annot_kws.update(
+        {
+            "orientation": annot_kws.get("orientation", "horizontal"),
+            "fraction": annot_kws.get("fraction", 0.05),
+            "pad": annot_kws.get("pad", 0.2),
+            "shrink": annot_kws.get("shrink", 0.5),
+        }
+    )
 
     cbar = fig.colorbar(sm, ax=axs, **annot_kws)
-    cbar.ax.set_title(f"Correlation {method}", fontdict={'size': 12})
+    cbar.ax.set_title(f"Correlation {method}", fontdict={"size": 12})
 
     # Layout
-    hm.set_xlabel('')
-    hm.set_ylabel('')
+    hm.set_xlabel("")
+    hm.set_ylabel("")
 
     xticks, yticks = hm.get_xticks(), hm.get_yticks()
-    (xtickslabels,
-     ytickslabels) = ([label.get_text() for label in hm.get_xticklabels()],
-                      [label.get_text() for label in hm.get_yticklabels()])
-    if part_removed == 'lower':
+    (xtickslabels, ytickslabels) = (
+        [label.get_text() for label in hm.get_xticklabels()],
+        [label.get_text() for label in hm.get_yticklabels()],
+    )
+    if part_removed == "lower":
         remove_x, remove_y = [], []
         for row in range(mask.shape[0]):
             for col in range(mask.shape[1]):
                 if mask[row, col]:
-                    xtickslabels[col] = ''
-                    ytickslabels[row] = ''
+                    xtickslabels[col] = ""
+                    ytickslabels[row] = ""
                     remove_x.append(xticks[col])
                     remove_y.append(yticks[row])
         xticks = [tick for tick in xticks if tick not in remove_x]
         yticks = [tick for tick in yticks if tick not in remove_y]
-        xtickslabels = [label for label in xtickslabels if label != '']
-        ytickslabels = [label for label in ytickslabels if label != '']
+        xtickslabels = [label for label in xtickslabels if label != ""]
+        ytickslabels = [label for label in ytickslabels if label != ""]
 
     hm.set_xticks(xticks)
-    hm.set_xticklabels(xtickslabels, fontweight='bold', fontsize=ticks_size)
+    hm.set_xticklabels(xtickslabels, fontweight="bold", fontsize=ticks_size)
     hm.set_yticks(yticks)
-    hm.set_yticklabels(ytickslabels, fontweight='bold', fontsize=ticks_size)
+    hm.set_yticklabels(ytickslabels, fontweight="bold", fontsize=ticks_size)
     if path is not None:
-        plt.savefig(convert_path(path) / filename, bbox_inches='tight')
+        plt.savefig(convert_path(path) / filename, bbox_inches="tight")
     if show:
         return plt.show()
     else:
         return hm
 
 
-@require_dependencies([{'name': 'scanpro'}])
+@require_dependencies([{"name": "scanpro"}])
 def cell_props(
     adata: ad.AnnData,
     annot_key: str,
     cond_key: str,
     batch_key: str,
-    annot_order: Union[list, None] = None,
-    cond_order: Union[list, None] = None,
-    covariates: Union[list, None] = None,
-    subset_cells: Union[list, None] = None,
+    annot_order: list | None = None,
+    cond_order: list | None = None,
+    covariates: list | None = None,
+    subset_cells: list | None = None,
     pval_cutoff: float = 0.05,
     figsize: tuple = (5, 6),
-    axis: Union[plt.Axes, None] = None,
-    path: Union[Path, str] = None,
+    axis: plt.Axes | None = None,
+    path: Path | str = None,
     filename: str = "Proportions.svg",
     legend_cols: int = 1,
     xticks_rotation: int = None,
@@ -221,7 +222,7 @@ def cell_props(
     title: str = "",
     title_fontsize: int = 15,
     legend_fontsize: int = 12,
-    legend_fontweight: Union[float, str] = None,
+    legend_fontweight: float | str = None,
     show: bool = True,
     legend_title: str = "",
     add_total_ncell: bool = True,
@@ -229,7 +230,7 @@ def cell_props(
     linewidth: float = 0.9,
     get_props: bool = False,
     **kwargs,
-) -> Union[None, pd.DataFrame, plt.Axes]:
+) -> None | pd.DataFrame | plt.Axes:
     """Stacked barplot showing changes in cell-type proportions.
 
     Generates a stacked barplot to show changes in cell-type proportions between different conditions. Significant changes
@@ -388,9 +389,9 @@ def cell_props(
                         b.set_zorder(3)
 
     if xticks_rotation is not None:
-        xticks_prop = {'rotation': xticks_rotation, 'ha': 'right', 'va': 'top'}
+        xticks_prop = {"rotation": xticks_rotation, "ha": "right", "va": "top"}
     else:
-        xticks_prop = {'rotation': xticks_rotation}
+        xticks_prop = {"rotation": xticks_rotation}
     axs.set_xticks(xtick, xtext, fontweight="bold", **xticks_prop)
     axs.set_title(title, fontsize=title_fontsize, fontweight="bold")
 
@@ -472,13 +473,13 @@ def volcano_plot(
     lfc_col: str = "logfoldchanges",
     pval_col: str = "pvals_adj",
     gene_col: str = "names",
-    fig_path: Union[str, None] = None,
+    fig_path: str | None = None,
     filename: str = "Volcano.svg",
     pval_lim: float = 2e-10,
     lfc_lim: tuple = (-10, 10),
     title: str = "",
     figsize: tuple[int, int] = (18, 9),
-    mygenes: Union[list, None] = None,
+    mygenes: list | None = None,
     lfc_cut: float = 0.25,
     pval_cut: float = 0.05,
     clean: bool = True,
@@ -487,7 +488,7 @@ def volcano_plot(
     textprops: dict = None,
     show: bool = True,
     **kwargs,
-) -> Union[plt.Axes, None]:
+) -> plt.Axes | None:
     """Generate a volcano plot.
 
     Genes will be colored differently depending on the p-value (Pval) and logfoldchange (LFC):
@@ -537,8 +538,7 @@ def volcano_plot(
     dge = dge.copy()  # Do not Modify input
 
     textprops = {} if textprops is None else textprops
-    textprops = {'weight': textprops.get('weight', 'bold'),
-                 'size': textprops.get('size', 13)}
+    textprops = {"weight": textprops.get("weight", "bold"), "size": textprops.get("size", 13)}
 
     # Replace Pvals & LFC greater than limit to the limit
     dge[pval_col][dge[pval_col] < pval_lim] = pval_lim
@@ -566,10 +566,22 @@ def volcano_plot(
     fig, axs = plt.subplots(1, 1, figsize=figsize)
     axs.scatter(lfcs, -np.log10(pvals), color="grey", alpha=0.7, label="NS", s=dot_size**2, rasterized=True)
     axs.scatter(
-        lfcs[cat1], -np.log10(pvals[cat1]), color="tomato", alpha=0.7, label="FDR & log2FC", s=dot_size**2, rasterized=True
+        lfcs[cat1],
+        -np.log10(pvals[cat1]),
+        color="tomato",
+        alpha=0.7,
+        label="FDR & log2FC",
+        s=dot_size**2,
+        rasterized=True,
     )
     axs.scatter(
-        lfcs[cat2], -np.log10(pvals[cat2]), color="lightsteelblue", alpha=0.7, label="FDR", s=dot_size**2, rasterized=True
+        lfcs[cat2],
+        -np.log10(pvals[cat2]),
+        color="lightsteelblue",
+        alpha=0.7,
+        label="FDR",
+        s=dot_size**2,
+        rasterized=True,
     )
     axs.scatter(
         lfcs[cat3], -np.log10(pvals[cat3]), color="limegreen", alpha=0.7, label="log2FC", s=dot_size**2, rasterized=True
@@ -604,13 +616,20 @@ def volcano_plot(
         else:
             if l in mygenes:
                 texts.append(plt.text(x, -np.log10(y), l, ha="center", va="center", fontdict=textprops))
-    adjust_text(texts, arrowprops=dict(arrowstyle="-", color="k", lw=0.5), **kwargs)
+    adjust_text(texts, arrowprops={"arrowstyle": "-", "color": "k", "lw": 0.5}, **kwargs)
 
     # Add Axis labels, Legend, & Title
     axs.set_xlabel("Log2FC")
     axs.set_ylabel("-log10(FDR)")
     axs.set_title(title)
-    axs.legend(loc="upper center", bbox_to_anchor=(0.5, -0.13), frameon=False, ncols=2, markerscale=dot_size, prop={'weight': 'bold'})
+    axs.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.13),
+        frameon=False,
+        ncols=2,
+        markerscale=dot_size,
+        prop={"weight": "bold"},
+    )
 
     if fig_path is not None:
         plt.savefig(convert_path(fig_path) / filename, bbox_inches="tight")
@@ -632,13 +651,13 @@ def split_bar_gsea(
     topn: float = 10,
     colors_pairs: list = ("sandybrown", "royalblue"),
     alpha_colors: float = 0.3,
-    path: Union[str, None] = None,
+    path: str | None = None,
     spacing: float = 5,
     txt_size: float = 12,
     filename: str = "SplitBar.svg",
     title: str = "Top 10 GO Terms in each Condition",
     show: bool = True,
-) -> Union[plt.Axes, None]:
+) -> plt.Axes | None:
     """Split BarPlot for GO terms.
 
     This function generates a split barplot. This is a plot where the top 10 GO terms are shown, sorted based on a

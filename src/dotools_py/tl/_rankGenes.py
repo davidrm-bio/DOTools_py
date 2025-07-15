@@ -3,13 +3,12 @@
 #     CORRECTION FOR RANK GENES GROUPS
 #
 ########################################################################################################################
-from math import floor
-from typing import TYPE_CHECKING, Literal, get_args,  ParamSpec, TypeVar,overload, cast
-
-import numpy as np
-import numba  # Speed Up Wilcoxon
 import sys
+from math import floor
+from typing import Literal, ParamSpec, TypeVar, cast, get_args, overload
 
+import numba  # Speed Up Wilcoxon
+import numpy as np
 import pandas as pd
 import scipy
 from scanpy import _utils
@@ -25,27 +24,31 @@ from scanpy.get import _check_mask
 
 try:
     from fast_array_utils.stats import mean_var
+
     fast_array = True
 except ImportError:
     from scanpy.preprocessing._utils import _get_mean_var
+
     fast_array = False
 
-from scipy.sparse import issparse, vstack
-
-from collections.abc import Generator, Iterable, Callable
-from functools import cache, partial, wraps
+import warnings
+from collections.abc import Callable, Generator, Iterable
+from functools import cache, wraps
 
 from anndata import AnnData
 from numpy.typing import NDArray
 from scipy import sparse
-import warnings
+from scipy.sparse import issparse, vstack
+
 
 def check_scanpy_version(fast: bool):
     import scanpy
-    if scanpy.__version__ > '1.11.0' and fast:
-        return 'scanpy_parallel'
+
+    if scanpy.__version__ > "1.11.0" and fast:
+        return "scanpy_parallel"
     else:
-        return 'scapy_normal'
+        return "scapy_normal"
+
 
 scanpy_version = check_scanpy_version(fast_array)
 
@@ -55,14 +58,14 @@ _CorrMethod = Literal["benjamini-hochberg", "bonferroni"]
 _Method = Literal["logreg", "t-test", "wilcoxon", "t-test_overestim_var"]
 
 # New implementation from scanpy to speed up Wilcoxon test
-_CSArray = sparse.csr_array | sparse.csc_array  # noqa: TID251
+_CSArray = sparse.csr_array | sparse.csc_array
 """Only use if you want to specially handle arrays as opposed to matrices."""
 
-_CSMatrix = sparse.csr_matrix | sparse.csc_matrix  # noqa: TID251
+_CSMatrix = sparse.csr_matrix | sparse.csc_matrix
 """Only use if you want to specially handle matrices as opposed to arrays."""
 
-CSRBase = sparse.csr_matrix | sparse.csr_array  # noqa: TID251
-CSCBase = sparse.csc_matrix | sparse.csc_array  # noqa: TID251
+CSRBase = sparse.csr_matrix | sparse.csr_array
+CSCBase = sparse.csc_matrix | sparse.csc_array
 CSBase = _CSArray | _CSMatrix
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -117,18 +120,14 @@ def _is_in_unsafe_thread_pool() -> bool:
 
     current_thread = threading.current_thread()
     # ThreadPoolExecutor threads typically have names like 'ThreadPoolExecutor-0_1'
-    return (
-        current_thread.name.startswith("ThreadPoolExecutor")
-        and _numba_threading_layer() not in LAYERS["threadsafe"]
-    )
+    return current_thread.name.startswith("ThreadPoolExecutor") and _numba_threading_layer() not in LAYERS["threadsafe"]
+
 
 @overload
 def njit(fn: Callable[P, R], /) -> Callable[P, R]: ...
 @overload
 def njit() -> Callable[[Callable[P, R]], Callable[P, R]]: ...
-def njit(
-    fn: Callable[P, R] | None = None, /
-) -> Callable[P, R] | Callable[[Callable[P, R]], Callable[P, R]]:
+def njit(fn: Callable[P, R] | None = None, /) -> Callable[P, R] | Callable[[Callable[P, R]], Callable[P, R]]:
     """Jit-compile a function using numba.
 
     On call, this function dispatches to a parallel or sequential numba function,
@@ -141,8 +140,7 @@ def njit(
         import numba
 
         fns: dict[bool, Callable[P, R]] = {
-            parallel: numba.njit(f, cache=True, parallel=parallel)  # noqa: TID251
-            for parallel in (True, False)
+            parallel: numba.njit(f, cache=True, parallel=parallel) for parallel in (True, False)
         }
 
         @wraps(f)
@@ -194,9 +192,7 @@ def _tiecorrect(rankvals: NDArray[np.number]) -> NDArray[np.float64]:
     tc = np.ones(rankvals.shape[1], dtype=np.float64)
     for j in numba.prange(rankvals.shape[1]):
         arr = np.sort(np.ravel(rankvals[:, j]))
-        idx = np.flatnonzero(
-            np.concatenate((np.array([True]), arr[1:] != arr[:-1], np.array([True])))
-        )
+        idx = np.flatnonzero(np.concatenate((np.array([True]), arr[1:] != arr[:-1], np.array([True]))))
         cnt = np.diff(idx).astype(np.float64)
 
         size = np.float64(arr.size)
@@ -204,6 +200,7 @@ def _tiecorrect(rankvals: NDArray[np.number]) -> NDArray[np.float64]:
             tc[j] = 1.0 - (cnt**3 - cnt).sum() / (size**3 - size)
 
     return tc
+
 
 @njit
 def rankdata(data: NDArray[np.number]) -> NDArray[np.float64]:
@@ -244,9 +241,7 @@ def _ranks(
 
     if masked:
         n_cells = np.count_nonzero(mask_obs) + np.count_nonzero(mask_obs_rest)
-        get_chunk = lambda X, left, right: merge(
-            (X[mask_obs, left:right], X[mask_obs_rest, left:right])
-        )
+        get_chunk = lambda X, left, right: merge((X[mask_obs, left:right], X[mask_obs_rest, left:right]))
     else:
         n_cells = X.shape[0]
         get_chunk = lambda X, left, right: adapt(X[:, left:right])
@@ -262,6 +257,7 @@ def _ranks(
 
 
 ###### Old fxs
+
 
 def _ranks_old(
     X: np.ndarray | sparse.csr_matrix | sparse.csc_matrix,
@@ -413,9 +409,7 @@ class _RankGenes:
                 X_rest = _undo_logspace(X_rest)
 
             if fast_array:
-                self.means[self.ireference], self.vars[self.ireference] = mean_var(
-                    X_rest, axis=0, correction=1
-                )
+                self.means[self.ireference], self.vars[self.ireference] = mean_var(X_rest, axis=0, correction=1)
             else:
                 self.means[self.ireference], self.vars[self.ireference] = _get_mean_var(X_rest)
 
@@ -442,9 +436,7 @@ class _RankGenes:
             if self.ireference is not None and group_index == self.ireference:
                 continue
             if fast_array:
-                self.means[group_index], self.vars[group_index] = mean_var(
-                    X_mask, axis=0, correction=1
-                )
+                self.means[group_index], self.vars[group_index] = mean_var(X_mask, axis=0, correction=1)
             else:
                 self.means[group_index], self.vars[group_index] = _get_mean_var(X_mask)
 
@@ -557,7 +549,7 @@ class _RankGenes:
                     logg.hint("Few observations in a group for normal approximation (<=25). Lower test accuracy.")
 
                 # Calculate rank sums for each chunk for the current mask
-                if scanpy_version == 'scanpy_parallel':
+                if scanpy_version == "scanpy_parallel":
                     for ranks, left, right in _ranks(self.X, mask_obs, mask_obs_rest):
                         scores[left:right] = ranks[0:n_active, :].sum(axis=0)
                         if tie_correct:
@@ -585,7 +577,7 @@ class _RankGenes:
             if tie_correct:
                 T = np.zeros((n_groups, n_genes))
 
-            if scanpy_version == 'scanpy_parallel':
+            if scanpy_version == "scanpy_parallel":
                 for ranks, left, right in _ranks(self.X):
                     # sum up adjusted_ranks to calculate W_m,n
                     for group_index, mask_obs in enumerate(self.groups_masks_obs):
@@ -839,7 +831,7 @@ def rank_genes_groups(
     or dense data are passed. See `here <https://github.com/scverse/scanpy/blob/main/tests/test_rank_genes_groups.py>`__.
 
     See Also
-    -------
+    --------
         :func:`dotools_py.tl.grouped_ttest`: run DEA at pseudobulk level between condition for all genes
         :func:`dotools_py.tl.run_mast`: run MAST test
     """
