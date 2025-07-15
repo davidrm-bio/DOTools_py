@@ -147,10 +147,9 @@ def get_expr(
     :param features: Gene names in `var_names` to include.
     :param out_format: Format of the dataframe (wide or long).
     :param layer: Layer in the anndata object to extract the expression from.
-    :return:Returns a `DataFrame`.  If `out_format` is set to `wide` the index will be cell barcodes and the column names will be set to the gene names.
-            If `groups` are specified, extra columns will be added.If `out_format` is set to `long` the following fields are included:
-            `genes`, containing the gene names;  `groups` containing the groups, and `expr`  containing the mean expression values.
-
+    :return: Returns a `DataFrame`.  If `out_format` is set to `wide`, the index will be cell barcodes and the column names
+            will be set to the gene names. If `groups` are specified, extra columns will be added. If `out_format` is set to `long`, the following fields
+            are included: `genes`, containing the gene names; `groups`, containing the groups, and `expr`, containing the mean expression values.
 
     Example
     -------
