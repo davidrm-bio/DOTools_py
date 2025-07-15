@@ -195,7 +195,7 @@ def integrate_data(
                 Explained variance, equivalent to the eigenvalues of the
                 covariance matrix.
             `adata.obsm[representation]`: :class:`numpy.ndarray` (dtype ``float``)
-                Representation will be set to `X_pca_harmony` for harmony;`X_scanorama` for scanorama;
+                Representation will be set to `X_pca_harmony` for harmony; `X_scanorama` for scanorama;
                 `X_CCA` for CCA4/CC5, and `X_scVI` for scVI.
             `adata.obsp['distances']` : :class:`scipy.sparse.csr_matrix` (dtype `float`)
                 Distance matrix of the nearest neighbors search.
@@ -339,7 +339,7 @@ def auto_annot(
     :param pl_cell_prob: Generate a Dotplot to visualise the cell probabilities for each cluster.
     :param path: Path to save the dotplot of cell probabilities.
     :param filename: Name of the file.
-    :return:Returns `None`. The following fields will be set:
+    :return: Returns `None`. The following fields will be set:
             `adata.obs['autoAnnot' | key_added]`: :class:`pandas.Series` (dtype ``category``)
                 Array that stores the predicted annotation for each cell.
             `adata.obs['celltypist_conf_score']`: :class:`pandas.Series` (dtype ``float``)
@@ -474,10 +474,10 @@ def reclustering(
     :return: Returns `None` if `get_subset` is set to False, otherwise a subsetted AnnData after the re-clustering is returned. Additionally,
              the following fields will be set:
 
-             `adata.obs['annotation_recluster' | key_added]`: :class:`pandas.Series` (dtype ``category``)
+             `adata.obs['annotation_recluster' | key_added]` : :class:`pandas.Series` (dtype ``category``)
                 Array that stores the re-clusters groups consisting of the original group_id + the new cluster id (e.g., for
                 a the monocyte cluster with 3 sub-clusters the new clusters are monocyte_0, monocyte_1, and monocyte_2).
-             `adata.obs['autoAnnot_recluster' | key_added_autoannot]`: :class:`pandas.Series` (dtype ``category``)
+             `adata.obs['autoAnnot_recluster' | key_added_autoannot]` : :class:`pandas.Series` (dtype ``category``)
                 Array that stores the re-clusters groups after re-running the automatic annotation pipeline.
 
     See Also

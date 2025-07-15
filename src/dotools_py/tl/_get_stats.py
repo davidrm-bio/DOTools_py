@@ -420,7 +420,7 @@ def rank_genes_condition(
     :param get_results: return a dataframe with results.
     :param key_added:  key to use in uns.
     :return: Returns a `DataFrame` if `get_results` is set to True with the results from the differential expression
-             analysis. The following fields are included:
+             analysis. If a path is provided, the DataFrame  will be saved under the specified path. The following fields are included:
 
              `GeneName`
                 Name of the genes
@@ -434,11 +434,8 @@ def rank_genes_condition(
                 Column containing the group tested
             `groupby`
                 The column name is set to `groupby` and contains the cluster groups.
-
-            If a path is provided, the DataFrame  will be saved under the specified path. The following field will also be set:
-
              `adata.uns['rank_genes_condition' | key_added]`
-                Dataframe with results of the differential expression analysis
+                Dataframe with results of the differential expression analysis.
 
     See Also
     -------
