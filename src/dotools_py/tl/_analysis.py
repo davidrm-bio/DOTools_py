@@ -335,20 +335,18 @@ def auto_annot(
     :param verbose: Whether to show information of the analysis steps.
     :param update_models: Download the latest models.
     :param dict_labels: Dictionary with the updated labels for the names in celltypist model. Currently, only a dictionary for
-    the `Human_Adult_Heart.pkl` model. See :func:`dotools_py.dt.standard_ct_labels_heart()`
+                        the `Human_Adult_Heart.pkl` model. See :func:`dotools_py.dt.standard_ct_labels_heart()`
     :param pl_cell_prob: Generate a Dotplot to visualise the cell probabilities for each cluster.
     :param path: Path to save the dotplot of cell probabilities.
     :param filename: Name of the file.
-    :return: Returns `None`. The following fields will be set:
-
+    :return:Returns `None`. The following fields will be set:
             `adata.obs['autoAnnot' | key_added]`: :class:`pandas.Series` (dtype ``category``)
-                 Array that stores the predicted annotation for each cell.
+                Array that stores the predicted annotation for each cell.
             `adata.obs['celltypist_conf_score']`: :class:`pandas.Series` (dtype ``float``)
                 Array that stores the confidence scores for the prediction.
             If `update_label` is set to True, an additional field will be set:
             `adata.obs['annotation' | key_updated]`: :class:`pandas.Series` (dtype ``category``)
-                Array that stores the predicted annotation for each cell updated based on the dictionary
-                `dict_labels`.
+                Array that stores the predicted annotation for each cell updated based on the dictionary `dict_labels`.
 
     Example
     -------

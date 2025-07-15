@@ -59,13 +59,11 @@ def mean_expr(
     :param layer: Layer of the AnnData to use. If not set use `X`.
     :return: Returns a `DataFrame`. If `out_format` is set to `long` the following fields are included:
 
-             `df['gene']` - Column containing the gene names
-             `df['groupN']` - Column containing the groups. For each metadata column a new column will be added (e.g.,
-                              if 'condition' and 'annotation' is provided, two columns are added 'group0' with condition
-                              groups and 'group1' with annotation groups.
-             `df['expr']` - Column containing the mean expression values.
-             If `out_format` is set to `wide` the index will be set to the gene names and the column names will be set
-             to the groups.
+            `df['gene']` - Column containing the gene names
+            `df['groupN']` - Column containing the groups. For each metadata column a new column will be added (e.g., if 'condition' and 'annotation' is provided, two columns are added 'group0' with condition
+                             groups and 'group1' with annotation groups.
+            `df['expr']` - Column containing the mean expression values.
+            If `out_format` is set to `wide` the index will be set to the gene names and the column names will be set to the groups.
 
     Example
     -------
@@ -154,12 +152,10 @@ def get_expr(
     :param layer: Layer in the anndata object to extract the expression from.
     :return: Returns a `DataFrame`. If `out_format` is set to `long` the following fields are included:
 
-             `df['genes']` - Column containing the gene names
-             `df[groups]` - Column containing the groups. For each metadata column a new column will be added (e.g.,
-                            if 'condition' and 'annotation' is provided, two columns are added 'condition' and 'annotation'.
-             `df['expr']` - Column containing the mean expression values.
-             If `out_format` is set to `wide` the index will be cell barcodes and the column names will be set
-             to the gene names. If `groups` are specified, extra columns will be added.
+            `df['genes']` - Column containing the gene names
+            `df[groups]` - Column containing the groups. For each metadata column a new column will be added (e.g., if 'condition' and 'annotation' is provided, two columns are added 'condition' and 'annotation'.
+            `df['expr']` - Column containing the mean expression values.
+            If `out_format` is set to `wide` the index will be cell barcodes and the column names will be set to the gene names. If `groups` are specified, extra columns will be added.
 
     Example
     -------
@@ -537,9 +533,8 @@ def grouped_ttest(
     :param key_added: key to use in uns.
     :param layer: layer of the anndata object to use.
     :param get_results: return a dataframe with results.
-    :return: Returns a `DataFrame` if `get_results` is set to True with the results from the differential expression
-             analysis. The `DataFrame` with the results are also saved in the AnnData in
-              `adata.uns['grouped_ttest' | key_added]`.
+    :return:Returns a `DataFrame` if `get_results` is set to True with the results from the differential expression
+            analysis. The `DataFrame` with the results are also saved in the AnnData in `adata.uns['grouped_ttest' | key_added]`.
 
     See Also
     -------
@@ -910,7 +905,7 @@ def rank_genes_consensus(
     :param key_added: Name of the uns attribute with the results
     :return: Returns a `DataFrame` with DEA results if `get_results` is set to True. The following field will also be set:
 
-             `adata.uns['rank_genes_consensus' | key_added]`
+            `adata.uns['rank_genes_consensus' | key_added]`
                 Dataframe with results of the differential expression analysis
     See Also
     -------
