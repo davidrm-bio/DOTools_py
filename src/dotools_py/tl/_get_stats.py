@@ -53,12 +53,13 @@ def mean_expr(
     or several categories. Assume log-normalised counts.
 
     :param adata: Annotated data matrix.
-    :param group_by: Metadata column(s) in `obs` to group by.
+    :param group_by: Metadata columns in `obs` to group by.
     :param features: List of features in `var_name` to use. If not set, it will be calculated over all the genes.
     :param out_format: Format of the Dataframe returned. This can be wide or long format.
     :param layer: Layer of the AnnData to use. If not set use `X`.
     :return: Returns a `DataFrame`. If `out_format` is set to `wide`, the index will be set to the gene names and the
     column names will be set to the groups. If `out_format` is set to `long`, the following fields are included:
+
         `df['gene']`
             Column containing the gene names.
         `df['groupN']`
@@ -151,12 +152,13 @@ def get_expr(
     :param features: Gene names in `var_names` to include.
     :param out_format: Format of the dataframe (wide or long).
     :param layer: Layer in the anndata object to extract the expression from.
-    :return: Returns a `DataFrame`. If `out_format` is set to `long` the following fields are included:
+    :return: Returns a `DataFrame`.  If `out_format` is set to `wide` the index will be cell barcodes and the column names will be set to the gene names.
+    If `groups` are specified, extra columns will be added.If `out_format` is set to `long` the following fields are included:
 
             `df['genes']` - Column containing the gene names
             `df[groups]` - Column containing the groups. For each metadata column a new column will be added (e.g., if 'condition' and 'annotation' is provided, two columns are added 'condition' and 'annotation').
             `df['expr']` - Column containing the mean expression values.
-            If `out_format` is set to `wide` the index will be cell barcodes and the column names will be set to the gene names. If `groups` are specified, extra columns will be added.
+
 
     Example
     -------
