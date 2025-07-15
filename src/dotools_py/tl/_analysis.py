@@ -340,6 +340,7 @@ def auto_annot(
     :param path: Path to save the dotplot of cell probabilities.
     :param filename: Name of the file.
     :return: Returns `None`. The following fields will be set:
+
             `adata.obs['autoAnnot' | key_added]`: :class:`pandas.Series` (dtype ``category``)
                 Array that stores the predicted annotation for each cell.
             `adata.obs['celltypist_conf_score']`: :class:`pandas.Series` (dtype ``float``)

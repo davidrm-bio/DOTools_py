@@ -434,7 +434,7 @@ def rank_genes_condition(
                 Column containing the group tested
             `groupby`
                 The column name is set to `groupby` and contains the cluster groups.
-             `adata.uns['rank_genes_condition' | key_added]`
+            `adata.uns['rank_genes_condition' | key_added]`
                 Dataframe with results of the differential expression analysis.
 
     See Also
