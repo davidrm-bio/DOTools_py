@@ -344,9 +344,9 @@ def auto_annot(
                 Array that stores the predicted annotation for each cell.
             `adata.obs['celltypist_conf_score']`: :class:`pandas.Series` (dtype ``float``)
                 Array that stores the confidence scores for the prediction.
-            If `update_label` is set to True, an additional field will be set:
             `adata.obs['annotation' | key_updated]`: :class:`pandas.Series` (dtype ``category``)
-                Array that stores the predicted annotation for each cell updated based on the dictionary `dict_labels`.
+                 If `update_label` is set to True, this  field will be set and contains an array that stores the
+                 predicted annotation for each cell updated based on the dictionary `dict_labels`.
 
     Example
     -------

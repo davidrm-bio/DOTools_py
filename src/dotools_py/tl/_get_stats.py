@@ -58,12 +58,14 @@ def mean_expr(
     :param out_format: Format of the Dataframe returned. This can be wide or long format.
     :param layer: Layer of the AnnData to use. If not set use `X`.
     :return: Returns a `DataFrame`. If `out_format` is set to `long` the following fields are included:
-
-            `df['gene']` - Column containing the gene names
-            `df['groupN']` - Column containing the groups. For each metadata column a new column will be added (e.g., if 'condition' and 'annotation' is provided, two columns are added 'group0' with condition
-                             groups and 'group1' with annotation groups.
-            `df['expr']` - Column containing the mean expression values.
-            If `out_format` is set to `wide` the index will be set to the gene names and the column names will be set to the groups.
+            `df['gene']`
+                Column containing the gene names
+            `df['groupN']`
+                Column containing the groups. For each metadata column a new column will be added (e.g., if 'condition' and 'annotation' is provided, two columns are added 'group0' with condition groups and 'group1' with annotation groups.
+            `df['expr']`
+                Column containing the mean expression values.
+            If `out_format` is set to `wide` the index will be set to the gene names and the column names will
+            be set to the groups.
 
     Example
     -------
@@ -533,8 +535,8 @@ def grouped_ttest(
     :param key_added: key to use in uns.
     :param layer: layer of the anndata object to use.
     :param get_results: return a dataframe with results.
-    :return:Returns a `DataFrame` if `get_results` is set to True with the results from the differential expression
-            analysis. The `DataFrame` with the results are also saved in the AnnData in `adata.uns['grouped_ttest' | key_added]`.
+    :return: Returns a `DataFrame` if `get_results` is set to True with the results from the differential expression analysis.
+             The `DataFrame` with the results are also saved in the AnnData in `adata.uns['grouped_ttest' | key_added]`.
 
     See Also
     -------
@@ -907,6 +909,7 @@ def rank_genes_consensus(
 
             `adata.uns['rank_genes_consensus' | key_added]`
                 Dataframe with results of the differential expression analysis
+
     See Also
     -------
         :func:`dotools_py.tl.rank_genes_condition`: run DEA at single-cell level between condition for all clusters
