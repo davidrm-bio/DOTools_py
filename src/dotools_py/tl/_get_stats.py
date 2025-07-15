@@ -57,15 +57,16 @@ def mean_expr(
     :param features: List of features in `var_name` to use. If not set, it will be calculated over all the genes.
     :param out_format: Format of the Dataframe returned. This can be wide or long format.
     :param layer: Layer of the AnnData to use. If not set use `X`.
-    :return: Returns a `DataFrame`. If `out_format` is set to `long` the following fields are included:
-            `df['gene']`
-                Column containing the gene names
-            `df['groupN']`
-                Column containing the groups. For each metadata column a new column will be added (e.g., if 'condition' and 'annotation' is provided, two columns are added 'group0' with condition groups and 'group1' with annotation groups.
-            `df['expr']`
-                Column containing the mean expression values.
-            If `out_format` is set to `wide` the index will be set to the gene names and the column names will
-            be set to the groups.
+    :return: Returns a `DataFrame`.
+    If `out_format` is set to `long`, the following fields are included:
+        `df['gene']`
+            Column containing the gene names
+        `df['groupN']`
+            Column containing the groups. For each metadata column a new column will be added
+            (e.g., if 'condition' and 'annotation' is provided, two columns are added 'group0' with condition groups and 'group1' with annotation groups).
+        `df['expr']`
+            Column containing the mean expression values.
+    If `out_format` is set to `wide`, the index will be set to the gene names and the column names will be set to the groups.
 
     Example
     -------
