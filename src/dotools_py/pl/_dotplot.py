@@ -321,7 +321,8 @@ class DotPlot(BasePlot):
         x_padding: float | Empty = _empty,
         y_padding: float | Empty = _empty,
     ) -> Self:
-        r"""Modifies plot visual parameters.
+        """\
+        Modifies plot visual parameters.
 
         Parameters
         ----------
@@ -631,8 +632,7 @@ class DotPlot(BasePlot):
         norm: Normalize | None,
         **kwds,
     ):
-        """Make a dotplot.
-
+        """\
         Makes a *dot plot* given two dt frames, one containing
         the doc size and other containing the dot color. The indices and
         columns of the dt frame are used to label the output image

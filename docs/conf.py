@@ -14,6 +14,7 @@ import matplotlib
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE / "extensions"))
 
+import dotools_py as do
 matplotlib.use("agg")
 
 # -- Project information -----------------------------------------------------
