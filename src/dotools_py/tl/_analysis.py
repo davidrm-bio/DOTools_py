@@ -339,7 +339,7 @@ def auto_annot(
     :param pl_cell_prob: Generate a Dotplot to visualise the cell probabilities for each cluster.
     :param path: Path to save the dotplot of cell probabilities.
     :param filename: Name of the file.
-    :return: Returns `None`. The following fields will be set:
+    :return: Return `None`. The following fields will be set:
 
             `adata.obs['autoAnnot' | key_added]`: :class:`pandas.Series` (dtype ``category``)
                 Array that stores the predicted annotation for each cell.
