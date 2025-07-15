@@ -20,7 +20,7 @@ from scipy.stats import ttest_ind
 from tqdm import tqdm
 
 from dotools_py import logger
-from dotools_py.tl import rank_genes_groups
+from dotools_py.tl._rankGenes import rank_genes_groups
 from dotools_py.utils import convert_path, get_paths_utils, sanitize_anndata
 
 
