@@ -17,6 +17,7 @@ def select_slide(adata: ad.AnnData,
     :param adata: Anndata object with multiple spatial experiments.
     :param s: name of selected experiment.
     :param s_col: column in obs listing experiment name for each location.
+    :return: returns `AnnData` after subsetting.
     """
     slid = adata[adata.obs[s_col].isin([s]), :].copy()
     s_keys = list(slid.uns['spatial'].keys())
@@ -34,14 +35,14 @@ def add_smooth_kernel(
     layer_name: str = 'smooth_X',
     bandwidth: int = 100,
     multiple: bool = True
-) -> ad.AnnData:
+) -> None:
     """Compute a smooth kernel, i.e, expression matrix is smooth.
 
     :param adata: AnnData object.
     :param layer_name: name of the layer with smooth expression matrix.
     :param bandwidth: radius (the greater, the more neighbors are considered).
     :param multiple: AnnData Object Contains Multiple Sample.
-    :return: anndata object with new layer.
+    :return: Returns `None`. A new layer will be added `adata.layers['smooth_X' | layer_name]`
     """
     import liana
 
@@ -68,4 +69,4 @@ def add_smooth_kernel(
 
     smooth_x = smooth_x.reindex(index=adata.obs_names, columns=adata.var_names)
     adata.layers[layer_name] = sp.csr_matrix(smooth_x.values, dtype=np.float32)
-    return adata
+    return None

@@ -22,6 +22,7 @@ from dotools_py.dt import standard_ct_labels_heart
 
 DictUpdateCellLabels = standard_ct_labels_heart()
 
+
 def _run_cca(
     adata: ad.AnnData,
     batch_key: str,
@@ -47,12 +48,12 @@ def _run_cca(
     in_path = os.path.join(tmpdir_path, "adata_hvg.h5ad")
 
     cmd = ["Rscript",
-            rscript,
-            "--input=" + str(in_path),
-            "--out=" + str(tmpdir_path) + "/",
-            "--name=" + batch_key,
-            "--version=" + version,
-        ]
+           rscript,
+           "--input=" + str(in_path),
+           "--out=" + str(tmpdir_path) + "/",
+           "--name=" + batch_key,
+           "--version=" + version,
+           ]
 
     subprocess.call(cmd)
 
@@ -166,77 +167,65 @@ def integrate_data(
 
     .. note::
         The integration method CCA is based on Seurat. The v4 will generate a corrected expression matrix of all the
-        highly variable genes that is then used to perform dimensionality reduction. In v5 the dimensionality
+        highly variable genes (HVGs) that is then used to perform dimensionality reduction. In v5 the dimensionality
         reduction is performed before producing the CCA embeddings.
 
-    :param adata: annotated data matrix.
-    :param batch_key: column in `obs` with batch information.
-    :param hvg_batch: if set to True, highly variable genes shared across samples will be used for the integration.
-    :param harmony: integrate using harmony.
-    :param scanorama: integrate using scanorama.
-    :param bbknn: integrate using bbknn.
-    :param cca4: integrate using cca version 4.
-    :param cca5: integrate using cca version 5.
-    :param scvi: integrate using scvi.
-    :param resolution: resolution for the leiden clustering.
-    :param categorical_covariates: categorical covariates for scVI.
-    :param continuos_covariates: continuous covariates for scVI.
-    :param kwargs: additional arguments for `scVI model <https://docs.scvi-tools.org/en/stable/api/reference/scvi.model.SCVI.html>`_.
-    :return: annotated data matrix integrated.
+    :param adata: Annotated data matrix.
+    :param batch_key: Metadata column in `obs` with batch information.
+    :param hvg_batch: If set to `True`, the highly variable genes shared across samples will be used for the integration.
+    :param harmony: Integrate using harmony.
+    :param scanorama: Integrate using scanorama.
+    :param bbknn: Integrate using bbknn.
+    :param cca4: Integrate using cca version 4.
+    :param cca5: Integrate using cca version 5.
+    :param scvi: Integrate using scvi.
+    :param resolution: Resolution for the leiden clustering.
+    :param categorical_covariates: Categorical covariates for scVI.
+    :param continuos_covariates: Continuous covariates for scVI.
+    :param kwargs: Additional arguments for `scVI model <https://docs.scvi-tools.org/en/stable/api/reference/scvi.model.SCVI.html>`_.
+    :return: Returns `None`. The following fields will be set:
+
+            `adata.obsm['X_pca']`: :class:`numpy.ndarray` (dtype ``float``)
+                PCA representation of data.
+            `adata.varm['PCs']` : :class:`numpy.ndarray`
+                The principal components containing the loadings.
+            `adata.uns['pca']['variance_ratio']` : :class:`numpy.ndarray` (shape `(n_comps,)`)
+                Ratio of explained variance.
+            `adata.uns['pca']['variance']` : :class:`numpy.ndarray` (shape `(n_comps,)`)
+                Explained variance, equivalent to the eigenvalues of the
+                covariance matrix.
+            `adata.obsm[representation]`: :class:`numpy.ndarray` (dtype ``float``)
+                Representation will be set to `X_pca_harmony` for harmony;`X_scanorama` for scanorama;
+                `X_CCA` for CCA4/CC5, and `X_scVI` for scVI.
+            `adata.obsp['distances']` : :class:`scipy.sparse.csr_matrix` (dtype `float`)
+                Distance matrix of the nearest neighbors search.
+            `adata.obsp['connectivities']` : :class:`scipy.sparse._csr.csr_matrix` (dtype `float`)
+                Weighted adjacency matrix of the neighborhood graph of data points.
+                Weights should be interpreted as connectivities.
+            `adata.uns['neighbors']` : :class:`dict`
+                neighbors parameters.
+            `adata.obsm['X_umap']`: :class:`numpy.ndarray` (dtype ``float``)
+                UMAP coordinates of the data
+            `adata.obs['leiden']`: :class:`pandas.Series` (dtype ``category``)
+                Array that stores the cluster groups.
+            `adata.uns['leiden']['params']` : :class:`dict`
+                A dict with the values for the parameters `resolution`, `random_state`,
+                and `n_iterations`.
 
     Example
     -------
     >>> import dotools_py as do
     >>> adata = do.dt.example_10x_processed()
-    >>> adata = do.tl.integrate_data(adata, batch_key='batch', harmony=True)
+    >>> do.tl.integrate_data(adata, batch_key='batch', harmony=True)
     >>> adata
-    2025-07-11 10:52:17,913 - Computing HVGs
-    extracting highly variable genes
-        finished (0:00:00)
-    ... as `zero_center=True`, sparse input is densified and may lead to large memory consumption
-    computing PCA
-        with n_comps=50
-        finished (0:00:00)
-    2025-07-11 10:52:18,091 - Integration using Harmony
-    2025-07-11 10:52:18,580 - harmonypy - INFO - Computing initial centroids with sklearn.KMeans...
-    Computing initial centroids with sklearn.KMeans...
-    2025-07-11 10:52:19,387 - harmonypy - INFO - sklearn.KMeans initialization complete.
-    sklearn.KMeans initialization complete.
-    2025-07-11 10:52:19,405 - harmonypy - INFO - Iteration 1 of 100
-    Iteration 1 of 100
-    2025-07-11 10:52:19,620 - harmonypy - INFO - Iteration 2 of 100
-    Iteration 2 of 100
-    2025-07-11 10:52:19,826 - harmonypy - INFO - Iteration 3 of 100
-    Iteration 3 of 100
-    2025-07-11 10:52:19,862 - harmonypy - INFO - Iteration 4 of 100
-    Iteration 4 of 100
-    2025-07-11 10:52:19,874 - harmonypy - INFO - Iteration 5 of 100
-    Iteration 5 of 100
-    2025-07-11 10:52:19,888 - harmonypy - INFO - Iteration 6 of 100
-    Iteration 6 of 100
-    2025-07-11 10:52:19,918 - harmonypy - INFO - Iteration 7 of 100
-    Iteration 7 of 100
-    2025-07-11 10:52:19,928 - harmonypy - INFO - Iteration 8 of 100
-    Iteration 8 of 100
-    2025-07-11 10:52:19,937 - harmonypy - INFO - Iteration 9 of 100
-    Iteration 9 of 100
-    2025-07-11 10:52:19,944 - harmonypy - INFO - Iteration 10 of 100
-    Iteration 10 of 100
-    2025-07-11 10:52:19,956 - harmonypy - INFO - Iteration 11 of 100
-    Iteration 11 of 100
-    2025-07-11 10:52:19,970 - harmonypy - INFO - Iteration 12 of 100
-    Iteration 12 of 100
-    2025-07-11 10:52:19,980 - harmonypy - INFO - Converged after 12 iterations
-    Converged after 12 iterations
-    2025-07-11 10:52:19,980 - Finding neighbors
-    computing batch balanced neighbors
-        finished (0:00:00)
-    2025-07-11 10:52:20,755 - Run UMAP
-    computing UMAP
-        finished (0:00:00)
-    2025-07-11 10:52:21,288 - Clustering cells using Leiden (resolution 0.3)
-    running Leiden clustering
-        finished (0:00:00)
+    AnnData object with n_obs × n_vars = 700 × 1851
+    obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo', 'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster'
+    var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches', 'highly_variable_intersection'
+    uns: 'annotation_colors', 'annotation_recluster_colors', 'batch_colors', 'hvg', 'leiden', 'leiden_colors', 'log1p', 'neighbors', 'pca', 'umap'
+    obsm: 'X_CCA', 'X_pca', 'X_umap', 'X_harmony'
+    varm: 'PCs'
+    layers: 'counts', 'logcounts'
+    obsp: 'connectivities', 'distances'
 
     """
     logger.info("Computing HVGs")
@@ -262,7 +251,8 @@ def integrate_data(
         logger.info("Integration using BBKNN")
     if scvi:
         logger.info("Integration using scVI")
-        _run_scvi(adata, batch_key, categorical_covariates=categorical_covariates, continuos_covariates=continuos_covariates, **kwargs)
+        _run_scvi(adata, batch_key, categorical_covariates=categorical_covariates,
+                  continuos_covariates=continuos_covariates, **kwargs)
         dim_reduc = "X_scVI"
     if cca4:
         logger.info("Integration using CCA (Seurat v4 approach)")
@@ -284,7 +274,7 @@ def integrate_data(
 
     logger.info(f"Clustering cells using Leiden (resolution {resolution})")
     sc.tl.leiden(adata, resolution=resolution, flavor="igraph", n_iterations=2, directed=False)
-    return
+    return None
 
 
 def update_cell_labels(
@@ -301,7 +291,7 @@ def update_cell_labels(
     :param adata: anndata object previously analysed by Celltypist
     :param cell_col: `.obs` column with cell type labels
     :param key_added: `.obs` column where new labels are saved
-    :return: annotated dt matrix.
+    :return: annotated data matrix.
     """
     if dict_data == 'default':
         dict_data = DictUpdateCellLabels
@@ -326,35 +316,45 @@ def auto_annot(
     pl_cell_prob: bool = False,
     path: Union[str, None] = None,
     filename: Union[str, None] = 'Dotplot_CellProbabilities.svg',
-) -> ad.AnnData:
+) -> None:
     """Semi-automatic annotation based on CellTypist.
 
     This function takes an AnnData object with log-counts in `.X` and annotate the clusters employing a model available
     for `Celltypist <https://www.celltypist.org/>`_.
 
-    :param adata: annotated data matrix
-    :param cluster_key: `.obs` column with clusters.
-    :param model: model to use for the prediction.
-    :param key_added: `.obs` column name where to save the predicted cell types.
-    :param majority: majority voting for predictions (See CellTypist documentation).
-    :param convert: convert the gene format of the model. If a Human  model is used, then gene in mouse format
-                    will be use and viceverse.
-    :param update_label: add a `.obs` column with cell type labels updated.
-    :param key_updated: `.obs` column  where updated cell type labels are saved. To be used when update_labels is set
-                        to True.
-    :param verbose: show information of the analysis steps.
-    :param update_models: update the downloaded models.
-    :param dict_labels: dictionary with the updated labels for the names in celltypist model.
-    :param pl_cell_prob: generate a dotplot with cell probabilities for each cluster.
-    :param path: path to save the dotplot of cell probabilities.
-    :param filename: name of the file.
-    :return: annotated anndata matrix with a new column containing the prediction.
+    :param adata: Annotated data matrix.
+    :param cluster_key: Metadata column in `obs` with cluster groups.
+    :param model: `Celltypist model <https://www.celltypist.org/models>`_ to use for the prediction.
+    :param key_added: New metadata column in `obs` to save the predicted cell types.
+    :param majority: Whether to refine the predicted labels by running the majority voting classifier after over-clustering.
+    :param convert: Convert the gene format of the model. If a Human model is provided, and is set to `True`, then gene
+                    in mouse format will be use and viceverse.
+    :param update_label: Add a new metadata column in  `obs` with cell type labels updated based on `dict_labels`.
+    :param key_updated: Metadata column in `obs` to save the updated cell type labels. Ignored if `update_labels` is set
+                        to `False`.
+    :param verbose: Whether to show information of the analysis steps.
+    :param update_models: Download the latest models.
+    :param dict_labels: Dictionary with the updated labels for the names in celltypist model. Currently, only a dictionary for
+    the `Human_Adult_Heart.pkl` model. See :func:`dotools_py.dt.standard_ct_labels_heart()`
+    :param pl_cell_prob: Generate a Dotplot to visualise the cell probabilities for each cluster.
+    :param path: Path to save the dotplot of cell probabilities.
+    :param filename: Name of the file.
+    :return: Returns `None`. The following fields will be set:
+
+            `adata.obs['autoAnnot' | key_added]`: :class:`pandas.Series` (dtype ``category``)
+                 Array that stores the predicted annotation for each cell.
+            `adata.obs['celltypist_conf_score']`: :class:`pandas.Series` (dtype ``float``)
+                Array that stores the confidence scores for the prediction.
+            If `update_label` is set to True, an additional field will be set:
+            `adata.obs['annotation' | key_updated]`: :class:`pandas.Series` (dtype ``category``)
+                Array that stores the predicted annotation for each cell updated based on the dictionary
+                `dict_labels`.
 
     Example
     -------
     >>> import dotools_py as do
     >>> adata = do.dt.example_10x_processed()
-    >>> adata = do.tl.auto_annot(adata, 'leiden', model='Healthy_COVID19_PBMC.pkl',  pl_cell_prob=False, convert=False)
+    >>> do.tl.auto_annot(adata, 'leiden', model='Healthy_COVID19_PBMC.pkl',  pl_cell_prob=False, convert=False)
     🔬 Input data has 700 cells and 1851 genes
     🔗 Matching reference genes in the model
     🧬 358 features used for prediction
@@ -403,8 +403,9 @@ def auto_annot(
             axs['mainplot_ax'].spines[['top', 'right']].set_visible(True)
             if path is not None:
                 plt.savefig(convert_path(path) / filename, bbox_inches='tight')
-        adata.obs["cell_type"] = predictions_cells_adata.obs.loc[adata.obs.index, prediction_key]
-        adata.obs[key_added] = adata.obs["cell_type"]  # Transfer to original object
+
+        adata_copy.obs["cell_type"] = predictions_cells_adata.obs.loc[adata_copy.obs.index, prediction_key]
+        adata.obs[key_added] = adata_copy.obs["cell_type"]  # Transfer to original object
         adata.obs['celltypist_conf_score'] = predictions_cells_adata.obs['conf_score']
         pbar.update(1)
 
@@ -414,26 +415,27 @@ def auto_annot(
             update_cell_labels(adata, key_added, key_updated, dict_data=dict_labels)
             pbar.update(1)
 
-    return adata
+    return None
 
 
 def reclustering(
     adata: ad.AnnData,
     cluster_key: str,
     batch_key: str,
-    recluster_apporach: str,
+    recluster_apporach: Literal['cca4', 'cca5', 'harmony', 'scanorama', 'pca', 'scvi', 'bbknn'],
     use_clusters: Union[str, list, None] = None,
     hvg_batch: bool = False,
     use_rep: str = None,
     resolution: float = 0.3,
     neighbors_batch: int = 3,
-    automatic_annot: bool = True,
+    automatic_annot: bool = False,
     majority: bool = True,
     convert: bool = True,
     model: str = 'Healthy_Adult_Heart.pkl',
     get_subset: bool = False,
     key_added: str = 'annotation_recluster',
-) -> ad.AnnData:
+    key_added_autoannot: str = 'autoAnnot_recluster'
+) -> Union[ad.AnnData, None]:
     """Re-clustering of dataset.
 
     Perform reclustering on an integrated AnnData object. Can recluster for the following integration methods:
@@ -443,36 +445,70 @@ def reclustering(
         * SCVI integration.
         * PCA.
 
-    We assume that `X` has logcounts.
+    Assume that `X` has logcounts.
 
     .. note::
         For CCA (v4/v5) and scVI the corrected expression matrix (CC4 v5), the CCA representation
         (CCA v5) and the latent space (scvi) to be in `.obsm`. When re-clustering with harmony and
         BBKNN the pipeline will be re-run over the clusters.
 
-    :param adata: annotated dt matrix.
-    :param cluster_key: `.obs` column name with clusters.
-    :param batch_key: `.obs` column name with batch information.
-    :param use_clusters: clusters in cluster_key to re-cluster. If several clusters are provided,
-                         the reclustering will be performed subsetting for all the clusters specified.
-    :param hvg_batch: calculate highly variable genes that are shared across samples.
-    :param recluster_apporach: reclustering approach to use. Available: cca4, cca5, harmony, bbknn and scvi.
-    :param use_rep: `.obsm` key with the representation. Required for SCVI and CCA approach.
-    :param resolution: resolution for the leiden clustering.
-    :param neighbors_batch: number of neighbors per batch.
-    :param automatic_annot: perform automatic annotation with celltypist.
-    :param majority: use majority voting for automatic annotation.
-    :param convert: convert the gene format. Useful if using a human model in celltypist and input is mouse or viceverse.
-    :param model: model name of celltypist to use.
-    :param get_subset: if set to True, returns an AnnData of `use_clusters` after re-clustering
-    :param key_added: column name in obs to save reclustering information.
-    :return:  A new metadata is added to the input AnnData with reclustering or subsetted anndata with reclusters. If `get_subset` is set to `True`
-             the subsetted AnnData object will also be returned
+    :param adata: Annotated data matrix.
+    :param cluster_key: Metadata column in `obs` with cluster groups.
+    :param batch_key: Metadata column in `obs` with batch groups.
+    :param use_clusters: Clusters in `cluster_key` to re-cluster. If several clusters are provided,
+                         the re-clustering will be performed subsetting for all the clusters specified.
+    :param hvg_batch: If set to `True`. The  highly variable genes that are shared across samples will be used.
+    :param recluster_apporach: Reclustering approach to use.
+    :param use_rep: Name in `obsm` with the representation. Required for SCVI, CCA and Scanorama approach.
+    :param resolution: Resolution for the leiden clustering.
+    :param neighbors_batch: To compute the nearest neighbors distance matrix and a neighborhood graph of observations a
+                            `BBKNN <https://academic.oup.com/bioinformatics/article/36/3/964/5545955?login=true>`_ is employed, which calculate a batch balanced KNN graph. It is recommended to use 3 with
+                            when <100000 cells and 25 for >100000. If there are not enough cells per batch the default
+                            approach will be used (`sc.pp.neighbors`).
+    :param automatic_annot: Perform semi-automatic annotation with `Celltypist <https://www.science.org/doi/10.1126/science.abl5197>`_.
+    :param majority: Whether to refine the predicted labels by running the majority voting classifier after over-clustering.
+    :param convert: Convert the gene format of the model. If a Human model is provided, and is set to `True`, then gene
+                    in mouse format will be use and viceverse.
+    :param model: `Celltypist model <https://www.celltypist.org/models>`_ to use for the prediction.
+    :param get_subset: if set to `True`, returns an AnnData of `use_clusters` after re-clustering.
+    :param key_added: metadata column name in `obs` to save reclustering information.
+    :param key_added_autoannot: metadata column name in `obs` to save reclustering information after automatic annotation.
+    :return: Returns `None` if `get_subset` is set to False, otherwise a subsetted AnnData after the re-clustering is returned. Additionally,
+             the following fields will be set:
+
+             `adata.obs['annotation_recluster' | key_added]`: :class:`pandas.Series` (dtype ``category``)
+                Array that stores the re-clusters groups consisting of the original group_id + the new cluster id (e.g., for
+                a the monocyte cluster with 3 sub-clusters the new clusters are monocyte_0, monocyte_1, and monocyte_2).
+             `adata.obs['autoAnnot_recluster' | key_added_autoannot]`: :class:`pandas.Series` (dtype ``category``)
+                Array that stores the re-clusters groups after re-running the automatic annotation pipeline.
 
     See Also
     -------
         :func:`dotools_py.tl.full_recluster`: Recluster all clusters automatically
 
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> t_cells = do.tl.reclustering(adata, 'annotation', 'batch', 'harmony', use_clusters='T_cells', get_subset=True)
+    >>> t_cells
+    AnnData object with n_obs × n_vars = 464 × 1851
+    obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo', 'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster'
+    var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches', 'highly_variable_intersection'
+    uns: 'annotation_colors', 'annotation_recluster_colors', 'batch_colors', 'hvg', 'leiden', 'leiden_colors', 'log1p', 'neighbors', 'pca', 'umap'
+    obsm: 'X_CCA', 'X_pca', 'X_umap', 'X_pca_harmony'
+    varm: 'PCs'
+    layers: 'counts', 'logcounts'
+    obsp: 'connectivities', 'distances'
+    >>> adata
+    AnnData object with n_obs × n_vars = 700 × 1851
+    obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo', 'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster'
+    var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches', 'highly_variable_intersection'
+    uns: 'annotation_colors', 'annotation_recluster_colors', 'batch_colors', 'hvg', 'leiden', 'leiden_colors', 'log1p', 'neighbors', 'pca', 'umap'
+    obsm: 'X_CCA', 'X_pca', 'X_umap'
+    varm: 'PCs'
+    layers: 'counts', 'logcounts'
+    obsp: 'connectivities', 'distances'
     """
     if key_added in adata.obs.columns:
         logger.warn(f'{key_added} will be overwritten')
@@ -480,7 +516,7 @@ def reclustering(
     celltype = [use_clusters] if isinstance(use_clusters, str) else use_clusters
     hvg_key = batch_key if hvg_batch else None
 
-    adata_subset = adata[adata.obs[cluster_key].isin(use_clusters)]
+    adata_subset = adata[adata.obs[cluster_key].isin(celltype)]
 
     # If CCA was used, redo PCA of the subsetted integrated matrix
     if recluster_apporach.lower() == 'cca4':
@@ -497,6 +533,10 @@ def reclustering(
         adata_subset.obsm[representation] = adata_tmp.obsm[representation]
     elif recluster_apporach.lower() == 'cca5':
         logger.info('Reclustering using CCA5 approach')
+        assert use_rep is not None, 'Specify obsm key with integrated matrix'
+        representation = use_rep
+    elif recluster_apporach.lower() == 'scanorama':
+        logger.info('Reclustering using Scanorama approach')
         assert use_rep is not None, 'Specify obsm key with integrated matrix'
         representation = use_rep
     # If harmony was used, redo harmony
@@ -545,26 +585,22 @@ def reclustering(
     adata.obs[key_added] = adata.obs[cluster_key].copy()
 
     if automatic_annot:
-        try:
-            adata_subset = auto_annot(adata_subset,
-                                      'leiden',
-                                      key_added='autoAnnot',
-                                      key_updated=key_added,
-                                      update_label=True,
-                                      convert=convert,
-                                      majority=majority,
-                                      model=model)
-        except KeyError:  # Might fail if getting a cell not present in our update_labels dictionary
-            adata_subset = auto_annot(adata_subset,
-                                      'leiden',
-                                      key_added=key_added,
-                                      update_label=False,
-                                      convert=convert,
-                                      majority=majority,
-                                      model=model)
-    else:
-        preffix = '+'.join(use_clusters) if isinstance(use_clusters, list) else use_clusters
-        adata_subset.obs[key_added] = preffix + '_' + adata_subset.obs['leiden'].astype(str)
+        adata.obs[key_added_autoannot] = adata.obs[cluster_key].copy()
+        auto_annot(adata_subset,
+                   'leiden',
+                   key_added=key_added_autoannot,
+                   update_label=False,
+                   convert=convert,
+                   majority=majority,
+                   model=model)
+
+        transfer_labels(adata, adata_subset,
+                        col_original=key_added_autoannot,
+                        col_subset=key_added_autoannot,
+                        labels_original=celltype)
+
+    preffix = '+'.join(celltype) if isinstance(celltype, list) else celltype
+    adata_subset.obs[key_added] = preffix + '_' + adata_subset.obs['leiden'].astype(str)
 
     transfer_labels(adata, adata_subset,
                     col_original=key_added,
@@ -586,37 +622,41 @@ def full_recluster(
     use_rep: str = None,
     resolution: float = 0.3,
     neighbors_batch: int = 3,
-    automatic_annot: bool = True,
     majority: bool = True,
     convert: bool = True,
-    model: str = 'Healthy_Adult_Heart.pkl',
     key_added: str = 'annotation_fullrecluster',
 ) -> None:
     """Re-clustering of all clusters in dataset.
 
     Perform reclustering on an integrated AnnData object over all clusters. Can recluster for the following
-    integration methods: CCA (v4/v5) integration from Seurat; Harmony integration; BBKNN integration; SCVI integration and
-    PCA. We assume that `X` has logcounts.
+    integration methods: CCA (v4/v5) integration from Seurat; Harmony integration; BBKNN integration; SCVI integration,
+    Scanorama integration and PCA. Assumes that `X` has logcounts.
 
     .. note::
         For CCA (v4/v5) and scVI the corrected expression matrix (CC4 v5), the CCA representation
         (CCA v5) and the latent space (scvi) to be in `.obsm`. When re-clustering with harmony and
         BBKNN the pipeline will be re-run over the clusters.
 
-    :param adata: annotated dt matrix.
-    :param cluster_key: `.obs` column name with clusters.
-    :param batch_key: `.obs` column name with batch information.
-    :param hvg_batch: calculate highly variable genes that are shared across samples.
-    :param recluster_apporach: reclustering approach to use. Available: cca4, cca5, harmony, bbknn and scvi.
-    :param use_rep: `.obsm` key with the representation. Required for SCVI and CCA approach.
-    :param resolution: resolution for the leiden clustering.
-    :param neighbors_batch: number of neighbors per batch.
-    :param automatic_annot: perform automatic annotation with celltypist.
-    :param majority: use majority voting for automatic annotation.
-    :param convert: convert the gene format. Useful if using a human model in celltypist and input is mouse or viceverse.
-    :param model: model name of celltypist to use.
-    :param key_added: column name in obs with reclustering information.
-    :return: A new metadata is added to the input AnnData with reclustering or subsetted anndata with reclusters.
+    :param adata: Annotated data matrix.
+    :param cluster_key: Metadata column  in `obs` with cluster groups.
+    :param batch_key: Metadata column in `obs` with  batch groups.
+    :param hvg_batch:  If set to `True`. The  highly variable genes that are shared across samples will be used.
+    :param recluster_apporach: Reclustering approach to use.
+    :param use_rep: Name in `obsm` with the representation. Required for SCVI, CCA and Scanorama approach.
+    :param resolution: Resolution for the leiden clustering.
+    :param neighbors_batch: To compute the nearest neighbors distance matrix and a neighborhood graph of observations a
+                            `BBKNN <https://academic.oup.com/bioinformatics/article/36/3/964/5545955?login=true>`_ is employed, which calculate a batch balanced KNN graph. It is recommended to use 3 with
+                            when <100000 cells and 25 for >100000. If there are not enough cells per batch the default
+                            approach will be used (`sc.pp.neighbors`).
+    :param majority:  Whether to refine the predicted labels by running the majority voting classifier after over-clustering.
+    :param convert: Convert the gene format of the model. If a Human model is provided, and is set to `True`, then gene
+                    in mouse format will be use and viceverse.
+    :param key_added: Metadata column name in `obs` to save the  reclustering information.
+    :return: Returns `None`. The following fields will be set:
+
+             `adata.obs['annotation_fullrecluster' | key_added]`: :class:`pandas.Series` (dtype ``category``)
+                Array that stores the re-clusters groups consisting of the original group_id + the new cluster id (e.g., for
+                a the monocyte cluster with 3 sub-clusters the new clusters are monocyte_0, monocyte_1, and monocyte_2).
 
     See Also
     -------
@@ -627,67 +667,20 @@ def full_recluster(
     -------
     >>> import dotools_py as do
     >>> adata = do.dt.example_10x_processed()
-    >>> do.tl.full_recluster(adata, cluster_key='annotation', batch_key='batch', recluster_apporach='cca5', use_rep='X_CCA',automatic_annot=False)
-    2025-07-14 14:00:10,112 - annotation_recluster will be overwritten
-    2025-07-14 14:00:10,114 - Reclustering using CCA5 approach
-    computing batch balanced neighbors
-        finished (0:00:00)
-    computing UMAP
-        finished (0:00:00)
-    running Leiden clustering
-        finished (0:00:00)
-    2025-07-14 14:00:10,145 - annotation_recluster will be overwritten
-    2025-07-14 14:00:10,146 - Reclustering using CCA5 approach
-    computing batch balanced neighbors
-        finished (0:00:00)
-    computing UMAP
-        finished (0:00:00)
-    running Leiden clustering
-        finished (0:00:00)
-    2025-07-14 14:00:10,214 - annotation_recluster will be overwritten
-    2025-07-14 14:00:10,216 - Reclustering using CCA5 approach
-    computing batch balanced neighbors
-        finished (0:00:00)
-    computing UMAP
-        finished (0:00:00)
-    running Leiden clustering
-        finished (0:00:00)
-    2025-07-14 14:00:10,458 - annotation_recluster will be overwritten
-    2025-07-14 14:00:10,459 - Reclustering using CCA5 approach
-    computing batch balanced neighbors
-        finished (0:00:00)
-    computing UMAP
-        finished (0:00:00)
-    running Leiden clustering
-        finished (0:00:00)
-    2025-07-14 14:00:10,470 - annotation_recluster will be overwritten
-    2025-07-14 14:00:10,471 - Reclustering using CCA5 approach
-    computing batch balanced neighbors
-    computing neighbors
-        finished (0:00:00)
-    computing UMAP
-        finished (0:00:00)
-    running Leiden clustering
-        finished (0:00:00)
+    >>> do.tl.full_recluster(adata, cluster_key='annotation', batch_key='batch', recluster_apporach='cca5', use_rep='X_CCA')
     >>> adata
     AnnData object with n_obs × n_vars = 700 × 1851
-    obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts',
-    ...  'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo',
-    ...  'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot',
-    ...  'celltypist_conf_score', 'annotation', 'annotation_fullrecluster'
-    var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches',
-    ...  'highly_variable_intersection'
-    uns: 'annotation_colors', 'annotation_recluster_colors', 'batch_colors', 'hvg', 'leiden', 'leiden_colors', 'log1p',
-    ...  'neighbors', 'pca', 'umap'
-    obsm: 'X_CCA', 'X_pca', 'X_umap'
-    varm: 'PCs'
-    layers: 'counts', 'logcounts'
-    obsp: 'connectivities', 'distances'
+        obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo', 'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_fullrecluster'
+        var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches', 'highly_variable_intersection'
+        uns: 'annotation_colors', 'annotation_recluster_colors', 'batch_colors', 'hvg', 'leiden', 'leiden_colors', 'log1p', 'neighbors', 'pca', 'umap'
+        obsm: 'X_CCA', 'X_pca', 'X_umap'
+        varm: 'PCs'
+        layers: 'counts', 'logcounts'
+        obsp: 'connectivities', 'distances'
 
     """
 
     celltype = list(adata.obs[cluster_key].unique())
-    hvg_key = batch_key if hvg_batch else None
     adata.obs[key_added] = adata.obs[cluster_key].copy()
     for ct in celltype:
         try:
@@ -696,20 +689,19 @@ def full_recluster(
                                         batch_key=batch_key,
                                         recluster_apporach=recluster_apporach,
                                         use_clusters=[ct],
-                                        hvg_batch=hvg_key,
+                                        hvg_batch=hvg_batch,
                                         use_rep=use_rep,
                                         resolution=resolution,
                                         neighbors_batch=neighbors_batch,
-                                        automatic_annot=automatic_annot,
+                                        automatic_annot=False,
                                         majority=majority,
                                         convert=convert,
-                                        model=model,
                                         get_subset=True,
-                                        key_added='annotation_recluster'
+                                        key_added='annotation_recluster',
                                         )
         except TypeError as e:
             logger.warn(f'Error while reclustering {ct}, keeping original annotation')
-            adata_subset = adata[adata.obs[cluster_key] == ct ]
+            adata_subset = adata[adata.obs[cluster_key] == ct]
             adata_subset.obs['annotation_recluster'] = ct
 
         transfer_labels(adata,

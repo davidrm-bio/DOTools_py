@@ -47,17 +47,25 @@ def mean_expr(
     out_format: Literal['long', 'wide'] = "long",
     layer: Union[str, None] = None,
 ) -> pd.DataFrame:
-    """Calculate the average expression in an annData objects for features.
+    """Calculate the average expression in an AnnData objects for features.
 
     This function calculates the average expression of a set of features grouping by one
-    or several categories.
+    or several categories. Assume log-normalised counts.
 
-    :param adata: annotated data matrix
-    :param group_by: `.obs` column or list of columns to group by.
-    :param features: list of features in `.var` to use. If not set, it will be calculated over all the genes.
-    :param out_format: format of the dataframe returned. This can be wide or long format.
-    :param layer: layer of the anndata to use. If not set use `.X`.
-    :return: DataFrame in long (or wide) format with average expression
+    :param adata: Annotated data matrix.
+    :param group_by: Metadata column(s) in `obs` to group by.
+    :param features: List of features in `var_name` to use. If not set, it will be calculated over all the genes.
+    :param out_format: Format of the Dataframe returned. This can be wide or long format.
+    :param layer: Layer of the AnnData to use. If not set use `X`.
+    :return: Returns a `DataFrame`. If `out_format` is set to `long` the following fields are included:
+
+             `df['gene']` - Column containing the gene names
+             `df['groupN']` - Column containing the groups. For each metadata column a new column will be added (e.g.,
+                              if 'condition' and 'annotation' is provided, two columns are added 'group0' with condition
+                              groups and 'group1' with annotation groups.
+             `df['expr']` - Column containing the mean expression values.
+             If `out_format` is set to `wide` the index will be set to the gene names and the column names will be set
+             to the groups.
 
     Example
     -------
@@ -71,6 +79,15 @@ def mean_expr(
     2    C19orf18  B_cells  0.000000
     3        TPP2  B_cells  0.126846
     4       MFSD1  B_cells  0.053630
+    >>> df = do.tl.mean_expr(adata, 'annotation', out_format='wide')
+    >>> df.head(5)
+        group0   B_cells  Monocytes        NK   T_cells       pDC
+    gene
+    A4GALT  0.222505   0.000000  0.000000  0.000000  0.000000
+    AAK1    0.000000   0.364976  1.126293  1.143016  0.128019
+    ABAT    0.182251   0.146378  0.047404  0.045826  0.158761
+    ABCB4   0.062785   0.000000  0.000000  0.000000  0.000000
+    ABCB9   0.000000   0.000000  0.027683  0.057814  0.000000
 
     """
     features = [features] if isinstance(features, str) else features
@@ -127,15 +144,22 @@ def get_expr(
     """Extract the expression of features.
 
     This function extract the expression from an AnnData object and returns a dataframe. If layer
-    is not specified the expression in `.X` will be extracted. Additionally, metadata from `.obs` can be added
+    is not specified the expression in `X` will be extracted. Additionally, metadata from `obs` can be added
     to the dataframe.
 
-    :param adata: annotated data matrix.
-    :param groups: `.obs` metadata column to include in the dataframe.
-    :param features: var_names to include.
-    :param out_format: format of the dataframe (wide or long).
-    :param layer: layer in the anndata object to extract the expression from.
-    :return: dataframe with expression values.
+    :param adata: Annotated data matrix.
+    :param groups: Metadata column in `obs` to include in the Dataframe.
+    :param features: Gene names in `var_names` to include.
+    :param out_format: Format of the dataframe (wide or long).
+    :param layer: Layer in the anndata object to extract the expression from.
+    :return: Returns a `DataFrame`. If `out_format` is set to `long` the following fields are included:
+
+             `df['genes']` - Column containing the gene names
+             `df[groups]` - Column containing the groups. For each metadata column a new column will be added (e.g.,
+                            if 'condition' and 'annotation' is provided, two columns are added 'condition' and 'annotation'.
+             `df['expr']` - Column containing the mean expression values.
+             If `out_format` is set to `wide` the index will be cell barcodes and the column names will be set
+             to the gene names. If `groups` are specified, extra columns will be added.
 
     Example
     -------
@@ -149,6 +173,14 @@ def get_expr(
     2    T_cells   CD4   0.0
     3    T_cells   CD4   0.0
     4    T_cells   CD4   0.0
+    >>> df = do.tl.get_expr(adata, 'CD4', 'annotation', out_format='wide')
+    >>> df.head(5)
+                                   CD4 annotation
+    CAAAGAATCAGATTGC-1-batch2  0.0    B_cells
+    AGCTTCCCAGTCAACT-1-batch1  0.0         NK
+    GAGAGGTTCCCTCTAG-1-batch1  0.0    T_cells
+    CTAACTTCAGATCATC-1-batch1  0.0    T_cells
+    CATGGTACAAACGGCA-1-batch1  0.0    T_cells
 
     """
     # Set-up configuration
@@ -205,18 +237,41 @@ def run_mast(
 ) -> pd.DataFrame:
     """Run MAST Test for sc/snRNAseq.
 
-    :param adata: annotated data matrix.
-    :param cond_key: obs column with condition information.
-    :param reference: reference condition.
-    :param disease: disease conditions.
-    :param covariates: extra covariates to account for.
-    :return: pandas dataframe with DGEs.
+    :param adata: Annotated Data matrix.
+    :param cond_key: Metadata column in `obs`  with condition groups.
+    :param reference: Reference condition.
+    :param disease: Disease conditions.
+    :param covariates: Extra covariates to account for.
+    :return: Returns a `DataFrame`. The following fields are included:
+
+             `GeneName`
+                Name of the genes
+             `pvals` and  `padj`
+                The adjusted p-value uses Benjamini-Hochberg correction method.
+             `log2fc`
+                Log2FoldChamge
+             `pts_ref` and `pts_group`
+                Percentage of cells in the reference in the disease group expressing the gene
+             `groups`
+                Column containing the group tested
 
     See Also
     --------
         :func:`dotools_py.tl.rank_genes_groups`: run DEA at single-cell level
         :func:`dotools_py.tl.grouped_ttest`: run DEA at pseudobulk level
 
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> df = do.tl.run_mast(adata, 'condition', 'healthy', 'disease')
+    >>> df.head(5)
+          GeneName     pvals    log2fc      padj   pts_ref  pts_group   groups
+    0   A4GALT  0.001722 -1.018231  0.015546  0.003846   0.000000  disease
+    1     AAK1  0.019197  0.517996  0.105754  0.457692   0.516667  disease
+    2     ABAT  0.551787  1.530515  0.842536  0.000000   0.000000  disease
+    3    ABCB4  0.581264 -1.968762  0.842536  0.176923   0.050000  disease
+    4    ABCB9  0.458918 -1.468043  0.808238  0.121154   0.044444  disease
 
     """
 
@@ -346,6 +401,7 @@ def rank_genes_condition(
     layer: str = None,
     covariates: Union[list, None] = None,
     get_results: bool = True,
+    key_added: str = 'rank_genes_condition'
 ) -> Union[pd.DataFrame, None]:
     """Run DGE Analysis.
 
@@ -371,8 +427,28 @@ def rank_genes_condition(
     :param filename: name of the ExcelSheet.
     :param layer: layer of the AnnData to use.
     :param covariates: extra covariates to correct for in the MAST test.
-    :param get_results: results a dataframe with results.
-    :return: DGE dataframe. If a path is provided, the DataFrame with DGEs will be saved under the specified path. Results are saved in the uns attribute
+    :param get_results: return a dataframe with results.
+    :param key_added:  key to use in uns.
+    :return: Returns a `DataFrame` if `get_results` is set to True with the results from the differential expression
+             analysis. The following fields are included:
+
+             `GeneName`
+                Name of the genes
+             `pvals` and  `padj`
+                The adjusted p-value uses Benjamini-Hochberg correction method.
+             `log2fc`
+                Log2FoldChamge
+             `pts_ref` and `pts_group`
+                Percentage of cells in the reference in the disease group expressing the gene
+             `groups`
+                Column containing the group tested
+            `groupby`
+                The column name is set to `groupby` and contains the cluster groups.
+
+            If a path is provided, the DataFrame  will be saved under the specified path. The following field will also be set:
+
+             `adata.uns['rank_genes_condition' | key_added]`
+                Dataframe with results of the differential expression analysis
 
     See Also
     -------
@@ -417,7 +493,7 @@ def rank_genes_condition(
                         groups=groups,
                         covariates=covariates)
 
-    adata.uns['rank_genes_condition'] = dge  # Save inplace
+    adata.uns[key_added] = dge  # Save inplace
     if path is not None:
         out_path = convert_path(path) / filename
         logger.info(f'Saving DGE ExcelSheet in {str(out_path.name)}')
@@ -443,8 +519,9 @@ def grouped_ttest(
     cond_key: str = 'condition',
     batch_key: str = 'batch',
     key_added: str = 'grouped_ttest',
-    layer: str = None
-) -> ad.AnnData:
+    layer: str = None,
+    get_results: bool = False,
+) -> Union[pd.DataFrame, None]:
     """Calculate grouped t-test.
 
     This function calculate a grouped t-test for all the genes in each group in annot_key. For each gene,
@@ -459,7 +536,10 @@ def grouped_ttest(
     :param batch_key: obs column name with the sample IDs.
     :param key_added: key to use in uns.
     :param layer: layer of the anndata object to use.
-    :return: anndata object with results in uns attribute
+    :param get_results: return a dataframe with results.
+    :return: Returns a `DataFrame` if `get_results` is set to True with the results from the differential expression
+             analysis. The `DataFrame` with the results are also saved in the AnnData in
+              `adata.uns['grouped_ttest' | key_added]`.
 
     See Also
     -------
@@ -493,7 +573,10 @@ def grouped_ttest(
             main_df = pd.concat([main_df, p_values], axis=0)
 
     adata.uns[key_added] = main_df
-    return adata
+    if get_results:
+        return main_df
+    else:
+        return None
 
 
 def go_analysis(
@@ -506,24 +589,23 @@ def go_analysis(
     path: str = None,
     filename: str = '',
     specie: Literal['Mouse', 'Human'] = 'Mouse',
-    go_catgs: Union[str, list] = ['GO_Molecular_Function_2023', 'GO_Cellular_Component_2023',
-                                  'GO_Biological_Process_2023']
+    go_catgs: Union[str, list] = ['GO_Molecular_Function_2023', 'GO_Cellular_Component_2023', 'GO_Biological_Process_2023']
 ) -> Union[pd.DataFrame, None]:
     """Run Gene Ontology using EnrichR API.
 
     Perform gene ontology analysis base on the `EnrichR <https://maayanlab.cloud/Enrichr/>`_ interface.
 
-    :param df: dataframe with results of differential gene expression analysis.
-    :param gene_key: column with genes.
-    :param pval_key: column with pvals.
-    :param log2fc_key: column with log2 foldchanges.
-    :param pval_cutoff: cutoff for pvals.
-    :param log2fc_cutoff: cutoff for log2 foldchanges.
-    :param path: folder where output Excel files will be saved. A SubFolder called GSA_Tables will be created
-    :param filename: suffix for the filename. Format GSA_CellType_Suffix.xlsx
+    :param df: Dataframe with results of differential gene expression analysis.
+    :param gene_key: Column with genes.
+    :param pval_key: Column with pvals.
+    :param log2fc_key: Column with log2 foldchanges.
+    :param pval_cutoff: Cutoff for pvals.
+    :param log2fc_cutoff: Cutoff for log2 foldchanges.
+    :param path: Folder where output Excel files will be saved. A SubFolder called GSA_Tables will be created
+    :param filename: Suffix for the filename. Format GSA_CellType_Suffix.xlsx
     :param specie: Available Human, Mouse, Yeast, Fly, Fish, Worm.
-    :param go_catgs: terms to use
-    :return: dataframe with gene ontology terms.
+    :param go_catgs: Gene Ontology Classes to use
+    :return: Return a `DataFrame` with Gene Ontology Analysis results. If a path is provided the results will be saved.
     """
 
     go_catgs = [go_catgs] if isinstance(go_catgs, str) else go_catgs
@@ -562,14 +644,15 @@ def pseudobulking(
     the pseudobulk AnnData object two modes for aggregating the counts can be used: `sum` or `mean`. Additionally,
     pseudo-replicates can be generated if specified.
 
-    :param adata: annotated data matrix
-    :param batch_key: column in `obs` with batch information.
-    :param cluster_key:  column in `obs` with cluster information.
-    :param min_cells: minimum number of cells in a cluster for each sample in order to generate a pseudobulk. If the cluster has less it will be excluded.
-    :param pseudobulk_approach: mode of aggregations.
-    :param technical_replicates: number of technical replicates to generate.
-    :param min_counts: minimum number of counts for a gene to be included.
-    :param layer: layer to use
+    :param adata: Annotated data matrix.
+    :param batch_key: Metadata column in `obs` with batch groups.
+    :param cluster_key: Metadata column in `obs` with cluster groups.
+    :param min_cells: Minimum number of cells in a cluster for each sample in order to generate a pseudobulk.
+                      If the cluster has less it will be excluded.
+    :param pseudobulk_approach: Mode of aggregations.
+    :param technical_replicates: Number of technical replicates to generate.
+    :param min_counts: Minimum number of counts for a gene to be included.
+    :param layer: Layer to use.
     :return: AnnData with pseudobulk counts for each cluster.
 
     Example
@@ -586,7 +669,8 @@ def pseudobulking(
     Pseudo-bulked clusters: 100%|██████████| 5/5 [00:00<00:00, 11.01it/s]
     >>> pdata
     AnnData object with n_obs × n_vars = 2 × 910
-        obs: 'batch', 'condition', 'doublet_class', 'cell_type', 'autoAnnot', 'annotation', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'pct_counts_in_top_50_genes', 'pct_counts_in_top_100_genes', 'pct_counts_in_top_200_genes', 'pct_counts_in_top_500_genes'
+        obs: 'batch', 'condition', 'doublet_class', 'cell_type', 'autoAnnot', 'annotation', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts',
+             'log1p_total_counts', 'pct_counts_in_top_50_genes', 'pct_counts_in_top_100_genes', 'pct_counts_in_top_200_genes', 'pct_counts_in_top_500_genes'
 
     """
     list_pdata = []
@@ -666,34 +750,37 @@ def rank_genes_pseudobulk(
     path: str = None,
     filename: str = 'DEA_Pseudobulk.xlsx',
     get_results: bool = True,
-    key_added: str = 'rank_genes_deseq2',
+    key_added: str = 'rank_genes_pseudobulk',
 ) -> Union[pd.DataFrame, None]:
     """Running DEA using pseudobulk approach.
 
     Perform differential expression analysis (DEA) using DESeq2 or EdgeR. This functions has a similar behavior as
-    `do.tl.rank_genes_condition`. For each cluster it will test for differential gene expression between two conditions.
+    :func:`dotools_py.tl.rank_genes_condition()`. For each cluster it will test for differential gene expression between two conditions.
     The input is expected to be raw counts.
 
-    :param adata: annotated data matrix
-    :param ctrl_cond: control condition
-    :param disease_cond: disease condition
-    :param cluster_key: column in obs with cluster information
-    :param method: differential expression method to use, DESeq2 or EdgeR.
-    :param batch_key: column in obs with batch information
-    :param condition_key: column in obs with condition information
-    :param design: design for DESeq2
-    :param layer: layer to use. Expected raw counts.
-    :param min_cells: minimum number of cells per batch/sample required when generating the pseudo-bulk. If there are
-                      fewer cells, DESeq2 will not be run on the cluster.
-    :param pseudobulk_approach: how to generate the pseudobulk counts.
-    :param technical_replicates: how many technical replicates should be generated per sample.
-    :param min_counts: minimum number of total counts for a gene to be tested in DESeq2 after pseudobulking.
-    :param n_cpus: number of CPUs to use for DESEq2.
-    :param path: path to save the file.
-    :param filename: name of the file.
-    :param get_results: get dataframe with DEA results
-    :param key_added: name of the uns attribute with the results
-    :return: a dataframe with DEA results. The results are also saved under the uns attribute.
+    :param adata: Annotated data matrix.
+    :param ctrl_cond: Control condition.
+    :param disease_cond: Disease condition.
+    :param cluster_key: Metadata column in `obs` with cluster groups.
+    :param method: Differential expression method to use, DESeq2 or EdgeR.
+    :param batch_key: Metadata column in `obs` with batch groups
+    :param condition_key: Metadata column in `obs` with condition groups.
+    :param design: Design for DESeq2.
+    :param layer: Layer to use. Expected raw counts.
+    :param min_cells: Minimum number of cells per batch/sample required when generating the pseudo-bulk. If there are
+                      fewer cells, DESeq2 / EdgeR will not be run on the cluster.
+    :param pseudobulk_approach: How to generate the pseudobulk counts.
+    :param technical_replicates: How many technical replicates should be generated per sample.
+    :param min_counts: Minimum number of total counts for a gene to be tested after pseudo-bulking.
+    :param n_cpus: Number of CPUs to use for DESEq2.
+    :param path: Path to save the file.
+    :param filename: Name of the file.
+    :param get_results: Get dataframe with DEA results.
+    :param key_added: Name of the uns attribute with the results.
+    :return: Returns a `DataFrame` with DEA results if `get_results` is set to True. The following field will also be set:
+
+             `adata.uns['rank_genes_pseudobulk' | key_added]`
+                Dataframe with results of the differential expression analysis
 
     See Also
     -------
@@ -798,31 +885,33 @@ def rank_genes_consensus(
     percentage of cells in each group expressing the gene and the mean expression per sample in each cluster for each gene.
     The dataframe will be saved in the `uns` attribute and can also be saved if a path a filename is provided.
 
-    :param adata: annotated data matrix.
-    :param ctrl_cond: control condition.
-    :param disease_cond: disease or alternative condition to test.
-    :param cluster_key: column in obs with clustering information.
-    :param batch_key: column in obs with batch information.
-    :param condition_key: column in obs with condition information.
-    :param design: design for the differential expression analysis in DESeq2.
-    :param count_layer: layer with counts. Required for DESeq2.
-    :param logcounts_layer:  layer with logcounts.
-    :param min_cells: minimum number of cells per batch/sample required when generating the pseudo-bulk. If there are
-                      fewer cells, DESeq2 will not be run on the cluster.
-    :param pseudobulk_approach: how to generate the pseudobulk counts.
-    :param technical_replicates: how many technical replicates should be generated per sample.
-    :param min_counts: minimum number of total counts for a gene to be tested in DESeq2 after pseudobulking.
-    :param n_cpus: number of CPUs to use for DESEq2.
-    :param path: path to save results.
-    :param filename: name of the file.
-    :param test_pseudobulk: test to use for doing differential expression analysis on pseudobulk level.
-    :param test: test to use for doing differential expression analysis on single-cell level.
-    :param mast_covariates: covariates for MAST test.
-    :param pval_cutoff: cutoff for considering a gene significant.
-    :param get_results: get a dataframe with the consensus results
-    :param key_added: name of the uns attribute with the results
-    :return: a dataframe with DEA results. The results are also saved under the uns attribute.
+    :param adata: Annotated data matrix.
+    :param ctrl_cond: Control condition.
+    :param disease_cond: Disease or alternative condition to test.
+    :param cluster_key: Metadata column in obs with clustering groups.
+    :param batch_key: Metadata column in obs with batch groups.
+    :param condition_key: Metadata column in obs with condition groups.
+    :param design: Design for the differential expression analysis in DESeq2.
+    :param count_layer: Layer with counts. Required for DESeq2.
+    :param logcounts_layer: Layer with logcounts.
+    :param min_cells: Minimum number of cells per batch/sample required when generating the pseudo-bulk. If there are
+                      fewer cells, DESeq2 / EdgeR will not be run on the cluster.
+    :param pseudobulk_approach: How to generate the pseudobulk counts.
+    :param technical_replicates: How many technical replicates should be generated per sample.
+    :param min_counts: Minimum number of total counts for a gene to be tested in DESeq2 after pseudobulking.
+    :param n_cpus: Number of CPUs to use for DESEq2.
+    :param path: Path to save results.
+    :param filename: Name of the file.
+    :param test_pseudobulk: Test to use for doing differential expression analysis on pseudobulk level.
+    :param test: Test to use for doing differential expression analysis on single-cell level.
+    :param mast_covariates: Covariates for MAST test.
+    :param pval_cutoff: Cutoff for considering a gene significant.
+    :param get_results: Get a dataframe with the consensus results
+    :param key_added: Name of the uns attribute with the results
+    :return: Returns a `DataFrame` with DEA results if `get_results` is set to True. The following field will also be set:
 
+             `adata.uns['rank_genes_consensus' | key_added]`
+                Dataframe with results of the differential expression analysis
     See Also
     -------
         :func:`dotools_py.tl.rank_genes_condition`: run DEA at single-cell level between condition for all clusters

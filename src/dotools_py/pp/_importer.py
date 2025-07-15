@@ -373,7 +373,7 @@ def importer_py(
     :param max_genes: maximum number of genes per cell.
     :param low_quantile: low quantile to filter cells based on counts.
     :param high_quantile: upper quantile to filter cells based on counts.
-    :return: annotated dt matrix of shape `n_obs` x `n_vars` with all the samples concatenated.
+    :return: Annotated data matrix of shape `n_obs` x `n_vars` with all the samples concatenated.
 
     Example
     -------
@@ -464,7 +464,7 @@ def sctransform_normalise(
     adata: ad.AnnData,
     batch_key: str = None,
     layer=None
-) -> ad.AnnData:
+) -> None:
     """Normalisation based on `SCTransform <https://github.com/satijalab/sctransform>`_.
 
     This function performs an alternative normalisation base on the SCTransform.
@@ -472,7 +472,7 @@ def sctransform_normalise(
     :param adata: AnnData object with counts in `X`.
     :param batch_key: obs metadata with batch information.
     :param layer: layer to use.
-    :return: AnnData object with layers containing the SCT counts and SCT normalise data.
+    :return: The input AnnData object with have two new layers containing the SCT counts and SCT normalise data.
 
     Example
     ------
@@ -488,7 +488,7 @@ def sctransform_normalise(
     layers: 'counts', 'logcounts'
     obsp: 'connectivities', 'distances'
     >>>
-    >>> adata = do.pp.sctransform_normalise(adata, batch_key='batch', layer='counts')
+    >>> do.pp.sctransform_normalise(adata, batch_key='batch', layer='counts')
     >>> adata
     AnnData object with n_obs × n_vars = 700 × 1181
     obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo', 'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster'
@@ -539,4 +539,4 @@ def sctransform_normalise(
 
     adata.layers['SCT_norm'] = sparse.csr_matrix(norm_counts.values)
     adata.layers['SCT_counts'] = sparse.csr_matrix(raw_counts.values)
-    return adata
+    return None

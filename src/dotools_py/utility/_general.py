@@ -35,8 +35,8 @@ def transfer_labels(
     :param subset_key: obs column name in the subsetted AnnData with the new labels.
     :param original_labels: list of labels in `original_key` to replace.
     :param copy: if set to True, returns the updated anndata
-    :return: the original AnnData with the updated labels.
-             the original_labels in original_key will be updated with the labels in subset_key.
+    :return: If `copy` is set to `True`, returns the original AnnData with the updated labels, otherwise returns `None`.
+             The  original_labels in original_key will be updated with the labels in subset_key.
     """
 
     if copy:

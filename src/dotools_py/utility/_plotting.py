@@ -12,7 +12,7 @@ def generate_cmap(
     (1, 1, 1, 0) to set transparent
 
     :param args: colors, RGB or HexaCodes.
-    :return: custom cmap.
+    :return: custom colormap.
 
     Example
     -------
