@@ -66,8 +66,8 @@ def read_rds(path_rds: str, path_adata: str) -> ad.AnnData:
     """Read Rds object with Seurat or SingleCellExperiment Object.
 
     .. note::
-    When reading an RDS Object with counts and logcounts data, the counts will be returned in the
-    `X` attribute, while the logcounts are returned as a layer.
+        When reading an RDS Object with counts and logcounts data, the counts will be returned in the
+        `X` attribute, while the logcounts are returned as a layer.
 
     :param path_rds: path to RDS file with SingleCellExperiment or SeuratObject.
     :param path_adata: path to save AnnData Object including the filename.
