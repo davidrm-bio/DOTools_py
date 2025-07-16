@@ -130,7 +130,7 @@ def heatmap(
     vcenter: float = None,
     vmax: float = None,
     legend_title: str = "LogMean(nUMI)\nin group",
-    add_stats: bool = True,
+    add_stats: bool = False,
     df_pvals: pd.DataFrame = None,
     stats_x_size: float = None,
     square_x_size: dict = None,
