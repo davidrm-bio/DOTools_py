@@ -65,6 +65,10 @@ def transfer_labels(
 def read_rds(path_rds: str, path_adata: str) -> ad.AnnData:
     """Read Rds object with Seurat or SingleCellExperiment Object.
 
+    .. note::
+    When reading an RDS Object with counts and logcounts data, the counts will be returned in the
+    `X` attribute, while the logcounts are returned as a layer.
+
     :param path_rds: path to RDS file with SingleCellExperiment or SeuratObject.
     :param path_adata: path to save AnnData Object including the filename.
     :return: Returns an `AnnData` Object. The AnnData is also saved under `path_adata`.
@@ -83,7 +87,7 @@ def read_rds(path_rds: str, path_adata: str) -> ad.AnnData:
     AnnData object with n_obs × n_vars = 700 × 1851
         obs: 'orig.ident', 'nCount_originalexp', 'nFeature_originalexp', 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo', 'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster', 'ident'
         uns: 'X_name'
-        obsm: 'X_CCA', 'X_PCA', 'X_UMAP'
+        obsm: 'X_CCA', 'X_pca', 'X_umap'
         layers: 'logcounts'
 
     """
@@ -101,6 +105,14 @@ def read_rds(path_rds: str, path_adata: str) -> ad.AnnData:
     subprocess.call(cmd)
     logger.info("Generating AnnData Object")
     adata = ad.read_h5ad(path_adata)
+
+    if 'X_UMAP' in adata.obsm.keys():
+        adata.obsm['X_umap'] = adata.obsm['X_UMAP'].values
+        del adata.obsm['X_UMAP']
+    if 'X_PCA' in adata.obsm.keys():
+        adata.obsm['X_pca'] = adata.obsm['X_PCA'].values
+        del adata.obsm['X_PCA']
+
     return  adata
 
 def save_rds(
