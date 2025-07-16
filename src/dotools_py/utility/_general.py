@@ -121,7 +121,7 @@ def save_rds(
     path_adata: str = None,
     object_type: Literal["SingleCellExperiment", "SeuratObject"] = "SeuratObject",
 ) -> None:
-    """Read Rds object with Seurat or SingleCellExperiment Object.
+    """Save AnnData as Seurat or SingleCellExperiment Object.
 
     :param path_rds: Path to save RDS Object including filename.
     :param adata: AnnData object
