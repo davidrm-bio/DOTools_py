@@ -69,6 +69,10 @@ def read_rds(path_rds: str, path_adata: str) -> ad.AnnData:
     :param path_adata: path to save AnnData Object including the filename.
     :return: Returns an `AnnData` Object. The AnnData is also saved under `path_adata`.
 
+    See Also
+    --------
+        :func:`dotools_py.utility.save_rds`: Save an AnnData as  SingleCellExperiment or Seurat Object
+
     Example
     -------
     >>> import dotools_py as do
@@ -111,7 +115,7 @@ def save_rds(
     :param adata: AnnData object
     :param path_adata: Path to AnnData Object including the filename.
     :param object_type: Specify the type of object that the AnnData should be converted to.
-    :return: Returns an `AnnData` Object. The AnnData is also saved under `path_adata`.
+    :return: Generate an RDS file in `path_rds` containing the Seurat or SingleCellExperiment Object.
 
     See Also
     --------
