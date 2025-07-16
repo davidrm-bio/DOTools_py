@@ -34,19 +34,19 @@ def set_verbosity(level: int = 2) -> None:
         # Completely silent
         logger.setLevel(logging.CRITICAL + 1)  # Higher than CRITICAL
         sc.settings.verbosity = 0
-        sc.settings._root_logger.setLevel(logging.CRITICAL + 1)
+        #sc.settings._root_logger.setLevel(logging.CRITICAL + 1)
     elif level == 1:
         logger.setLevel(logging.INFO)
         sc.settings.verbosity = 0
-        sc.settings._root_logger.setLevel(logging.CRITICAL + 1)
+        #sc.settings._root_logger.setLevel(logging.CRITICAL + 1)
     elif level == 2:
         logger.setLevel(logging.INFO)
-        sc.settings.verbosity = 2
-        sc.settings._root_logger.setLevel(logging.INFO)
+        #sc.settings._root_logger.setLevel(logging.INFO)
+        sc.settings.verbosity = 3
     elif level == 3:
         logger.setLevel(logging.DEBUG)
-        sc.settings.verbosity = 3
-        sc.settings._root_logger.setLevel(logging.DEBUG)
+        sc.settings.verbosity = 4
+        #sc.settings._root_logger.setLevel(logging.DEBUG)
     else:
         raise ValueError("Verbosity must be 0, 1, 2, or 3.")
     return None
