@@ -611,6 +611,14 @@ def reclustering(
 
     transfer_labels(adata, adata_subset, col_original=key_added, col_subset=key_added, labels_original=celltype)
 
+    # Remove colors in uns to avoid problems when plotting
+    keys_colors =[ k for k in adata.uns.keys() if '_colors' in k]
+    for key in keys_colors:
+        del adata.uns[key]
+    keys_colors = [k for k in adata_subset.uns.keys() if '_colors' in k]
+    for key in keys_colors:
+        del adata_subset.uns[key]
+
     if get_subset:
         return adata_subset
     else:
