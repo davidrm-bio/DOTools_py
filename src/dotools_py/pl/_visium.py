@@ -5,7 +5,7 @@ import pandas as pd
 import scanpy as sc
 from tqdm import tqdm
 
-from dotools_py.tl import get_expr
+from dotools_py.get import expr as get_expr
 from dotools_py.utils import convert_path, get_subplot_shape, remove_extra, sanitize_anndata, spine_format
 
 

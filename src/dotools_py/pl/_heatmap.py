@@ -14,7 +14,8 @@ from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.stats import zscore
 
 from dotools_py.logger import logger
-from dotools_py.tl import mean_expr, rank_genes_groups
+from dotools_py.tl import rank_genes_groups
+from dotools_py.get import mean_expr
 from dotools_py.utils import convert_path, sanitize_anndata
 
 
@@ -43,7 +44,7 @@ def make_grid_spec(
         return ax.figure, ax.get_subplotspec().subgridspec(nrows, ncols, **kw)
 
 
-def check_colornorm(vmin=None, vmax=None, vcenter=None, norm=None):
+def check_colornorm(vmin = None, vmax = None, vcenter = None, norm = None):
     from matplotlib.colors import Normalize
 
     try:
@@ -108,6 +109,7 @@ def heatmap(
     adata: ad.AnnData,
     group_by: str | list,
     features: str | list,
+    groups_order: list = None,
     z_score: Literal["var", "group"] = None,  # x_axis is the group_by
     path: str = None,
     filename: str = "Heatmap.svg",
@@ -151,6 +153,7 @@ def heatmap(
     :param adata: annotated data matrix.
     :param group_by: obs column name with categorical values.
     :param features: continuous value in var_names or obs.
+    :param groups_order: order for the categories in group_by
     :param z_score: apply z-score transformation.
     :param path: path to save the plot
     :param filename: name of the file.
@@ -195,7 +198,7 @@ def heatmap(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.heatmap(adata, 'annotation', ['CD4', 'CD79A'])
+        do.pl.heatmap(adata, 'annotation', ['CD4', 'CD79A'], add_stats=True)
 
     """
     # Checks
@@ -223,6 +226,8 @@ def heatmap(
         if cluster_x_axis
         else list(df.index)
     )
+
+    new_columns = groups_order if groups_order is not None else list(df.columns)
     new_column = (
         df.columns[
             dendrogram(linkage(df.T.values, method=clustering_method, metric=clustering_metric), no_plot=True)["leaves"]
@@ -230,6 +235,7 @@ def heatmap(
         if cluster_y_axis
         else list(df.columns)
     )
+
     df = df.reindex(index=new_index, columns=new_column)
 
     # Layout

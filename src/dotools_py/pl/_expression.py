@@ -7,7 +7,9 @@ import seaborn as sns
 
 from dotools_py import logger
 from dotools_py.pl._StatsPlotter import StatsPlotter, TestData
-from dotools_py.tl import get_expr, mean_expr
+from dotools_py.get import mean_expr
+from dotools_py.get import expr as get_expr
+
 from dotools_py.utils import convert_path, sanitize_anndata
 
 

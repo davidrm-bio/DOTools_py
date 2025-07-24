@@ -13,7 +13,7 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.colors import LinearSegmentedColormap, ListedColormap
 
 from dotools_py import logger
-from dotools_py.tl import mean_expr
+from dotools_py.get import mean_expr
 from dotools_py.utility import generate_cmap
 from dotools_py.utils import convert_path, format_terms_gsea, make_grid_spec, require_dependencies, sanitize_anndata
 

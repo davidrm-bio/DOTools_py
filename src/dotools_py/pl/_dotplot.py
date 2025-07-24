@@ -27,7 +27,7 @@ from scanpy.plotting._utils import (
 )
 
 from dotools_py import logger
-from dotools_py.tl import get_expr
+from dotools_py.get import expr as get_expr
 from dotools_py.utils import convert_path, sanitize_anndata
 
 if TYPE_CHECKING:

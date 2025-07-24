@@ -8,7 +8,7 @@ import pandas as pd
 import scanpy as sc
 from adjustText import adjust_text
 
-from dotools_py.tl import get_expr
+from dotools_py.get import expr as get_expr
 from dotools_py.utility import spine_format
 from dotools_py.utils import convert_path, get_centroids, get_subplot_shape, remove_extra, sanitize_anndata
 

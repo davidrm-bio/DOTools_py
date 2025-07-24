@@ -6,6 +6,7 @@
 :hidden: true
 :maxdepth: 1
 
+installation
 api/index
 notebooks/index
 changelog

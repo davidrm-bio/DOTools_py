@@ -20,15 +20,6 @@ analysis and statistical methods.
     tl.pseudobulking
 ```
 
-## Data Extraction
-```{eval-rst}
-.. autosummary::
-    :toctree: generated
-
-    tl.get_expr
-    tl.mean_expr
-    tl.generate_results
-```
 
 ## Statistical Analysis
 ```{eval-rst}
