@@ -1,5 +1,5 @@
-from dotools_py.tl import get_expr
+from dotools_py.get import expr
 
 
 def test_get(adata):
-    data = get_expr(adata, "gene1", "group")
+    data = expr(adata, "gene1", "group")
