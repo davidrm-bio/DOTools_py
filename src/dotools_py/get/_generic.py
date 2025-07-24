@@ -4,10 +4,21 @@ from typing import Literal
 import anndata as ad
 import pandas as pd
 import numpy as np
-
+import scipy as sp
 from dotools_py import logger
-from dotools_py.tl._get_stats import _expm1_anndata
 
+
+def _expm1_anndata(adata: ad.AnnData) -> None:
+    """Apply expm1 transformation for the X dt.
+
+    :param adata: annotated dt matrix
+    :return: None, changes are inplace
+    """
+    if sp.sparse.issparse(adata.X):
+        adata.X = adata.X.copy()
+        adata.X.data = np.expm1(adata.X.data)
+    else:
+        adata.X = np.expm1(adata.X)
 
 def expr(
     adata: ad.AnnData,

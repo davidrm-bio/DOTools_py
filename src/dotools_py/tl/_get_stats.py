@@ -11,8 +11,6 @@ import gseapy
 import numpy as np
 import pandas as pd
 import scanpy as sc
-import scipy as sp
-import scipy.sparse
 from pydeseq2.dds import DeseqDataSet
 from pydeseq2.default_inference import DefaultInference
 from pydeseq2.ds import DeseqStats
@@ -22,21 +20,8 @@ from tqdm import tqdm
 from dotools_py import logger
 from dotools_py.tl._rankGenes import rank_genes_groups
 from dotools_py.utils import convert_path, get_paths_utils, sanitize_anndata
-from dotools_py.get import expr as get_expr
+from dotools_py.get._generic import expr as get_expr
 from dotools_py.get import mean_expr, dge_results
-
-def _expm1_anndata(adata: ad.AnnData) -> None:
-    """Apply expm1 transformation for the X dt.
-
-    :param adata: annotated dt matrix
-    :return: None, changes are inplace
-    """
-    if sp.sparse.issparse(adata.X):
-        adata.X = adata.X.copy()
-        adata.X.data = np.expm1(adata.X.data)
-    else:
-        adata.X = np.expm1(adata.X)
-
 
 
 # DGE Analysis
