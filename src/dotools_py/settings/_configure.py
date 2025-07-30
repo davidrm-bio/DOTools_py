@@ -93,8 +93,7 @@ def session_settings(
     """
     # Scanpy Settings
     set_verbosity(verbosity)
-    sc.set_figure_params(scanpy=False, vector_friendly=False)
-    sc.settings.verbosity = verbosity
+    sc.Verbosity  = verbosity
     interactive_session(interactive)
     logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 
