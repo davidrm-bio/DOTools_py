@@ -165,4 +165,5 @@ def session_settings(
     )
     sc.settings._vector_friendly = vector_friendly
     mpl.rcParams["pdf.fonttype"] = 42  # Use TrueType fonts in PDFs (editable text)
+
     return None
