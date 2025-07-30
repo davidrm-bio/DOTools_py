@@ -93,6 +93,7 @@ def session_settings(
     """
     # Scanpy Settings
     set_verbosity(verbosity)
+    sc.set_figure_params(scanpy=False, vector_friendly=False)
     sc.settings.verbosity = verbosity
     interactive_session(interactive)
     logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
@@ -166,8 +167,4 @@ def session_settings(
 
     mpl.rcParams["pdf.fonttype"] = 42  # Use TrueType fonts in PDFs (editable text)
 
-    sc.settings.set_figure_params(scanpy=False, dpi_save=dpi_save, dpi=dpi,
-                         vector_friendly=vector_friendly, fontsize=fontsize,
-                         color_map=colormap, figsize=figsize, facecolor=facecolor,
-                         transparent=transparent)
     return None
