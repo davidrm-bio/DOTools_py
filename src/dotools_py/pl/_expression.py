@@ -306,6 +306,8 @@ def boxplot(
 
     if xtick_rotation is not None:
         bx.set_xticklabels(bx.get_xticklabels(), rotation=xtick_rotation, ha="right", va="top", fontweight="bold")
+    else:
+        bx.set_xticklabels(bx.get_xticklabels(), fontweight="bold")
     bx.set_xlabel("")
     bx.set_ylabel(ylabel)
 
