@@ -164,10 +164,10 @@ def session_settings(
         }
     )
 
-    sc.set_figure_params(scanpy=False, dpi_save=dpi_save, dpi=dpi,
+    mpl.rcParams["pdf.fonttype"] = 42  # Use TrueType fonts in PDFs (editable text)
+
+    sc.settings.set_figure_params(scanpy=False, dpi_save=dpi_save, dpi=dpi,
                          vector_friendly=vector_friendly, fontsize=fontsize,
                          color_map=colormap, figsize=figsize, facecolor=facecolor,
                          transparent=transparent)
-    mpl.rcParams["pdf.fonttype"] = 42  # Use TrueType fonts in PDFs (editable text)
-
     return None
