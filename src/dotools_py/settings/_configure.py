@@ -66,6 +66,7 @@ def session_settings(
     top_spine: bool = False,
     right_spine: bool = False,
     grid: bool = False,
+    vector_friendly: bool = True,
 ) -> None:
     """Set general settings.
 
@@ -162,7 +163,6 @@ def session_settings(
             "savefig.bbox": "tight",  # Remove unnecessary whitespace
         }
     )
-
+    sc.settings._vector_friendly = vector_friendly
     mpl.rcParams["pdf.fonttype"] = 42  # Use TrueType fonts in PDFs (editable text)
-
     return None
