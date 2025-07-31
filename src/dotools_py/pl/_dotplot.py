@@ -29,6 +29,8 @@ from scanpy.plotting._utils import (
 from dotools_py import logger
 from dotools_py.get._generic import expr as get_expr
 from dotools_py.utils import convert_path, sanitize_anndata
+from dotools_py.pl._heatmap import small_squares
+from dotools_py.tl._get_stats import rank_genes_groups
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -187,6 +189,7 @@ class DotPlot(BasePlot):
         vcenter: float | None = None,
         norm: Normalize | None = None,
         logcounts: bool = True,
+        add_stats: bool = False,
         **kwds,
     ) -> None:
         BasePlot.__init__(
@@ -289,6 +292,7 @@ class DotPlot(BasePlot):
         self.legends_width = self.DEFAULT_LEGENDS_WIDTH
         self.show_size_legend = True
         self.show_colorbar = True
+        self.add_stats = add_stats
         return
 
     @old_positionals(
@@ -527,6 +531,23 @@ class DotPlot(BasePlot):
         xmin, xmax = size_legend_ax.get_xlim()
         size_legend_ax.set_xlim(xmin - 0.15, xmax + 0.5)
 
+    def _plot_stat_legend(self, sig_legend_ax: Axes):
+        x, y = 0, 0.5
+        sig_legend_ax.scatter(x, y, s=400, facecolors="none", edgecolors="black", marker="s")
+        sig_legend_ax.text(x + 0.03, y, "FDR < 0.05", fontsize=12, va="center", fontweight="bold")
+        sig_legend_ax.set_xlim(x - 0.02, x + 0.1)
+
+        if isinstance(self.groupby, list):
+            if len(self.groupby) > 1:
+                name = '_'.join(self.groupby)
+            else:
+                name = self.groupby[0]
+        else:
+            name = self.groupby
+        sig_legend_ax.set_title(f"Significance over\n{name}", fontsize="small", fontweight="bold", pad=1)
+        plt.gca().set_aspect("equal")
+        sig_legend_ax.axis("off")  # Hide axes for clean display
+
     def _plot_legend(self, legend_ax, return_ax_dict, normalize):
         # to maintain the fixed height size of the legends, a
         # spacer of variable height is added at the bottom.
@@ -539,26 +560,56 @@ class DotPlot(BasePlot):
 
         cbar_legend_height = self.min_figure_height * 0.08
         size_legend_height = self.min_figure_height * 0.27
+        sig_legend = self.min_figure_height * 0.15
         spacer_height = self.min_figure_height * 0.3
 
-        height_ratios = [
-            self.height - size_legend_height - cbar_legend_height - spacer_height,
-            size_legend_height,
-            spacer_height,
-            cbar_legend_height,
-        ]
-        fig, legend_gs = make_grid_spec(legend_ax, nrows=4, ncols=1, height_ratios=height_ratios)
+        if self.add_stats:
+            height_ratios = [
+                self.height - size_legend_height - cbar_legend_height - spacer_height - sig_legend - spacer_height,
+                sig_legend,
+                spacer_height,
+                size_legend_height,
+                spacer_height,
+                cbar_legend_height,
+            ]
 
-        if self.show_size_legend:
-            size_legend_ax = fig.add_subplot(legend_gs[1])
-            self._plot_size_legend(size_legend_ax)
-            return_ax_dict["size_legend_ax"] = size_legend_ax
+        else:
+            height_ratios = [
+                self.height - size_legend_height - cbar_legend_height - spacer_height,
+                size_legend_height,
+                spacer_height,
+                cbar_legend_height,
+            ]
 
-        if self.show_colorbar:
-            color_legend_ax = fig.add_subplot(legend_gs[3])
+        nrows = len(height_ratios)
+        fig, legend_gs = make_grid_spec(legend_ax, nrows=nrows, ncols=1, height_ratios=height_ratios)
 
-            self._plot_colorbar(color_legend_ax, normalize)
-            return_ax_dict["color_legend_ax"] = color_legend_ax
+        if self.add_stats:
+            sig_legend_ax = fig.add_subplot(legend_gs[2])
+            self._plot_stat_legend(sig_legend_ax)
+            return_ax_dict["signifiance_ax"] = sig_legend_ax
+
+            if self.show_size_legend:
+                size_legend_ax = fig.add_subplot(legend_gs[3])
+                self._plot_size_legend(size_legend_ax)
+                return_ax_dict["size_legend_ax"] = size_legend_ax
+
+            if self.show_colorbar:
+                color_legend_ax = fig.add_subplot(legend_gs[5])
+
+                self._plot_colorbar(color_legend_ax, normalize)
+                return_ax_dict["color_legend_ax"] = color_legend_ax
+        else:
+            if self.show_size_legend:
+                size_legend_ax = fig.add_subplot(legend_gs[1])
+                self._plot_size_legend(size_legend_ax)
+                return_ax_dict["size_legend_ax"] = size_legend_ax
+
+            if self.show_colorbar:
+                color_legend_ax = fig.add_subplot(legend_gs[3])
+
+                self._plot_colorbar(color_legend_ax, normalize)
+                return_ax_dict["color_legend_ax"] = color_legend_ax
 
     def _mainplot(self, ax: Axes):
         # work on a copy of the dataframes. This is to avoid changes
@@ -868,7 +919,8 @@ def dotplot_scanpy(
     dot_max: float | None = None,
     dot_min: float | None = None,
     smallest_dot: float = 0.0,
-    logcounts=True,
+    logcounts: bool = True,
+    add_stats: bool = False,
     **kwds,
 ) -> DotPlot | dict | None:
     """\
@@ -998,6 +1050,7 @@ def dotplot_scanpy(
         vcenter=vcenter,
         norm=norm,
         logcounts=logcounts,
+        add_stats=add_stats,
         **kwds,
     )
 
@@ -1059,8 +1112,16 @@ def dotplot(
     edge_color: str = "black",
     dot_max: float | None = None,
     dot_min: float | None = None,
+    add_stats: Literal["x_axis", "y_axis"] = None,
+    df_pvals: pd.DataFrame = None,
+    square_x_size: dict = None,
+    test: Literal["wilcoxon", "t-test"] = "wilcoxon",
+    correction_method: Literal["benjamini-hochberg", "bonferroni"] = "benjamini-hochberg",
+    pval_cutoff: float = 0.05,
+    log2fc_cutoff: float = 0.0,
+    set_equal_aspect: bool = False,
     **kwargs,
-) -> plt.Axes:
+) -> dict | None:
     """Makes a 2d dotplot or 3d dotplot.
 
     There are two type of visualisation:
@@ -1114,6 +1175,14 @@ def dotplot(
                     should be a number between 0 and 1. All Fractions larger than dot_max are clipped to this value.
     :param swap_axes: swap axis. Default is True to match the 3d dotplot arguments
     :param rect_height: height of the boxes of the features in 3d dotplot
+    :param add_stats: add a square to indicate statistical significance. Indicate the x_axis to test for.
+    :param df_pvals: dataframe with significant values. Not yet implemented
+    :param square_x_size: dictionary specifying the size and thickness of the squares.
+    :param test: statistical method to use.
+    :param correction_method: correction method for multiple testing.
+    :param pval_cutoff: cutoff for the p-value.
+    :param log2fc_cutoff: cutoff for the log2-foldchange
+    :param set_equal_aspect: set equal ratio both axis.
     :param kwargs: additional arguments passed to the `Dotplot class <https://scanpy.readthedocs.io/en/stable/api/generated/classes/scanpy.pl.DotPlot.html#scanpy.pl.DotPlot>`_
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes
 
@@ -1136,6 +1205,19 @@ def dotplot(
         :context: close-figs
 
         do.pl.dotplot(adata, 'condition', markers, 'annotation', figsize=(6, 4))
+
+    Add Statistical Significance
+     .. plot::
+        :context: close-figs
+
+        do.pl.dotplot(adata, 'condition', markers, figsize=(6, 4), add_stats='x_axis', set_equal_aspect=True)
+
+    and splitting by two categorical columns
+
+    .. plot::
+        :context: close-figs
+
+        do.pl.dotplot(adata, 'condition', markers, 'annotation', figsize=(6, 4), add_stats='x_axis', set_equal_aspect=True)
 
     """
 
@@ -1217,6 +1299,26 @@ def dotplot(
         xmin, xmax = ax_size_legend.get_xlim()
         ax_size_legend.set_xlim(xmin - 0.15, xmax + 0.5)
 
+
+    def plot_stat_legend(group_stat, sig_legend_ax: Axes):
+        if isinstance(group_stat, list):
+            if len(group_stat) > 1:
+                name = '_'.join(group_stat)
+            else:
+                name = group_stat[0]
+        else:
+            name = group_stat
+        x = 0
+        y = 0.5
+        sig_legend_ax.scatter(x, y, s=400, facecolors="none", edgecolors="black", marker="s")
+        sig_legend_ax.text(x + 0.03, y, "FDR < 0.05", fontsize=12, va="center", fontweight="bold")
+        sig_legend_ax.set_xlim(x - 0.02, x + 0.1)
+
+        sig_legend_ax.set_title(f"Significance over\n{group_stat}", fontsize="small", fontweight="bold", pad=1)
+        plt.gca().set_aspect("equal")
+        sig_legend_ax.axis("off")  # Hide axes for clean display
+
+
     def add_legend(legend_ax, return_ax_dict, normalize, df_size):
         width, height = figsize if figsize is not None else (None, None)
 
@@ -1228,31 +1330,66 @@ def dotplot(
         cbar_legend_height = min_figure_height * 0.08
         size_legend_height = min_figure_height * 0.27
         spacer_height = min_figure_height * 0.3
+        sig_legend = min_figure_height * 0.15
 
-        height_ratios = [
-            height - size_legend_height - cbar_legend_height - spacer_height,
-            size_legend_height,
-            spacer_height,
-            cbar_legend_height,
-        ]
+        if add_stats is not None:
+            height_ratios = [
+                height - size_legend_height - cbar_legend_height - spacer_height - sig_legend - spacer_height,
+                sig_legend,
+                spacer_height,
+                size_legend_height,
+                spacer_height,
+                cbar_legend_height,
+            ]
 
+        else:
+            height_ratios = [
+                height - size_legend_height - cbar_legend_height - spacer_height,
+                size_legend_height,
+                spacer_height,
+                cbar_legend_height,
+            ]
+
+        nrows = len(height_ratios)
         # Create the legend axis
-        fig, legend_gs = make_grid_spec(legend_ax, nrows=4, ncols=1, height_ratios=height_ratios)
+        fig, legend_gs = make_grid_spec(legend_ax, nrows=nrows, ncols=1, height_ratios=height_ratios)
 
-        # Add Size Legend
-        size_legend_ax = fig.add_subplot(legend_gs[1])
-        add_size_legend(size_legend_ax, df_size)
-        return_ax_dict["size_legend_ax"] = size_legend_ax
+        if add_stats is not None:
+            sig_legend_ax = fig.add_subplot(legend_gs[2])
+            group_size = x_axis if add_stats == "x_axis" else y_axis
+            plot_stat_legend(group_size, sig_legend_ax)
+            return_ax_dict["signifiance_ax"] = sig_legend_ax
 
-        # Add Color Legend
-        color_legend_ax = fig.add_subplot(legend_gs[3])
-        colormap = plt.get_cmap(cmap)
+            # Add Size Legend
+            size_legend_ax = fig.add_subplot(legend_gs[3])
+            add_size_legend(size_legend_ax, df_size)
+            return_ax_dict["size_legend_ax"] = size_legend_ax
 
-        mappable = ScalarMappable(norm=normalize, cmap=colormap)
-        matplotlib.colorbar.Colorbar(color_legend_ax, mappable=mappable, orientation="horizontal")
-        color_legend_ax.set_title(color_legend_title, fontsize="small")
-        color_legend_ax.xaxis.set_tick_params(labelsize="small")
-        return_ax_dict["color_legend_ax"] = color_legend_ax
+            # Add Color Legend
+            color_legend_ax = fig.add_subplot(legend_gs[5])
+            colormap = plt.get_cmap(cmap)
+
+            mappable = ScalarMappable(norm=normalize, cmap=colormap)
+            matplotlib.colorbar.Colorbar(color_legend_ax, mappable=mappable, orientation="horizontal")
+            color_legend_ax.set_title(color_legend_title, fontsize="small")
+            color_legend_ax.xaxis.set_tick_params(labelsize="small")
+            return_ax_dict["color_legend_ax"] = color_legend_ax
+
+        else:
+            # Add Size Legend
+            size_legend_ax = fig.add_subplot(legend_gs[1])
+            add_size_legend(size_legend_ax, df_size)
+            return_ax_dict["size_legend_ax"] = size_legend_ax
+
+            # Add Color Legend
+            color_legend_ax = fig.add_subplot(legend_gs[3])
+            colormap = plt.get_cmap(cmap)
+
+            mappable = ScalarMappable(norm=normalize, cmap=colormap)
+            matplotlib.colorbar.Colorbar(color_legend_ax, mappable=mappable, orientation="horizontal")
+            color_legend_ax.set_title(color_legend_title, fontsize="small")
+            color_legend_ax.xaxis.set_tick_params(labelsize="small")
+            return_ax_dict["color_legend_ax"] = color_legend_ax
 
     def check_colornorm(vmin=None, vmax=None, vcenter=None, norm=None):
         from matplotlib.colors import Normalize
@@ -1353,9 +1490,13 @@ def dotplot(
                 smallest_dot=smallest_dot,
                 logcounts=logcounts,
                 swap_axes=swap_axes,
+                add_stats = True if add_stats == "x_axis" else False
                 **kwargs,
             )
-        except Exception:  # Fallback to scanpy
+        except Exception as e:  # Fallback to scanpy
+            print(e)
+            if add_stats is not None:
+                logger.warn('Error when plotting, falling back to base plot. Stats not displayed')
             axis_dict = sc.pl.dotplot(
                 adata,
                 groupby=x_axis,
@@ -1638,6 +1779,111 @@ def dotplot(
 
         axis_dict["mainplot_ax"] = dot_ax
         # </editor-fold>
+
+
+    # <editor-fold desc="Section 9 - Add significance to the dotplot">
+    # Compute stats
+    if add_stats is not None:
+        if add_stats == 'y_axis':
+            assert y_axis is not None, "Testing y_axis but argument is None"
+        group_by = x_axis if add_stats == "x_axis" else y_axis
+        alternative = x_axis if add_stats == "y_axis" else y_axis
+
+        if df_pvals is None:
+            features = [features] if isinstance(features, str) else features
+            if y_axis is None:
+                if all(item in list(adata.var_names) for item in features):
+                    rank_genes_groups(adata, groupby=group_by, method=test, tie_correct=True,
+                                      corr_method=correction_method, layer=layer)
+                    table = sc.get.rank_genes_groups_df(
+                        adata, group=None, pval_cutoff=pval_cutoff, log2fc_min=log2fc_cutoff
+                    )
+                    table_filt = table[table["names"].isin(features)]
+
+                    if len(table_filt) == 0:
+                        logger.warn('No Significant group')
+
+                elif all(item in list(adata.obs.columns) for item in features):
+                    raise Exception('Not Implemented')
+            else:
+                if all(item in list(adata.var_names) for item in features):
+                    table_filt = pd.DataFrame([])
+                    for alt in adata.obs[alternative].unique():
+                        sdata = adata[adata.obs[alternative] == alt].copy()
+                        try:
+                            rank_genes_groups(sdata, groupby=group_by, method=test, tie_correct=True,
+                                              corr_method=correction_method, layer=layer)
+                            stable = sc.get.rank_genes_groups_df(
+                                sdata, group=None, pval_cutoff=pval_cutoff, log2fc_min=log2fc_cutoff
+                            )
+                        except Exception:
+                            # If there is only one condition in the group
+                            stable = pd.DataFrame([], columns=['group', 'names', 'scores', 'logfoldchanges', 'pvals',
+                                                               'pvals_adj', 'pct_nz_group', 'pct_nz_reference'])
+                        stable_filt = stable[stable["names"].isin(features)]
+                        stable_filt['group2'] = alt
+                        table_filt = pd.concat([table_filt, stable_filt])
+
+                    if len(table_filt) == 0:
+                        logger.warn('No Significant group')
+                elif all(item in list(adata.obs.columns) for item in features):
+                    pass
+
+            # Dataframe with gene x groups with the pvals
+            table_filt["group"] = table_filt["group"].str.replace("-", "_")  # Correction used in get_expr()
+            if y_axis is not None:
+                table_filt["group2"] = table_filt["group2"].str.replace("-", "_")  # Correction used in get_expr()
+
+            columns = [txt.get_text() for txt in axis_dict["mainplot_ax"].get_xticklabels()]
+            index = [txt.get_text() for txt in axis_dict["mainplot_ax"].get_yticklabels()]
+
+            if y_axis is not None:
+                genes = np.repeat(features, 2)
+                df_pvals = pd.DataFrame([], index=index, columns=pd.MultiIndex.from_tuples(
+                    [(genes[idx], col) for idx, col in enumerate(columns)]))
+            else:
+                df_pvals = pd.DataFrame([], index=index, columns=columns)
+
+            for idx, row in table_filt.iterrows():
+                if y_axis is None:
+                    if row["group"] in list(index):
+                        df_pvals.loc[row["group"], row["names"]] = row["pvals_adj"]
+                    else:
+                        df_pvals.loc[row["names"], row["group"]] = row["pvals_adj"]
+                else:
+                    if row["group"] in list(index):
+                        df_pvals.loc[row["group"], (row["names"], row["group2"])] = row["pvals_adj"]
+                    else:
+                        df_pvals.loc[row["group2"], (row["names"], row["group"])] = row["pvals_adj"]
+            df_pvals[df_pvals.isna()] = 1
+        else:
+           raise Exception('Not Implemented')
+
+        # Add Stats
+        square_x_size = {} if square_x_size is None else square_x_size
+        square_x_size = {"width": square_x_size.get("weight", 1), "size": square_x_size.get("size", 0.8)}
+
+        tmp = axis_dict['mainplot_ax'].get_xticklabels()[0].get_text()
+        if tmp not in columns:
+            df_pvals = df_pvals.T
+
+        pos_rows, pos_cols = np.where(df_pvals < 0.05)
+        pos = list(zip(pos_rows, pos_cols, strict=False))
+        colors = ['black'] * len(pos)
+
+        small_squares(
+            ax=axis_dict['mainplot_ax'],
+            color=colors,
+            pos=pos,
+            size=square_x_size["size"],
+            linewidth=square_x_size["width"],
+        )
+
+    # </editor-fold>
+
+    if set_equal_aspect:
+        axis_dict['mainplot_ax'].set_aspect(set_equal_aspect)
+
 
     if path is not None:
         plt.savefig(convert_path(path) / filename, bbox_inches="tight")
