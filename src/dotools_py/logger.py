@@ -1,8 +1,6 @@
 import logging
 import sys
 
-import scanpy as sc
-
 logger = logging.getLogger("dotools")
 
 
@@ -30,6 +28,8 @@ def set_verbosity(level: int = 2) -> None:
                   3 - Debug mode
     :return:
     """
+    import scanpy as sc
+
     if level == 0:
         # Completely silent
         logger.setLevel(logging.CRITICAL + 1)  # Higher than CRITICAL
