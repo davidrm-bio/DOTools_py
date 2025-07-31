@@ -4,7 +4,6 @@ import warnings
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import scanpy as sc
 from cycler import cycler
 from scanpy.plotting import palettes
 
@@ -47,6 +46,21 @@ def interactive_session(enable: bool = True) -> None:
     return None
 
 
+def vector_friendly(enable: bool = True) -> None:
+    """Plot scatter plots using png backend even when exporting as pdf or svg.
+
+    :param enable: Set to true to enable.
+    :return: Returns None
+    """
+    import scanpy as sc
+    # Keep settings from session_settings default
+    sc.set_figure_params(scanpy=False, dpi=90, dpi_save=300,
+                         frameon=True, vector_friendly=True,
+                         fontsize=13, figsize=None, color_map='Reds',
+                         format='pdf', facecolor='white', transparent=False)
+    return
+
+
 def session_settings(
     verbosity: int = 2,
     interactive: bool = True,
@@ -66,7 +80,6 @@ def session_settings(
     top_spine: bool = False,
     right_spine: bool = False,
     grid: bool = False,
-    vector_friendly: bool = True,
 ) -> None:
     """Set general settings.
 
@@ -93,7 +106,6 @@ def session_settings(
     """
     # Scanpy Settings
     set_verbosity(verbosity)
-    sc.Verbosity  = verbosity
     interactive_session(interactive)
     logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 
