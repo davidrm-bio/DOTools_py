@@ -253,6 +253,8 @@ def heatmap(
                 )
                 table_filt = table[table["names"].isin(features)]
             elif all(item in list(adata.obs.columns) for item in features):
+                raise Exception('Not Implemented')
+                # TODO Fix Bug
                 tdf = adata.obs[[group_by] + features]
                 tdata = ad.AnnData(tdf.iloc[:, 1:].values, obs=pd.DataFrame(tdf[group_by]), var=list(tdf.columns)[1:])
                 tdata.var_names = tdata.var[0].copy()
