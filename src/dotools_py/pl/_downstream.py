@@ -473,7 +473,7 @@ def volcano_plot(
     lfc_col: str = "logfoldchanges",
     pval_col: str = "pvals_adj",
     gene_col: str = "names",
-    fig_path: str | None = None,
+    path: str | None = None,
     filename: str = "Volcano.svg",
     pval_lim: float = 2e-10,
     lfc_lim: tuple = (-10, 10),
@@ -505,7 +505,7 @@ def volcano_plot(
     :param lfc_col: name of the column that has the logfoldchanges.
     :param pval_col: name of the column that has the Pvals.
     :param gene_col: name of the column that has the gene names.
-    :param fig_path: path where to save the figure.
+    :param path: path where to save the figure.
     :param filename: name of the file.
     :param pval_lim: Y-axis limit. Genes with a < p-value will be set to this value.
     :param lfc_lim: X-axis limit. Genes with a > LFC will be ignored.
@@ -631,8 +631,8 @@ def volcano_plot(
         prop={"weight": "bold"},
     )
 
-    if fig_path is not None:
-        plt.savefig(convert_path(fig_path) / filename, bbox_inches="tight")
+    if path is not None:
+        plt.savefig(convert_path(path) / filename, bbox_inches="tight")
     if not show:
         return axs
     else:
