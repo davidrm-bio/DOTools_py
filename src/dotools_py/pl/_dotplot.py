@@ -1137,8 +1137,8 @@ def dotplot(
         scaling.
 
     :param adata: annotated data matrix.
-    :param x_axis: `.obs` column to group-by, same as group-by  in sc.pl.dotplot argument.
-    :param features: `.var_names` to show mean values, same as var_names  in sc.pl.dotplot argument.
+    :param x_axis: `.obs` column to group-by.
+    :param features: `.var_names` to show mean values.
     :param y_axis: `.obs` column to group-by in the other axis.
     :param layer: layer of the AnnData to use.
     :param x_categories_order: order of the categories in x_axis.
