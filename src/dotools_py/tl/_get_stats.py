@@ -525,7 +525,7 @@ def rank_genes_pseudobulk(
     pseudobulk_approach: Literal["sum", "mean"] = "sum",
     technical_replicates: int = 1,
     min_counts: int = 10,
-    n_cpus: int = 8,
+    workers: int = 8,
     path: str = None,
     filename: str = "DEA_Pseudobulk.xlsx",
     get_results: bool = True,
@@ -551,7 +551,7 @@ def rank_genes_pseudobulk(
     :param pseudobulk_approach: How to generate the pseudobulk counts.
     :param technical_replicates: How many technical replicates should be generated per sample.
     :param min_counts: Minimum number of total counts for a gene to be tested after pseudo-bulking.
-    :param n_cpus: Number of CPUs to use for DESEq2.
+    :param workers: Number of CPUs to use for DESEq2.
     :param path: Path to save the file.
     :param filename: Name of the file.
     :param get_results: Get dataframe with DEA results.
@@ -581,14 +581,14 @@ def rank_genes_pseudobulk(
         min_counts=min_counts,
         layer=layer,
         keep_metadata=[condition_key],
-        workers=n_cpus
+        workers=workers
     )
     sanitize_anndata(pdata_cts)
 
     # Step 2 - Run test
     if method == "deseq2":
         logger.info("Run DESeq2")
-        inference = DefaultInference(n_cpus=n_cpus)
+        inference = DefaultInference(n_cpus=workers)
         df_main = pd.DataFrame([])
         for ct in pdata_cts.obs[cluster_key].unique():
             try:
@@ -670,7 +670,7 @@ def rank_genes_consensus(
     pseudobulk_approach: Literal["sum", "mean"] = "sum",
     technical_replicates: int = 2,
     min_counts: int = 10,
-    n_cpus: int = 8,
+    workers: int = 8,
     path: str | Path | None = None,
     filename: str = "DEA.xlsx",
     test_pseudobulk: Literal["deseq2", "edger"] = "deseq2",
@@ -705,7 +705,7 @@ def rank_genes_consensus(
     :param pseudobulk_approach: How to generate the pseudobulk counts.
     :param technical_replicates: How many technical replicates should be generated per sample.
     :param min_counts: Minimum number of total counts for a gene to be tested in DESeq2 after pseudobulking.
-    :param n_cpus: Number of CPUs to use for DESEq2.
+    :param workers: Number of CPUs to use for DESEq2.
     :param path: Path to save results.
     :param filename: Name of the file.
     :param test_pseudobulk: Test to use for doing differential expression analysis on pseudobulk level.
@@ -755,7 +755,7 @@ def rank_genes_consensus(
         min_counts=min_counts,
         pseudobulk_approach=pseudobulk_approach,
         technical_replicates=technical_replicates,
-        n_cpus=n_cpus,
+        n_cpus=workers,
     )
     logger.info("Generating consensus DataFrame")
 
