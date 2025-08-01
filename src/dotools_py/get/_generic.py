@@ -111,7 +111,7 @@ def expr(
 
 def mean_expr(
     adata: ad.AnnData,
-    group_by: str,
+    group_by: str | list,
     features: list | str | None = None,
     out_format: Literal["long", "wide"] = "long",
     layer: str | None = None,
