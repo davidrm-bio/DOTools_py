@@ -20,7 +20,6 @@ from tqdm import tqdm
 from dotools_py import logger
 from dotools_py.tl._rankGenes import rank_genes_groups
 from dotools_py.utils import convert_path, get_paths_utils, sanitize_anndata
-from dotools_py.get._generic import expr as get_expr
 from dotools_py.get import mean_expr, dge_results
 
 
@@ -149,7 +148,7 @@ def rank_genes_condition(
     groupby: str,
     subset_by: str = None,
     reference: str = "rest",
-    groups: list = None,
+    groups: list | str = None,
     method: Literal["wilcoxon", "mast", "t-test", "logreg", "t-test_overestim_var"] = "wilcoxon",
     pval_cutoff: float = 0.05,
     log2fc_cutoff: float = 0.25,
@@ -380,11 +379,13 @@ def pseudobulking(
     adata: ad.AnnData,
     batch_key: str,
     cluster_key: str,
-    min_cells: int = 30,
+    keep_metadata: list = None,
+    min_cells: int = 10,
     pseudobulk_approach: Literal["sum", "mean"] = "sum",
     technical_replicates: int = 1,
     min_counts: int = 10,
     layer: str = None,
+    workers: int = 5,
 ) -> ad.AnnData:
     """Generate pseudobulk AnnData of clusters.
 
@@ -395,12 +396,14 @@ def pseudobulking(
     :param adata: Annotated data matrix.
     :param batch_key: Metadata column in `obs` with batch groups.
     :param cluster_key: Metadata column in `obs` with cluster groups.
+    :param keep_metadata: Metadata in `obs` to keep. If more than one value is available for a group the first one is taken.
     :param min_cells: Minimum number of cells in a cluster for each sample in order to generate a pseudobulk.
                       If the cluster has less it will be excluded.
     :param pseudobulk_approach: Mode of aggregations.
     :param technical_replicates: Number of technical replicates to generate.
     :param min_counts: Minimum number of counts for a gene to be included.
     :param layer: Layer to use.
+    :param workers: Number of theads to use to parallelize the pseudo-bulking
     :return: AnnData with pseudobulk counts for each cluster.
 
     Example
@@ -408,79 +411,103 @@ def pseudobulking(
     >>> import dotools_py as do
     >>> adata = do.dt.example_10x_processed()
     >>> pdata = do.tl.pseudobulking(adata, batch_key="batch", cluster_key="annotation")
-    Pseudo-bulked clusters:   0%|          | 0/5 [00:00<?, ?it/s]
-    2025-07-11 11:07:28,709 - The samples ['batch1'] have < 30 in cluster B_cells. Skipping cluster
-    2025-07-11 11:07:28,712 - The samples ['batch2'] have < 30 in cluster NK. Skipping cluster
-    2025-07-11 11:07:29,149 - Removed 941 genes for having less than 10 total counts
-    2025-07-11 11:07:29,152 - The samples ['batch1', 'batch2'] have < 30 in cluster pDC. Skipping cluster
-    2025-07-11 11:07:29,155 - The samples ['batch2'] have < 30 in cluster Monocytes. Skipping cluster
-    Pseudo-bulked clusters: 100%|██████████| 5/5 [00:00<00:00, 11.01it/s]
+    Pseudo-bulked groups: 100%|██████████| 10/10 [00:08<00:00,  1.19it/s]
+    OMP: Info #276: omp_set_nested routine deprecated, please use omp_set_max_active_levels instead.
+    2025-08-01 16:41:13,927 - Removed 796 genes for having less than 10 total counts
     >>> pdata
-    AnnData object with n_obs × n_vars = 2 × 910
-        obs: 'batch', 'condition', 'doublet_class', 'cell_type', 'autoAnnot', 'annotation', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts',
-             'log1p_total_counts', 'pct_counts_in_top_50_genes', 'pct_counts_in_top_100_genes', 'pct_counts_in_top_200_genes', 'pct_counts_in_top_500_genes'
+    AnnData object with n_obs × n_vars = 7 × 1055
+        obs: 'annotation', 'batch', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'pct_counts_in_top_50_genes', 'pct_counts_in_top_100_genes', 'pct_counts_in_top_200_genes', 'pct_counts_in_top_500_genes'
+        var: 'n_cells_by_counts', 'mean_counts', 'log1p_mean_counts', 'pct_dropout_by_counts', 'total_counts', 'log1p_total_counts'
 
     """
-    list_pdata = []
-    clusters_name = []
-    for cluster in tqdm(adata.obs[cluster_key].unique(), desc="Pseudo-bulked clusters"):
-        adata_subset = adata[adata.obs[cluster_key] == cluster].copy()
+    import polars as pl
+    from joblib import Parallel, delayed
+    import scipy.sparse as sp
+    import gc
+    import multiprocessing
 
-        # Do not test clusters where we do not have enough cells per batch
-        check = adata_subset.obs.value_counts(batch_key)
-        check = list(check[~check.where(check < min_cells).isna()].index)
-        if len(check) != 0:
-            print("\n")
-            logger.warn(f"The samples {check} have < {min_cells} in cluster {cluster}. Skipping cluster")
-            continue
-        # Keep only categorical metadata
-        keep_metadata = list(adata_subset.obs.select_dtypes(include=["category"]).columns)
-        # Define settings to aggregate data
-        df_main = pd.DataFrame()
-        for sample in adata_subset.obs[batch_key].unique():
-            subset_batch = adata_subset[adata_subset.obs[batch_key] == sample].copy()
-            # Keep only metadata that has one value per donor
-            keep_metadata_current = [k for k in keep_metadata if len(subset_batch.obs[k].unique()) == 1]
-            aggregate_info = dict.fromkeys(adata_subset.var_names, pseudobulk_approach)
-            aggregate_info.update(dict.fromkeys(keep_metadata_current, "first"))
+    keep_metadata = [] if keep_metadata is None else keep_metadata
+    keep_metadata = [keep_metadata] if isinstance(keep_metadata, str) else keep_metadata
+    keep_metadata = keep_metadata + [cluster_key, batch_key]
 
+    # Define the groups to pseudo-bulk
+    groups = adata.obs[[cluster_key, batch_key]]
+    groups = groups.groupby([cluster_key, batch_key])
+    groups = groups.groups
+
+    # Create dictionary to specify how to pseudobulk
+    aggregate_info = dict.fromkeys(adata.var_names, pseudobulk_approach)
+    aggregate_info.update(dict.fromkeys(keep_metadata, "first"))
+    del aggregate_info[batch_key]
+    agg_exprs = [getattr(pl.col(col), func)().alias(col) for col, func in aggregate_info.items()]
+
+    def _process_group(
+        cluster: str,
+        batch: str,
+        bcs: list
+    ) -> pl.DataFrame | None:
+        sdata = adata[adata.obs_names.isin(bcs), :]
+
+        if sdata.n_obs < min_cells:
+            logger.info(f"Excluding {cluster} in {batch} for having less than {min_cells}")
+            return None
+
+        if technical_replicates == 1:
+            mtx = sdata.to_df(layer=layer)
+            mtx[keep_metadata] = sdata.obs[keep_metadata].values
+            mtx_pl = pl.from_pandas(mtx).group_by(batch_key).agg(agg_exprs)
+        else:
             # Generate technical replicates
-            idx = list(subset_batch.obs_names)
-            random.shuffle(idx)
-            idx = np.array_split(np.array(idx), technical_replicates)
+            random.shuffle(bcs)
+            idx = np.array_split(np.array(bcs), technical_replicates)
+            mtx_pl = pl.DataFrame()
             for i, replicate in enumerate(idx):
-                batch_replicate = subset_batch[replicate, :]
-                mtx = get_expr(
-                    batch_replicate,
-                    list(batch_replicate.var_names),
-                    keep_metadata_current,
-                    out_format="wide",
-                    layer=layer,
-                )
-                mtx = mtx.groupby(batch_key).agg(aggregate_info)
-                if len(idx) > 1:
-                    mtx[batch_key] = mtx[batch_key] + "_" + str(i)
-                df_main = pd.concat([df_main, mtx])
+                batch_replicate = sdata[replicate, :]
+                mtx = batch_replicate.to_df(layer=layer)
+                mtx[keep_metadata] = batch_replicate.obs[keep_metadata].values
 
-        df_main = df_main.fillna(0)
-        pdata = ad.AnnData(
-            df_main[adata_subset.var_names].values, obs=df_main[keep_metadata_current], var=list(adata_subset.var_names)
+                mtx_pl_tmp = pl.from_pandas(mtx)
+                mtx_pl_tmp[batch_key] = mtx_pl_tmp[batch_key] + "_" + str(i)
+                mtx_pl = pl.concat([mtx_pl_tmp, mtx_pl], how="vertical")
+        gc.collect()
+        return mtx_pl
+
+
+    # Process groups in parallel
+    with Parallel(n_jobs=workers, backend="loky") as parallel:
+        results = parallel(
+            delayed(_process_group)(cluster, batch, list(bcs))
+            for (cluster, batch), bcs in tqdm(groups.items(), desc="Pseudo-bulked groups")
         )
-        pdata.var_names = pdata.var[0].values
-        sc.pp.calculate_qc_metrics(pdata, inplace=True)
-        pdata.obs_names.name = None
-        pdata.obs_names_make_unique()
-        pdata.var_names_make_unique()
-        n_vars = pdata.n_vars
-        pdata = pdata[:, pdata.var.total_counts > min_counts]
-        n_vars = n_vars - pdata.n_vars
-        logger.info(f"Removed {n_vars} genes for having less than {min_counts} total counts")
-        list_pdata.append(pdata)
-        clusters_name.append(cluster)
 
-    pdata = ad.concat(list_pdata, keys=clusters_name, label=cluster_key, join="outer", fill_value=0)
-    pdata.obs_names_make_unique()
+    # Kill any active threads
+    for p in multiprocessing.active_children():
+        p.terminate()
+
+    #results = Parallel(n_jobs=workers)(
+    #    delayed(_process_group)(cluster, batch, list(bcs))
+    #    for (cluster, batch), bcs in tqdm(groups.items(), desc="Pseudo-bulked groups")
+    #)
+
+    # Generate the pseudo-bulked AnnData
+    df_main = [res for res in results if res is not None]
+    df_main = pl.concat(df_main, how="vertical")
+    df_main = df_main.to_pandas()
+    df_main = df_main.fillna(0)  # Make sure we do not have NaNs
+
+    pdata = ad.AnnData(df_main[adata.var_names], obs=df_main[keep_metadata])
+    pdata.obs_names = ['psBC-' + str(idx) for idx in range(pdata.n_obs)]
     pdata.var_names_make_unique()
+    pdata.X = np.nan_to_num(pdata.X, nan=0)
+    if not sp.isspmatrix_csr(pdata.X):
+        pdata.X = sp.csr_matrix(pdata.X)
+
+    # Remove genes that have low amount of counts
+    sc.pp.calculate_qc_metrics(pdata, inplace=True)
+    n_vars = pdata.n_vars
+    pdata = pdata[:, pdata.var.total_counts > min_counts].copy()
+    n_vars = n_vars - pdata.n_vars
+    logger.info(f"Removed {n_vars} genes for having less than {min_counts} total counts")
     return pdata
 
 
@@ -517,7 +544,7 @@ def rank_genes_pseudobulk(
     :param method: Differential expression method to use, DESeq2 or EdgeR.
     :param batch_key: Metadata column in `obs` with batch groups
     :param condition_key: Metadata column in `obs` with condition groups.
-    :param design: Design for DESeq2.
+    :param design: Design factors for DESeq2.
     :param layer: Layer to use. Expected raw counts.
     :param min_cells: Minimum number of cells per batch/sample required when generating the pseudo-bulk. If there are
                       fewer cells, DESeq2 / EdgeR will not be run on the cluster.
@@ -540,6 +567,8 @@ def rank_genes_pseudobulk(
         :func:`dotools_py.tl.rank_genes_consensus`: run DEA at pseudobulk and single-cell level between condition for all clusters
 
     """
+    import multiprocessing
+
     # Step 1 - Generate Pseudo-bulk data
     logger.info("Generating Pseudo-bulk data")
     pdata_cts = pseudobulking(
@@ -551,6 +580,8 @@ def rank_genes_pseudobulk(
         technical_replicates=technical_replicates,
         min_counts=min_counts,
         layer=layer,
+        keep_metadata=[condition_key],
+        workers=n_cpus
     )
     sanitize_anndata(pdata_cts)
 
@@ -560,15 +591,27 @@ def rank_genes_pseudobulk(
         inference = DefaultInference(n_cpus=n_cpus)
         df_main = pd.DataFrame([])
         for ct in pdata_cts.obs[cluster_key].unique():
-            pdata = pdata_cts[pdata_cts.obs[cluster_key] == ct].copy()
-            dds = DeseqDataSet(adata=pdata, design=design, refit_cooks=True, inference=inference)
-            dds.deseq2()
-            stat_res = DeseqStats(dds, contrast=[condition_key, disease_cond, ctrl_cond], inference=inference)
-            stat_res.summary()
-            results = stat_res.results_df.copy()
-            results.loc[results.padj.isna(), "padj"] = 1  # Replace NaN with 1
-            results["group"] = pdata.obs[cluster_key].unique()[0]
-            df_main = pd.concat([df_main, results])
+            try:
+                pdata = pdata_cts[pdata_cts.obs[cluster_key] == ct].copy()
+                pdata.X = pdata.X.toarray()
+                if pdata.n_obs == 0:
+                    logger.warn(f"Could not test for {ct}")
+                    continue
+                dds = DeseqDataSet(adata=pdata, design=design, refit_cooks=True, inference=inference)
+                dds.deseq2()
+                stat_res = DeseqStats(dds, contrast=[condition_key, disease_cond, ctrl_cond], inference=inference)
+                stat_res.summary()
+                results = stat_res.results_df.copy()
+                results.loc[results.padj.isna(), "padj"] = 1  # Replace NaN with 1
+                results["group"] = pdata.obs[cluster_key].unique()[0]
+                df_main = pd.concat([df_main, results])
+            except ValueError as e:
+                logger.info(f"Test could not be computed for {ct} due to {e}")
+
+        # Kill any active threads
+        for p in multiprocessing.active_children():
+            p.terminate()
+
     elif method == "edger":
         logger.info("Run edgeR")
         rscript = get_paths_utils("_run_edgeR.R")
@@ -577,25 +620,29 @@ def rank_genes_pseudobulk(
 
         df_main = pd.DataFrame()
         for ct in pdata_cts.obs[cluster_key].unique():
-            logger.info(f"Running DEA for {ct}")
-            pdata = pdata_cts[pdata_cts.obs[cluster_key] == ct].copy()
-            del pdata.uns, pdata.raw
-            pdata.write(tmpdir_path / f"adata_{ct}.h5ad")
-            in_path = os.path.join(tmpdir_path, f"adata_{ct}.h5ad")
-            cmd = [
-                "Rscript",
-                rscript,
-                "--input=" + in_path,
-                "--out=" + str(tmpdir_path) + f"/dge_{ct}_edgeR.csv",
-                "--batch=" + batch_key,
-                "--condition=" + condition_key,
-                "--ref=" + ctrl_cond,
-                "--disease=" + disease_cond,
-            ]
-            subprocess.call(cmd)
-            dge = pd.read_csv(os.path.join(tmpdir_path, f"dge_{ct}_edgeR.csv"))
-            dge["group"] = pdata.obs[cluster_key].unique()[0]
-            df_main = pd.concat([df_main, dge])
+            try:
+                logger.info(f"Running DEA for {ct}")
+                pdata = pdata_cts[pdata_cts.obs[cluster_key] == ct].copy()
+                del pdata.uns, pdata.raw
+                pdata.write(tmpdir_path / f"adata_{ct}.h5ad")
+                in_path = os.path.join(tmpdir_path, f"adata_{ct}.h5ad")
+                cmd = [
+                    "Rscript",
+                    rscript,
+                    "--input=" + in_path,
+                    "--out=" + str(tmpdir_path) + f"/dge_{ct}_edgeR.csv",
+                    "--batch=" + batch_key,
+                    "--condition=" + condition_key,
+                    "--ref=" + ctrl_cond,
+                    "--disease=" + disease_cond,
+                ]
+                subprocess.call(cmd)
+                dge = pd.read_csv(os.path.join(tmpdir_path, f"dge_{ct}_edgeR.csv"))
+                dge["group"] = pdata.obs[cluster_key].unique()[0]
+                df_main = pd.concat([df_main, dge])
+            except Exception as e:
+                logger.info(f"Test could not be computed for {ct} due to {e}")
+
     else:
         raise Exception(f'{method} not implemented, use "deseq2" or "edger"')
 
