@@ -5,6 +5,9 @@ import subprocess
 from typing import Literal
 
 import anndata as ad
+import pandas as pd
+import polars as pl
+import scipy.sparse as sp
 
 from dotools_py import logger
 from dotools_py.utils import get_paths_utils
@@ -62,7 +65,7 @@ def transfer_labels(
         return None
 
 
-def read_rds(path_rds: str, path_adata: str) -> ad.AnnData:
+def read_rds(path_rds: str | Path, path_adata: str | Path, batch_key: str = 'batch') -> ad.AnnData:
     """Read Rds object with Seurat or SingleCellExperiment Object.
 
     .. note::
@@ -71,6 +74,7 @@ def read_rds(path_rds: str, path_adata: str) -> ad.AnnData:
 
     :param path_rds: path to RDS file with SingleCellExperiment or SeuratObject.
     :param path_adata: path to save AnnData Object including the filename.
+    :param batch_key: name in `obs` to save batch information.
     :return: Returns an `AnnData` Object. The AnnData is also saved under `path_adata`.
 
     See Also
@@ -85,10 +89,16 @@ def read_rds(path_rds: str, path_adata: str) -> ad.AnnData:
     >>> adata = do.utility.read_rds(path_rds=path_rds, path_adata=path_adata)
     >>> adata
     AnnData object with n_obs × n_vars = 700 × 1851
-        obs: 'orig.ident', 'nCount_originalexp', 'nFeature_originalexp', 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo', 'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster', 'ident'
+        obs: 'nCount_originalexp', 'nFeature_originalexp', 'batch', 'condition', 'n_genes_by_counts',
+             'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt',
+             'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo',
+             'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type',
+             'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster', 'ident'
+        var: 'highly_variable'
         uns: 'X_name'
-        obsm: 'X_CCA', 'X_pca', 'X_umap'
-        layers: 'logcounts'
+        obsm: 'X_cca', 'X_pca', 'X_umap'
+        layers: 'logcounts', 'counts'
+        obsp: 'connectivities', 'distances'
 
     """
     rscript = get_paths_utils("_ReadWrite_RDS.R")
@@ -99,6 +109,7 @@ def read_rds(path_rds: str, path_adata: str) -> ad.AnnData:
         "--input=" + str(path_rds),
         "--out=" + str(path_adata),
         "--operation=" + "read",
+        "--batch_key=" + batch_key
     ]
 
     logger.info("Reading the RDS")
@@ -106,17 +117,79 @@ def read_rds(path_rds: str, path_adata: str) -> ad.AnnData:
     logger.info("Generating AnnData Object")
     adata = ad.read_h5ad(path_adata)
 
-    if 'X_UMAP' in adata.obsm.keys():
-        adata.obsm['X_umap'] = adata.obsm['X_UMAP'].values
-        del adata.obsm['X_UMAP']
-    if 'X_PCA' in adata.obsm.keys():
-        adata.obsm['X_pca'] = adata.obsm['X_PCA'].values
-        del adata.obsm['X_PCA']
+    # Transfer missing information
+    input_folder = str(path_rds).split("/")
+    input_folder = input_folder[:-1]
+    input_folder = "/".join(input_folder)
 
+    # Variable Features
+    try:
+        hvg = pd.read_csv(os.path.join(input_folder, "VariableFeatures.csv")).set_index("Unnamed: 0")
+        logger.info("Transferring HVGs")
+        hvg_bool = [True if g in list(hvg["hvg"]) else False for g in adata.var_names]
+        adata.var["highly_variable"] = hvg_bool
+    except FileNotFoundError as e:
+        logger.info(f"Problem transferring HVGs, {e}")
+
+
+    # Connectivities
+    try:
+        connectivities = pl.read_csv(os.path.join(input_folder, "Connectivities.csv"), has_header=True, dtypes={bc: pl.Float64 for bc in adata.obs_names})
+        connectivities = connectivities.to_pandas()
+        if "" in connectivities.columns:
+            del connectivities[""]  # Index
+        if connectivities.shape[0] == connectivities.shape[1]:
+            logger.info("Transferring connectivities")
+            adata.obsp["connectivities"] = sp.csr_matrix(connectivities.values)
+        else:
+            logger.info("Problem transferring connectivities")
+    except FileNotFoundError as e:
+        logger.info(f"Problem transferring connectivities, {e}")
+
+    # Distances
+    try:
+        distances = pl.read_csv(os.path.join(input_folder, "Distances.csv"), has_header=True, dtypes={bc: pl.Float64 for bc in adata.obs_names})
+        distances = distances.to_pandas()
+        if "" in distances.columns:
+            del distances[""]  # Index
+        if distances.shape[0] == distances.shape[1]:
+            logger.info("Transferring neighbor distances")
+            adata.obsp["distances"] = sp.csr_matrix(distances.values)
+        else:
+            logger.info("Problem transferring neighbor distances")
+    except FileNotFoundError as e:
+        logger.info(f"Problem transferring distances, {e}")
+
+    # Rename reductions
+    logger.info("Renaming reductions")
+    obsm_keys = [key for key in adata.obsm.keys()]
+    for key in obsm_keys:
+        new_key = "X_" + key.lower().replace(".", "_").replace("-", "_")
+        adata.obsm[new_key] = adata.obsm[key].values
+        del adata.obsm[key]
+
+    # Rename orig.ident if present
+    if "orig.ident" in list(adata.obs.columns):
+        logger.info(f"Renaming orig.ident to {batch_key}")
+        adata.obs[batch_key] = adata.obs["orig.ident"].copy()
+        del adata.obs["orig.ident"]
+
+    # Default is X with raw counts
+    if all(adata.X.data % 1 == 0):
+        adata.layers["counts"] = adata.X.copy()
+
+    # Remove all intermediate files
+    for f in ["Distances.csv", "Connectivities.csv", "VariableFeatures.csv" ]:
+        try:
+            os.remove(os.path.join(input_folder, f))
+        except FileNotFoundError:
+            continue
+    logger.info("Done")
     return  adata
 
 def save_rds(
     path_rds: str,
+    batch_key: str,
     adata: ad.AnnData = None,
     path_adata: str = None,
     object_type: Literal["SingleCellExperiment", "SeuratObject"] = "SeuratObject",
@@ -124,6 +197,7 @@ def save_rds(
     """Save AnnData as Seurat or SingleCellExperiment Object.
 
     :param path_rds: Path to save RDS Object including filename.
+    :param batch_key: Name in `obs` with batch information.
     :param adata: AnnData object
     :param path_adata: Path to AnnData Object including the filename.
     :param object_type: Specify the type of object that the AnnData should be converted to.
@@ -138,9 +212,28 @@ def save_rds(
     >>> import dotools_py as do
     >>> import os
     >>> adata = do.dt.example_10x_processed()
-    >>> do.utility.save_rds(path_rds="/tmp/Seurat.rds", adata=adata, object_type="SeuratObject")
+    >>> do.utility.save_rds(path_rds="/tmp/Seurat.rds", adata=adata, object_type="SeuratObject", batch_key="batch")
     >>> os.path.exists("/tmp/Seurat.rds")
     True
+
+    Example (R)
+    ----------
+    ```r
+
+    seu <- readRDS("/tmp/Seurat.rds")
+    seu
+
+    # An object of class Seurat
+
+    # 1851 features across 700 samples within 1 assay
+
+    # Active assay: RNA (1851 features, 191 variable features)
+
+    #  2 layers present: counts, data
+
+    #  3 dimensional reductions calculated: cca, pca, umap
+
+    ```
 
     """
     rscript = get_paths_utils("_ReadWrite_RDS.R")
@@ -154,6 +247,28 @@ def save_rds(
         del adata.uns, adata.raw
         adata.write(path_adata / "adata.h5ad")
         path_adata = os.path.join(path_adata, 'adata.h5ad')
+    else:
+        adata = ad.read_h5ad(path_adata)
+
+    # Save intermediate files
+    input_folder = str(path_adata).split("/")
+    input_folder = input_folder[:-1]
+    input_folder = "/".join(input_folder)
+
+    # distances --> nn
+    if "distances" in adata.obsp:
+        df = pl.DataFrame(adata.obsp["distances"].toarray())
+        df.columns = adata.obs_names
+        df.write_csv(os.path.join(input_folder,  "Distances.csv"))
+    if "connectivities" in adata.obsp:
+        # connectivities --> snn
+        df = pl.DataFrame(adata.obsp["connectivities"].toarray())
+        df.columns = adata.obs_names
+        df.write_csv(os.path.join(input_folder, "Connectivities.csv"))
+    if "highly_variable" in adata.var.columns:
+        # HVGs
+        hvg = adata.var.highly_variable
+        hvg.to_csv(os.path.join(input_folder, "VariableFeatures.csv"))
 
     cmd = [
         "Rscript",
@@ -162,10 +277,20 @@ def save_rds(
         "--out=" + str(path_rds) ,
         "--type=" + object_type,
         "--operation=" + "write",
+        "--batch_key=" + batch_key
     ]
 
     logger.info(f"Generating the {object_type}")
     subprocess.call(cmd)
+
+
+    # Remove all intermediate files
+    for f in ["Distances.csv", "Connectivities.csv","VariableFeatures.csv"]:
+        try:
+            os.remove(os.path.join(input_folder, f))
+        except FileNotFoundError:
+            continue
+
     logger.info("Done")
     return None
 
