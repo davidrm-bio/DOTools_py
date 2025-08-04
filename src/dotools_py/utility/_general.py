@@ -217,23 +217,19 @@ def save_rds(
     True
 
     Example (R)
-    ----------
-    ```r
+    -----------
 
-    seu <- readRDS("/tmp/Seurat.rds")
-    seu
+    .. code-block:: r
 
-    # An object of class Seurat
+        seu <- readRDS("/tmp/Seurat.rds")
+        seu
 
-    # 1851 features across 700 samples within 1 assay
-
-    # Active assay: RNA (1851 features, 191 variable features)
-
-    #  2 layers present: counts, data
-
-    #  3 dimensional reductions calculated: cca, pca, umap
-
-    ```
+        Output:
+            An object of class Seurat
+            1851 features across 700 samples within 1 assay
+            Active assay: RNA (1851 features, 191 variable features)
+            2 layers present: counts, data
+            3 dimensional reductions calculated: cca, pca, umap
 
     """
     rscript = get_paths_utils("_ReadWrite_RDS.R")
