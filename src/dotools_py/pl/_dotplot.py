@@ -1918,7 +1918,7 @@ def dotplot(
 
         # Add Stats
         square_x_size = {} if square_x_size is None else square_x_size
-        square_x_size = {"width": square_x_size.get("weight", 1), "size": square_x_size.get("size", 0.6)}
+        square_x_size = {"width": square_x_size.get("weight", 1), "size": square_x_size.get("size", 0.5)}
 
         tmp = axis_dict['mainplot_ax'].get_xticklabels()[0].get_text()
         if tmp not in columns:
