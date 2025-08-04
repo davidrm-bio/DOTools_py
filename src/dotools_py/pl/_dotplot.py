@@ -1242,6 +1242,10 @@ def dotplot(
         markers = ['CD79A', 'CD4', 'CDK1']
         do.pl.dotplot(adata, 'annotation', markers, figsize=(4, 3))
 
+        # Add Statistical significance
+        do.pl.dotplot(adata, 'condition', markers, figsize=(6, 4), add_stats='x_axis', set_equal_aspect=True)
+
+
     Create a 3d dotplot grouping also by condition
 
     .. plot::
@@ -1249,18 +1253,7 @@ def dotplot(
 
         do.pl.dotplot(adata, 'condition', markers, 'annotation', figsize=(6, 4))
 
-    Add Statistical Significance
-
-    .. plot::
-        :context: close-figs
-
-        do.pl.dotplot(adata, 'condition', markers, figsize=(6, 4), add_stats='x_axis', set_equal_aspect=True)
-
-    and splitting by two categorical columns
-
-    .. plot::
-        :context: close-figs
-
+        # Add Statistical significance
         do.pl.dotplot(adata, 'condition', markers, 'annotation', figsize=(6, 4), add_stats='x_axis', set_equal_aspect=True)
 
     """
