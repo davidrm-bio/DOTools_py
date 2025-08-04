@@ -51,6 +51,35 @@ if TYPE_CHECKING:
 #
 ########################################################################################################################
 
+def add_star_on_square(axis: plt.Axes, size: int = 20, d3: bool = False) -> None:
+    """Draw an asterisk if the upper right corner of a rectangle patch.
+
+    :param axis: Matplotlib axis.
+    :param size: Size of the asterisk.
+    :return: None
+    """
+    for patch in axis.patches:
+        x0, y0 = patch.get_xy()
+        if d3:  # 3D version needs to go reverse
+            upper_right = (x0 + patch.get_width(), y0 + patch.get_height())
+        else:
+            upper_right = (x0 + patch.get_width(), y0)
+
+        if patch.get_width() != patch.get_height():
+            continue # Ignore patches that are not squares
+
+        axis.text(
+            upper_right[0], upper_right[1],
+            "*",
+            fontsize=size,
+            color="black",
+            ha="center",
+            va="center"
+        )
+        patch.set_edgecolor("white")
+    return None
+
+
 
 def _dk(dendrogram: bool | str | None) -> str | None:
     """Convert the `dendrogram` parameter to a `dendrogram_key` parameter."""
@@ -190,6 +219,7 @@ class DotPlot(BasePlot):
         norm: Normalize | None = None,
         logcounts: bool = True,
         add_stats: bool = False,
+        stats_type: Literal["square", "star"] = "star",
         **kwds,
     ) -> None:
         BasePlot.__init__(
@@ -293,6 +323,7 @@ class DotPlot(BasePlot):
         self.show_size_legend = True
         self.show_colorbar = True
         self.add_stats = add_stats
+        self.stats_type = stats_type
         return
 
     @old_positionals(
@@ -533,7 +564,12 @@ class DotPlot(BasePlot):
 
     def _plot_stat_legend(self, sig_legend_ax: Axes):
         x, y = 0, 0.5
-        sig_legend_ax.scatter(x, y, s=400, facecolors="none", edgecolors="black", marker="s")
+        if self.stats_type == "square":
+            sig_legend_ax.scatter(x, y, s=400, facecolors="none", edgecolors="black", marker="s")
+        elif self.stats_type == "star":
+            sig_legend_ax.scatter(x, y, s=400, facecolors="none", edgecolors="white", marker="s")
+            sig_legend_ax.text(x, y, "*", fontsize=18, ha="center", va="center", color="black")
+
         sig_legend_ax.text(x + 0.03, y, "FDR < 0.05", fontsize=12, va="center", fontweight="bold")
         sig_legend_ax.set_xlim(x - 0.02, x + 0.1)
 
@@ -544,7 +580,7 @@ class DotPlot(BasePlot):
                 name = self.groupby[0]
         else:
             name = self.groupby
-        sig_legend_ax.set_title(f"Significance over\n{name}", fontsize="small", fontweight="bold", pad=1)
+        sig_legend_ax.set_title(f"Significance over\n{name}", fontsize="small", fontweight="bold", pad=1, ha='center')
         plt.gca().set_aspect("equal")
         sig_legend_ax.axis("off")  # Hide axes for clean display
 
@@ -587,7 +623,7 @@ class DotPlot(BasePlot):
         if self.add_stats:
             sig_legend_ax = fig.add_subplot(legend_gs[2])
             self._plot_stat_legend(sig_legend_ax)
-            return_ax_dict["signifiance_ax"] = sig_legend_ax
+            return_ax_dict["significance_legend_ax"] = sig_legend_ax
 
             if self.show_size_legend:
                 size_legend_ax = fig.add_subplot(legend_gs[3])
@@ -921,6 +957,7 @@ def dotplot_scanpy(
     smallest_dot: float = 0.0,
     logcounts: bool = True,
     add_stats: bool = False,
+    stats_type: Literal["square", "star"] = "star",
     **kwds,
 ) -> DotPlot | dict | None:
     """\
@@ -1051,6 +1088,7 @@ def dotplot_scanpy(
         norm=norm,
         logcounts=logcounts,
         add_stats=add_stats,
+        stats_type=stats_type,
         **kwds,
     )
 
@@ -1113,8 +1151,10 @@ def dotplot(
     dot_max: float | None = None,
     dot_min: float | None = None,
     add_stats: Literal["x_axis", "y_axis"] = None,
+    stats_type: Literal["square", "star"] = "star",
     df_pvals: pd.DataFrame = None,
     square_x_size: dict = None,
+    star_x_size: int = 20,
     test: Literal["wilcoxon", "t-test"] = "wilcoxon",
     correction_method: Literal["benjamini-hochberg", "bonferroni"] = "benjamini-hochberg",
     pval_cutoff: float = 0.05,
@@ -1176,8 +1216,11 @@ def dotplot(
     :param swap_axes: swap axis. Default is True to match the 3d dotplot arguments
     :param rect_height: height of the boxes of the features in 3d dotplot
     :param add_stats: add a square to indicate statistical significance. Indicate the x_axis to test for.
+    :param stats_type: how to indicate significance. Square will add a square around the dot, while star will add an asterisk
+                       in the top right side of the dotplot.
     :param df_pvals: dataframe with significant values. Not yet implemented
     :param square_x_size: dictionary specifying the size and thickness of the squares.
+    :param star_x_size: size of the star.
     :param test: statistical method to use.
     :param correction_method: correction method for multiple testing.
     :param pval_cutoff: cutoff for the p-value.
@@ -1300,7 +1343,7 @@ def dotplot(
         ax_size_legend.set_xlim(xmin - 0.15, xmax + 0.5)
 
 
-    def plot_stat_legend(group_stat, sig_legend_ax: Axes):
+    def plot_stat_legend(group_stat, sig_legend_ax: Axes, stats_type: str):
         if isinstance(group_stat, list):
             if len(group_stat) > 1:
                 name = '_'.join(group_stat)
@@ -1310,11 +1353,14 @@ def dotplot(
             name = group_stat
         x = 0
         y = 0.5
-        sig_legend_ax.scatter(x, y, s=400, facecolors="none", edgecolors="black", marker="s")
+        if stats_type == "square":
+            sig_legend_ax.scatter(x, y, s=400, facecolors="none", edgecolors="black", marker="s")
+        elif stats_type == "star":
+            sig_legend_ax.scatter(x, y, s=400, facecolors="none", edgecolors="white", marker="s")
+            sig_legend_ax.text(x, y, "*", fontsize=18, ha="center", va="center", color="black")
         sig_legend_ax.text(x + 0.03, y, "FDR < 0.05", fontsize=12, va="center", fontweight="bold")
         sig_legend_ax.set_xlim(x - 0.02, x + 0.1)
-
-        sig_legend_ax.set_title(f"Significance over\n{group_stat}", fontsize="small", fontweight="bold", pad=1)
+        sig_legend_ax.set_title(f"Significance over\n{group_stat}", fontsize="small", fontweight="bold", pad=1, ha="center")
         plt.gca().set_aspect("equal")
         sig_legend_ax.axis("off")  # Hide axes for clean display
 
@@ -1357,8 +1403,8 @@ def dotplot(
         if add_stats is not None:
             sig_legend_ax = fig.add_subplot(legend_gs[2])
             group_size = x_axis if add_stats == "x_axis" else y_axis
-            plot_stat_legend(group_size, sig_legend_ax)
-            return_ax_dict["signifiance_ax"] = sig_legend_ax
+            plot_stat_legend(group_size, sig_legend_ax, stats_type)
+            return_ax_dict["significance_legend_ax"] = sig_legend_ax
 
             # Add Size Legend
             size_legend_ax = fig.add_subplot(legend_gs[3])
@@ -1448,6 +1494,17 @@ def dotplot(
     x_categories_order = [x_categories_order] if isinstance(x_categories_order, str) else x_categories_order
     y_categories_order = [y_categories_order] if isinstance(y_categories_order, str) else y_categories_order
 
+    features = [features] if isinstance(features, str) else features
+
+    if all(g for g in features if g in list(adata.var_names)):
+        missing = [g for g in features if g not in list(adata.var_names)]
+        if len(missing) != 0:
+            raise KeyError(f"{missing} not in adata.var_names or adata.obs")
+    elif all(c for c in features if c in list(adata.obs.columns)):
+        missing = [g for g in features if g not in list(adata.obs.columns)]
+        if len(missing) != 0:
+            raise KeyError(f"{missing} not in adata.var_names or adata.obs")
+
     if subset_adata:
         # If subset is true and x_categories_order or y_categories_order is provided, subset by this
         # if not all categories are provided, subset
@@ -1490,7 +1547,8 @@ def dotplot(
                 smallest_dot=smallest_dot,
                 logcounts=logcounts,
                 swap_axes=swap_axes,
-                add_stats = True if add_stats == "x_axis" else False
+                add_stats = True if add_stats == "x_axis" else False,
+                stats_type = stats_type
                 **kwargs,
             )
         except Exception as e:  # Fallback to scanpy
@@ -1535,7 +1593,6 @@ def dotplot(
         features = [features] if isinstance(features, str) else features
 
         # TODO account for cases where features are in .obs and .var_names
-        # TODO sometimes there are weird cases that are not plotted
         try:
             df_expr = get_expr(adata, features=features, groups=[x_axis, y_axis], layer=layer, out_format="wide")
         except KeyError:  # Assume features are in .obs
@@ -1861,7 +1918,7 @@ def dotplot(
 
         # Add Stats
         square_x_size = {} if square_x_size is None else square_x_size
-        square_x_size = {"width": square_x_size.get("weight", 1), "size": square_x_size.get("size", 0.8)}
+        square_x_size = {"width": square_x_size.get("weight", 1), "size": square_x_size.get("size", 0.6)}
 
         tmp = axis_dict['mainplot_ax'].get_xticklabels()[0].get_text()
         if tmp not in columns:
@@ -1879,6 +1936,13 @@ def dotplot(
             linewidth=square_x_size["width"],
         )
 
+        if stats_type == "square":
+            pass
+        elif stats_type == "star":
+            d3 = False if y_axis is None else True
+            add_star_on_square(axis_dict["mainplot_ax"], star_x_size, d3 =d3)
+        else:
+            raise Exception("Not a valid stats_type, use square or star")
     # </editor-fold>
 
     if set_equal_aspect:
