@@ -541,6 +541,7 @@ class DotPlot(BasePlot):
             linewidth=self.dot_edge_lw,
             zorder=100,
         )
+
         size_legend_ax.set_xticks(np.arange(len(size)) + 0.5)
         labels = [f"{np.round((x * 100), decimals=0).astype(int)}" for x in size_range]
         size_legend_ax.set_xticklabels(labels, fontsize="small")
@@ -1542,7 +1543,7 @@ def dotplot(
                 logcounts=logcounts,
                 swap_axes=swap_axes,
                 add_stats = True if add_stats == "x_axis" else False,
-                stats_type = stats_type
+                stats_type = stats_type,
                 **kwargs,
             )
         except Exception as e:  # Fallback to scanpy
