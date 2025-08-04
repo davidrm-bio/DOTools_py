@@ -352,7 +352,7 @@ def heatmap(
     # Parameter for stats
     square_x_size = {} if square_x_size is None else square_x_size
     square_x_size = {"width": square_x_size.get("weight", 1), "size": square_x_size.get("size", 0.8)}
-    stats_x_size = height * width if stats_x_size is None else stats_x_size
+    stats_x_size = max(np.sqrt(height * width), 8) if stats_x_size is None else stats_x_size
 
     # Save the axis
     return_ax_dict = {}
