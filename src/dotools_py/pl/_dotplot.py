@@ -1251,7 +1251,7 @@ def dotplot(
 
     Add Statistical Significance
 
-     .. plot::
+    .. plot::
         :context: close-figs
 
         do.pl.dotplot(adata, 'condition', markers, figsize=(6, 4), add_stats='x_axis', set_equal_aspect=True)
