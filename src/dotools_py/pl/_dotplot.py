@@ -1250,6 +1250,7 @@ def dotplot(
         do.pl.dotplot(adata, 'condition', markers, 'annotation', figsize=(6, 4))
 
     Add Statistical Significance
+
      .. plot::
         :context: close-figs
 
