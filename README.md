@@ -49,7 +49,7 @@ pip install DOTools_py  # Not yet available
 ```
 
 2. Install the latest development version:
- ```bash
+```bash
 pip install git+https://github.com/davidrm-bio/DOTools_py.git@main
 ```
 
@@ -57,13 +57,6 @@ Finally, to use this environment in jupyter notebook, add jupyter kernel for thi
 
 ```bash
 python -m ipykernel install --user --name=do_py11 --display-name=do_py11
-```
-
-We also have an R implementation of the  [DOTools](https://github.com/MarianoRuzJurado/DOtools). This can be
-installed with `devtools`:
-
-```R
-devtools::install_github("MarianoRuzJurado/DOtools")
 ```
 
 ## Requirements
@@ -90,6 +83,13 @@ when importing the package. In this case run
 
 ```bash
 pip install --no-cache polars-lts-cpu
+```
+
+We also have an R implementation of the  [DOTools](https://github.com/MarianoRuzJurado/DOtools). This can be
+installed with `devtools`:
+
+```R
+devtools::install_github("MarianoRuzJurado/DOtools")
 ```
 
 ## Release notes

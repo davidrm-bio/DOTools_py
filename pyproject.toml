@@ -9,12 +9,12 @@ description = "Convenient functions to streamline sc/snRNAseq data analysis work
 readme = "README.md"
 license = { file = "LICENSE" }
 maintainers = [
-  { name = "David Rodriguez Morales", email = "rodriguezmorales@med.uni-frankfurt.de" },
+  { name = "David Rodriguez Morales", orcid = "0000-0002-1819-6991", email = "rodriguezmorales@med.uni-frankfurt.de" },
 ]
 authors = [
-  { name = "David Rodriguez Morales" },
-  { name = "Mariano Ruz Jurado" },
-  { name = "David John" },
+  { name = "David Rodriguez Morales", orcid = "0000-0002-1819-6991" },
+  { name = "Mariano Ruz Jurado", orcid = "0000-0001-5354-5336"},
+  { name = "David John", orcid = "0000-0003-3217-5449"},
 ]
 
 requires-python = ">=3.10"
