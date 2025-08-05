@@ -108,6 +108,12 @@ def embedding(
     # We consider that the input is always a list;
     color = [color] if isinstance(color, str) else color
 
+    # Avoid problems with colors
+    for c in color:
+        if c in list(adata.obs.columns) and c + '_colors' in adata.uns.keys():
+            if len(adata.obs[c].cat.categories) != len(adata.uns[c + '_colors']):
+                del adata.uns[c + '_colors']
+
     # font-properties for the title
     if title_font is None:
         title_font = {}
