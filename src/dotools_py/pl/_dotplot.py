@@ -26,9 +26,10 @@ from scanpy.plotting._utils import (
     savefig_or_show,
 )
 
+from scanpy.plotting._anndata import VarGroups, _plot_var_groups_brackets
 from dotools_py import logger
 from dotools_py.get._generic import expr as get_expr
-from dotools_py.utils import convert_path, sanitize_anndata
+from dotools_py.utils import convert_path, sanitize_anndata, draw_bracket
 from dotools_py.pl._heatmap import small_squares
 from dotools_py.tl._get_stats import rank_genes_groups
 
@@ -50,6 +51,33 @@ if TYPE_CHECKING:
 #     CORRECTION FOR THE DOTPLOT CLASS TO CONSIDER LOGCOUNTS
 #
 ########################################################################################################################
+def _var_groups(var_names) -> tuple:
+    """Adapated from scanpy, Normalize var_names.
+
+    """
+    from collections.abc import Mapping
+
+    if not isinstance(var_names, Mapping):
+        var_names = [var_names] if isinstance(var_names, str) else var_names
+        return var_names, None
+    if len(var_names) == 0:
+        return [], None
+
+    var_group_labels: list[str] = []
+    var_names_seq: list[str] = []
+    var_group_positions: list[tuple[int, int]] = []
+    for label, vars_list in var_names.items():
+        vars_list = [vars_list] if isinstance(vars_list, str) else vars_list
+        start = len(var_names_seq)
+        # use list() in case var_list is a numpy array or pandas series
+        var_names_seq.extend(list(vars_list))
+        var_group_labels.append(label)
+        var_group_positions.append((start, start + len(vars_list) - 1))
+    if not var_names_seq:
+        msg = "No valid var_names were passed."
+        raise ValueError(msg)
+    return var_names_seq, VarGroups(var_group_labels, var_group_positions)
+
 
 def add_star_on_square(axis: plt.Axes, size: int = 20, d3: bool = False) -> None:
     """Draw an asterisk if the upper right corner of a rectangle patch.
@@ -74,7 +102,8 @@ def add_star_on_square(axis: plt.Axes, size: int = 20, d3: bool = False) -> None
             fontsize=size,
             color="black",
             ha="center",
-            va="center"
+            va="center",
+            fontfamily='DejaVu Sans Mono'
         )
         patch.set_edgecolor("white")
     return None
@@ -569,7 +598,7 @@ class DotPlot(BasePlot):
             sig_legend_ax.scatter(x, y, s=400, facecolors="none", edgecolors="black", marker="s")
         elif self.stats_type == "star":
             sig_legend_ax.scatter(x, y, s=400, facecolors="none", edgecolors="white", marker="s")
-            sig_legend_ax.text(x, y, "*", fontsize=18, ha="center", va="center", color="black")
+            sig_legend_ax.text(x, y, "*", fontsize=25, ha="center", va="center", color="black", fontfamily='DejaVu Sans Mono')
 
         sig_legend_ax.text(x + 0.03, y, "FDR < 0.05", fontsize=12, va="center", fontweight="bold")
         sig_legend_ax.set_xlim(x - 0.02, x + 0.1)
@@ -1138,7 +1167,7 @@ def dotplot(
     feature_fontsize: float = 15,
     xticks_rotation: float = 90,
     ax: plt.Axes | None = None,
-    figsize: tuple = (8, 4),
+    figsize: tuple[float, float] = (8, 4),
     path: str | Path | None = None,
     filename: str = "Dotplot.svg",
     smallest_dot: float = 0.0,
@@ -1155,12 +1184,14 @@ def dotplot(
     stats_type: Literal["square", "star"] = "star",
     df_pvals: pd.DataFrame = None,
     square_x_size: dict = None,
-    star_x_size: int = 20,
+    star_x_size: int = 25,
     test: Literal["wilcoxon", "t-test"] = "wilcoxon",
     correction_method: Literal["benjamini-hochberg", "bonferroni"] = "benjamini-hochberg",
     pval_cutoff: float = 0.05,
     log2fc_cutoff: float = 0.0,
     set_equal_aspect: bool = False,
+    var_group_rotation: int = 0,
+    var_group_offset: float = 0.75,
     **kwargs,
 ) -> dict | None:
     """Makes a 2d dotplot or 3d dotplot.
@@ -1227,6 +1258,8 @@ def dotplot(
     :param pval_cutoff: cutoff for the p-value.
     :param log2fc_cutoff: cutoff for the log2-foldchange
     :param set_equal_aspect: set equal ratio both axis.
+    :param var_group_rotation: if var_names is a dictionary, set the rotation of the labels for each group.
+    :param var_group_offset: offset for the labels text in the brackets
     :param kwargs: additional arguments passed to the `Dotplot class <https://scanpy.readthedocs.io/en/stable/api/generated/classes/scanpy.pl.DotPlot.html#scanpy.pl.DotPlot>`_
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes
 
@@ -1352,7 +1385,7 @@ def dotplot(
             sig_legend_ax.scatter(x, y, s=400, facecolors="none", edgecolors="black", marker="s")
         elif stats_type == "star":
             sig_legend_ax.scatter(x, y, s=400, facecolors="none", edgecolors="white", marker="s")
-            sig_legend_ax.text(x, y, "*", fontsize=18, ha="center", va="center", color="black")
+            sig_legend_ax.text(x, y, "*", fontsize=25, ha="center", va="center", color="black", fontfamily='DejaVu Sans Mono')
         sig_legend_ax.text(x + 0.03, y, "FDR < 0.05", fontsize=12, va="center", fontweight="bold")
         sig_legend_ax.set_xlim(x - 0.02, x + 0.1)
         sig_legend_ax.set_title(f"Significance over\n{group_stat}", fontsize="small", fontweight="bold", pad=1, ha="center")
@@ -1489,6 +1522,14 @@ def dotplot(
     x_categories_order = [x_categories_order] if isinstance(x_categories_order, str) else x_categories_order
     y_categories_order = [y_categories_order] if isinstance(y_categories_order, str) else y_categories_order
 
+    bracket_groups = None
+    if isinstance(features, dict):
+        features, bracket_groups = _var_groups(features)
+        swap_axes = False  # Make sure the genes are in the X-axis
+        #raise Exception("Not Implemented, provide a list")
+
+    # Features should always be a list
+    features = list(features) if isinstance(features, tuple) else features
     features = [features] if isinstance(features, str) else features
 
     if all(g for g in features if g in list(adata.var_names)):
@@ -1576,6 +1617,29 @@ def dotplot(
         axis_dict["mainplot_ax"].set_xticklabels(
             axis_dict["mainplot_ax"].get_xticklabels(), fontweight="bold", rotation=xticks_rotation
         )
+
+        if bracket_groups is not None and y_axis is None:
+            fig = plt.gcf()
+            bbox_pos = axis_dict['mainplot_ax'].get_position()
+            top_ax = fig.add_axes((bbox_pos.x0, bbox_pos.y1, bbox_pos.width, 0.1))  # Adjust
+
+            _plot_var_groups_brackets(top_ax,
+                                      var_groups=bracket_groups,
+                                      left_adjustment=-0.3,
+                                      right_adjustment=0.3,
+                                      rotation=var_group_rotation,
+                                      orientation='top',
+                                      )
+            # Adjust text position
+            for text in top_ax.texts:
+                x, y = text.get_position()
+                text.set_position((x, var_group_offset))  # Move all text to new position
+
+            top_ax.set_xlim(-0.5, len(features) - 0.3)
+            top_ax.set_ylim(0, 1)
+            axis_dict['var_group_ax'] = top_ax
+
+
     # </editor-fold>
 
     else:  # Yaxis is provided, we made a 3d dotplot
@@ -1929,6 +1993,7 @@ def dotplot(
             pos=pos,
             size=square_x_size["size"],
             linewidth=square_x_size["width"],
+            zorder=0, # Should be on the back
         )
 
         if stats_type == "square":

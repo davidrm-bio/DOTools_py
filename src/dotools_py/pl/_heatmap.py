@@ -79,7 +79,7 @@ def square_color(rgba: list) -> str:
     return "black" if brightness > 128 else "white"
 
 
-def small_squares(ax: plt.Axes, pos: list, color: list, size: float = 1, linewidth: float = 0.8) -> None:
+def small_squares(ax: plt.Axes, pos: list, color: list, size: float = 1, linewidth: float = 0.8, zorder: int = 20) -> None:
     """Add small squares.
 
     :param ax: matplotlib axis
@@ -87,6 +87,7 @@ def small_squares(ax: plt.Axes, pos: list, color: list, size: float = 1, linewid
     :param color: list of colors
     :param size:  size of the square
     :param linewidth: linewith of the square
+    :param zorder: location of the square
     :return: None
     """
     for idx, xy in enumerate(pos):
@@ -99,7 +100,7 @@ def small_squares(ax: plt.Axes, pos: list, color: list, size: float = 1, linewid
             linewidth=linewidth,
             edgecolor=color[idx],
             facecolor="none",
-            zorder=20,
+            zorder=zorder,
         )
         ax.add_patch(rect)
     return None

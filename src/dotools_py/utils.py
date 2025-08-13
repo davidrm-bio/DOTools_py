@@ -276,3 +276,18 @@ def timer(func):
             print(f"----Run {func.__name__} in {time_taken:0.2f} s ----\n")
 
     return _timer
+
+
+
+def draw_bracket(x_start, x_end, y_bottom=0, y_top=1, stem_length=0.2):
+    import matplotlib.path
+
+    verts = [
+        (x_start, y_bottom),  # Start of the bracket (bottom-left)
+        (x_start, y_top),  # Vertical stem up
+        (x_end - stem_length, y_top),  # Horizontal part
+        (x_end - stem_length, y_bottom)  # Down to bottom-right
+    ]
+    codes = [matplotlib.path.Path.MOVETO, matplotlib.path.Path.LINETO,
+             matplotlib.path.Path.LINETO, matplotlib.path.Path.LINETO]
+    return matplotlib.path.Path(verts, codes)
