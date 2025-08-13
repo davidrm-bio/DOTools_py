@@ -401,12 +401,15 @@ def auto_annot(
 
         prediction_key = "majority_voting" if majority else "predicted_labels"
         if pl_cell_prob:
-            axs = celltypist.dotplot(
-                predictions_cells, use_as_prediction=prediction_key, use_as_reference=cluster_key, title="", show=False
-            )
-            axs["mainplot_ax"].spines[["top", "right"]].set_visible(True)
-            if path is not None:
-                plt.savefig(convert_path(path) / filename, bbox_inches="tight")
+            try:
+                axs = celltypist.dotplot(
+                    predictions_cells, use_as_prediction= "predicted_labels", use_as_reference=cluster_key, title="", show=False
+                )
+                axs["mainplot_ax"].spines[["top", "right"]].set_visible(True)
+                if path is not None:
+                    plt.savefig(convert_path(path) / filename, bbox_inches="tight")
+            except Exception as e:
+                logger.warn(f'Error plotting {e}')
 
         adata_copy.obs["cell_type"] = predictions_cells_adata.obs.loc[adata_copy.obs.index, prediction_key]
         adata.obs[key_added] = adata_copy.obs["cell_type"]  # Transfer to original object
