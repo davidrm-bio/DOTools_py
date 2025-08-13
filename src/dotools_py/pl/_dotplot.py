@@ -291,14 +291,21 @@ class DotPlot(BasePlot):
 
         # 2. compute mean expression value
         if dot_color_df is None:
-            if logcounts:  # Correction in case logcounts are provided
-                obs_matrix = np.expm1(obs_matrix)
             if mean_only_expressed:
-                dot_color_df = np.log1p(obs_matrix.mask(~obs_bool).groupby(level=0, observed=True).mean().fillna(0))
+                if logcounts:  # Correction in case logcounts are provided
+                    obs_matrix = np.expm1(obs_matrix)
+                    dot_color_df = np.log1p(obs_matrix.mask(~obs_bool).groupby(level=0, observed=True).mean().fillna(0))
+                else:
+                    dot_color_df = obs_matrix.mask(~obs_bool).groupby(level=0, observed=True).mean().fillna(0)
             else:
-                dot_color_df = np.log1p(obs_matrix.groupby(level=0, observed=True).mean())
+                if logcounts:  # Correction in case logcounts are provided
+                    obs_matrix = np.expm1(obs_matrix)
+                    dot_color_df = np.log1p(obs_matrix.groupby(level=0, observed=True).mean())
+                else:
+                    dot_color_df = obs_matrix.groupby(level=0, observed=True).mean()
 
-            # Scale the dt
+            # TODO Implement Z-score scaling for normal Dotplot
+            # Scale the data
             if standard_scale == "group":
                 dot_color_df = dot_color_df.sub(dot_color_df.min(1), axis=0)
                 dot_color_df = dot_color_df.div(dot_color_df.max(1), axis=0).fillna(0)
@@ -308,7 +315,7 @@ class DotPlot(BasePlot):
             elif standard_scale is None:
                 pass
             else:
-                logger.warning("Unknown type for standard_scale, ignored")
+                logger.warn("Unknown type for standard_scale, ignored")
         else:
             assert dot_color_df.shape != dot_size_df.shape, "The dot_color_df and dot_size_df have different shape"
 
@@ -1702,6 +1709,7 @@ def dotplot(
         #  Z-score transformation
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+        # TODO implement standard scaling for 3D dotplot
         if z_score == "x_axis":
             if logcounts:  # If we have logcounts we need to do the log-space for the mean and std
                 dot_color_df = np.expm1(dot_color_df)
