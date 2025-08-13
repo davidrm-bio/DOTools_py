@@ -1678,14 +1678,22 @@ def dotplot(
         #  Compute Mean Expression
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-        if logcounts:  # in case we have logcounts, undo the log to not do mean in log space
-            df_expr = np.expm1(df_expr)
+
         if mean_only_expressed:  # Compute mean only considering cells expressing the gene
-            dot_color_df = np.log1p(
-                df_expr.mask(~obs_bool).groupby(level=[x_axis, y_axis], observed=True).mean().fillna(0)
-            )
+            if logcounts:  # in case we have logcounts, undo the log to not do mean in log space
+                df_expr = np.expm1(df_expr)
+                dot_color_df = np.log1p(
+                    df_expr.mask(~obs_bool).groupby(level=[x_axis, y_axis], observed=True).mean().fillna(0)
+                )
+            else:
+                dot_color_df = df_expr.mask(~obs_bool).groupby(level=[x_axis, y_axis], observed=True).mean().fillna(0)
+
         else:
-            dot_color_df = np.log1p(df_expr.groupby(level=[x_axis, y_axis], observed=True).mean())
+            if logcounts:  # in case we have logcounts, undo the log to not do mean in log space
+                df_expr = np.expm1(df_expr)
+                dot_color_df = np.log1p(df_expr.groupby(level=[x_axis, y_axis], observed=True).mean())
+            else:
+                dot_color_df = df_expr.groupby(level=[x_axis, y_axis], observed=True).mean()
 
         # </editor-fold>
 
@@ -1695,19 +1703,35 @@ def dotplot(
         # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
         if z_score == "x_axis":
-            dot_color_df = (
-                dot_color_df.groupby(level=x_axis)
-                .apply(lambda x: (x - x.mean(axis=0)) / x.std(axis=0, ddof=0))
-                .fillna(0)
-            )
+            if logcounts:  # If we have logcounts we need to do the log-space for the mean and std
+                dot_color_df = np.expm1(dot_color_df)
+                dot_color_df = np.log1p(
+                    dot_color_df.groupby(level=x_axis)
+                    .apply(lambda x: (x - x.mean(axis=0)) / x.std(axis=0, ddof=0))
+                    .fillna(0)
+                )
+            else:
+                dot_color_df = (
+                    dot_color_df.groupby(level=x_axis)
+                    .apply(lambda x: (x - x.mean(axis=0)) / x.std(axis=0, ddof=0))
+                    .fillna(0)
+                )
             dot_color_df = dot_color_df.reset_index(level=0, drop=True)
 
         elif z_score == "y_axis":
-            dot_color_df = (
-                dot_color_df.groupby(level=y_axis)
-                .apply(lambda x: (x - x.mean(axis=0)) / x.std(axis=0, ddof=0))
-                .fillna(0)
-            )
+            if logcounts:  # If we have logcounts we need to do the log-space for the mean and std
+                dot_color_df = np.expm1(dot_color_df)
+                dot_color_df = np.log1p(
+                    dot_color_df.groupby(level=y_axis)
+                    .apply(lambda x: (x - x.mean(axis=0)) / x.std(axis=0, ddof=0))
+                    .fillna(0)
+                )
+            else:
+                dot_color_df = (
+                    dot_color_df.groupby(level=y_axis)
+                    .apply(lambda x: (x - x.mean(axis=0)) / x.std(axis=0, ddof=0))
+                    .fillna(0)
+                )
             dot_color_df = dot_color_df.reset_index(level=0, drop=True)
 
         elif z_score is None:
