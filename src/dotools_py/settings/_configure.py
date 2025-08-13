@@ -104,6 +104,10 @@ def session_settings(
     :param grid: show the grid lines.
     :return:
     """
+    import matplotlib.font_manager as fm
+    available_fonts = sorted({f.name for f in fm.fontManager.ttflist})
+    font_family = "Helvetica" if "Helvetica" in available_fonts else "sans-serif"
+
     # Scanpy Settings
     set_verbosity(verbosity)
     interactive_session(interactive)
@@ -112,7 +116,7 @@ def session_settings(
     plt.rcParams.update(
         {
             # Font settings
-            "font.family": "sans-serif",
+            "font.family": font_family,
             "font.serif": ["Helvetica"],
             "font.size": fontsize,
             "font.weight": "normal",
