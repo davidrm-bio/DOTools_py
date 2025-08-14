@@ -431,16 +431,6 @@ class TestData:
     category_order
         order for the categories in category_key. If not specified will be inferred
 
-    Attributes
-    ----------
-    pvalues
-        a list with the p-vals from the test. If category_key is not set the order of the pvals match the order of the
-        labels in groups.
-    pvalues_labels
-        a list with the labels of the group tested. The order matches the order of the `pvals` attribute. Only initialise
-        if the hue category_key is set.
-
-
     See Also
     --------
         :func:`dotools_py.pl.StatsPlotter`: class to plot the p-values in barplots, boxplots or violinplots
@@ -698,9 +688,17 @@ class TestData:
 
     @classmethod
     def pvalues(cls):
+        """Get list with the p-vals from the test. If category_key is not set the order of the pvals match the order of the
+        labels in groups.
+        :return:
+        """
         return TestData._pvals
 
     @classmethod
     def pvalues_labels(cls):
+        """Get list with the labels of the group tested. The order matches the order of the `pvals` attribute. Only initialise
+        if the hue category_key is set.
+        :return:
+        """
         return TestData._hue_labels
 
