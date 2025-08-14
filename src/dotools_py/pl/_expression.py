@@ -113,7 +113,7 @@ def barplot(
 
     We can also split by an additional categorical metadata with the `hue` argument
 
-    ..plot::
+    .. plot::
         :context: close-figs
 
         # Take only lymphoid cells
@@ -384,13 +384,14 @@ def boxplot(
 
     We can also split by an additional categorical metadata with the `hue` argument
 
-    ..plot::
+    .. plot::
         :context: close-figs
 
         # Take only lymphoid cells
         lymphoid = adata[adata.obs['annotation'].isin(['T_cells', 'NK', 'B_cells'])].copy()
         # When hue is set we test for each annotation healthy Vs disease
         do.pl.boxplot(lymphoid, 'annotation', 'RPL11', hue = 'condition', ctrl_cond = 'healthy', groups_cond=['disease'], hue_order=['healthy', 'disease'], xtick_rotation=45, figsize=(6, 4))
+
 
     """
     # Checks
@@ -624,13 +625,14 @@ def violin(
 
     We can also split by an additional categorical metadata with the `hue` argument
 
-    ..plot::
+    .. plot::
         :context: close-figs
 
         # Take only lymphoid cells
         lymphoid = adata[adata.obs['annotation'].isin(['T_cells', 'NK', 'B_cells'])].copy()
         # When hue is set we test for each annotation healthy Vs disease
         do.pl.violin(lymphoid,'annotation','CD4',  hue = 'condition',   ctrl_cond = 'healthy', groups_cond=['disease'], hue_order=['healthy', 'disease'], xtick_rotation=45, figsize=(6, 4))
+
 
     """
     # Checks
