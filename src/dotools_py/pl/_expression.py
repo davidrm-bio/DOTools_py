@@ -109,13 +109,6 @@ def barplot(
         import dotools_py as do
         adata = do.dt.example_10x_processed()
         do.pl.barplot(adata, 'annotation', 'CD4', ctrl_cond = 'T_cells', groups_cond=['B_cells'], xtick_rotation=45)
-
-
-    We can also split by an additional categorical metadata with the `hue` argument
-
-    .. plot::
-        :context: close-figs
-
         # Take only lymphoid cells
         lymphoid = adata[adata.obs['annotation'].isin(['T_cells', 'NK', 'B_cells'])].copy()
         # When hue is set we test for each annotation healthy Vs disease
@@ -380,13 +373,6 @@ def boxplot(
         import dotools_py as do
         adata = do.dt.example_10x_processed()
         do.pl.boxplot(adata,  'annotation', 'CD4', ctrl_cond = 'pDC', groups_cond=['B_cells'], xtick_rotation=45)
-
-
-    We can also split by an additional categorical metadata with the `hue` argument
-
-    .. plot::
-        :context: close-figs
-
         # Take only lymphoid cells
         lymphoid = adata[adata.obs['annotation'].isin(['T_cells', 'NK', 'B_cells'])].copy()
         # When hue is set we test for each annotation healthy Vs disease
@@ -621,13 +607,6 @@ def violin(
         import dotools_py as do
         adata = do.dt.example_10x_processed()
         do.pl.violin(adata,  'annotation', 'CD4', ctrl_cond = 'pDC', groups_cond=['B_cells'], xtick_rotation=45)
-
-
-    We can also split by an additional categorical metadata with the `hue` argument
-
-    .. plot::
-        :context: close-figs
-
         # Take only lymphoid cells
         lymphoid = adata[adata.obs['annotation'].isin(['T_cells', 'NK', 'B_cells'])].copy()
         # When hue is set we test for each annotation healthy Vs disease
