@@ -58,39 +58,6 @@ class StatsPlotter:
     hue_order:
         order of the subgroups. Needs to be specified if hue is defined.
 
-    Attributes
-    ----------
-    xticks
-        list with the x-ticks from the X-axis
-    x_tick_pos
-        list with the x-tick positions
-    x_ticks_labels
-        list with the x-tick labels
-    yticks
-        list with the y-ticks from the Y-axis
-    y_ticks_pos
-        list with the y-tick positions.
-    y_ticks_labels
-        list with the y-tick labels
-    hue_positions
-        list with the position of the hue bar / violin / box. Only initialise if hue is set.
-    hue_labels
-        list with the labels for each bar / violin / box. Only initialise if hue is set.
-    hue_ctrl
-        label for the hue control. Only initialise if hue is set.
-    hue_groups
-        label for the hue groups to test for. Only initialise if hue is set.
-    heights
-        list with the height for each bar / violin / box.
-    pairs_xpos
-        list of tuples (x0, x1) defining the X-tick position for the control and the group tested
-    pairs_ypos
-        list of the Y position that defines the lower bound for plotting draw the brackets
-    heights_offset
-        list of the Y positions that defines the location of the brackets after applying the offset
-    brackets_patchs
-        list with the brackets patches
-
     See Also
     --------
         :func:`dotools_py.pl.TestData`: useful class to calculate statistics
@@ -466,10 +433,10 @@ class TestData:
 
     Attributes
     ----------
-    pvals
+    pvalues
         a list with the p-vals from the test. If category_key is not set the order of the pvals match the order of the
         labels in groups.
-    pvals_catgs_order
+    pvalues_labels
         a list with the labels of the group tested. The order matches the order of the `pvals` attribute. Only initialise
         if the hue category_key is set.
 
@@ -479,6 +446,9 @@ class TestData:
         :func:`dotools_py.pl.StatsPlotter`: class to plot the p-values in barplots, boxplots or violinplots
 
     """
+
+    _pvals = []
+    _hue_labels = []
 
     def __init__(
         self,
@@ -722,3 +692,15 @@ class TestData:
             self._test_df()
         else:
             raise Exception("Input can only be an AnnData or DataFrame")
+        TestData._pvals = self.pvals
+        if self.hue:
+            TestData._hue_labels = self.pvals_catgs_order
+
+    @classmethod
+    def pvalues(cls):
+        return TestData._pvals
+
+    @classmethod
+    def pvalues_labels(cls):
+        return TestData._hue_labels
+
