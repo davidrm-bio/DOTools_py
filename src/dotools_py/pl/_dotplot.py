@@ -1295,9 +1295,9 @@ def dotplot(
         do.pl.dotplot(adata, 'condition', markers, 'annotation', figsize=(6, 4))
 
         # Add Statistical significance for groups with pvals < 0.05 and log2fc > 0.0
+        # Note, the object is quite small, some groups cannot be tested for having one condition only
         do.pl.dotplot(adata, 'condition', markers, 'annotation', figsize=(6, 4), add_stats='x_axis', set_equal_aspect=True)
 
-        # Note, the object is quite small, some groups cannot be tested for having one condition only
 
     """
 
