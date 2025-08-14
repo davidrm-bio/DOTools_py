@@ -635,6 +635,7 @@ def violin(
 
 
     """
+
     # Checks
     sanitize_anndata(adata)
     groups_cond = [groups_cond] if isinstance(groups_cond, str) else groups_cond
