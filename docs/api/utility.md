@@ -22,6 +22,7 @@ the analysis.
 
     utility.free_memory
     utility.transfer_labels
+    utility.add_gene_metadata
 ```
 
 ## Plotting
