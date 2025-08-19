@@ -2,7 +2,9 @@ import os.path
 from pathlib import Path
 import uuid
 import subprocess
-from typing import Literal
+from typing import Literal, Union
+import gzip
+import pickle
 
 import anndata as ad
 import pandas as pd
