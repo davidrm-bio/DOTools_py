@@ -102,6 +102,8 @@ def small_squares(ax: plt.Axes, pos: list, color: list, size: float = 1, linewid
             facecolor="none",
             zorder=zorder,
         )
+        if zorder == 0:
+            rect.set_alpha(0)  # Hide square if they should be in the back, for the dotplot
         ax.add_patch(rect)
     return None
 
