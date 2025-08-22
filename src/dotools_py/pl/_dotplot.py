@@ -1295,7 +1295,7 @@ def dotplot(
         do.pl.dotplot(adata, 'condition', markers, 'annotation', figsize=(6, 4))
 
         # Add Statistical significance for groups with pvals < 0.05 and log2fc > 0.0
-        # Note, the object is quite small, some groups cannot be tested for having one condition only
+        # Note, the object is quite small, some groups cannot be tested for having one condition only.
         do.pl.dotplot(adata, 'condition', markers, 'annotation', figsize=(6, 4), add_stats='x_axis', set_equal_aspect=True)
 
 
@@ -1943,15 +1943,18 @@ def dotplot(
             features = [features] if isinstance(features, str) else features
             if y_axis is None:
                 if all(item in list(adata.var_names) for item in features):
-                    rank_genes_groups(adata, groupby=group_by, method=test, tie_correct=True,
-                                      corr_method=correction_method, layer=layer)
-                    table = sc.get.rank_genes_groups_df(
-                        adata, group=None, pval_cutoff=pval_cutoff, log2fc_min=log2fc_cutoff
-                    )
-                    table_filt = table[table["names"].isin(features)]
+                    try:
+                        rank_genes_groups(adata, groupby=group_by, method=test, tie_correct=True,
+                                          corr_method=correction_method, layer=layer)
+                        table = sc.get.rank_genes_groups_df(
+                            adata, group=None, pval_cutoff=pval_cutoff, log2fc_min=log2fc_cutoff
+                        )
+                        table_filt = table[table["names"].isin(features)]
 
-                    if len(table_filt) == 0:
-                        logger.warn('No Significant group')
+                        if len(table_filt) == 0:
+                            logger.warn('No Significant group')
+                    except ValueError as e:
+                        logger.warn(f'Error testing, {e}')
 
                 elif all(item in list(adata.obs.columns) for item in features):
                     raise Exception('Not Implemented')
@@ -1966,7 +1969,8 @@ def dotplot(
                             stable = sc.get.rank_genes_groups_df(
                                 sdata, group=None, pval_cutoff=pval_cutoff, log2fc_min=log2fc_cutoff
                             )
-                        except Exception:
+                        except ValueError as e:
+                            logger.warn(f'Error while testing: {e}')
                             # If there is only one condition in the group
                             stable = pd.DataFrame([], columns=['group', 'names', 'scores', 'logfoldchanges', 'pvals',
                                                                'pvals_adj', 'pct_nz_group', 'pct_nz_reference'])
@@ -1977,7 +1981,7 @@ def dotplot(
                     if len(table_filt) == 0:
                         logger.warn('No Significant group')
                 elif all(item in list(adata.obs.columns) for item in features):
-                    pass
+                    raise Exception('Not Implemented')
 
             # Dataframe with gene x groups with the pvals
             table_filt["group"] = table_filt["group"].str.replace("-", "_")  # Correction used in get_expr()
