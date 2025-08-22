@@ -341,7 +341,7 @@ def add_gene_metadata(data: Union[pd.DataFrame, ad.AnnData],
     """
     data_copy = data.copy()  # Changes will not be inplace
 
-    assert species not in ["mouse", "human"], "Not a valid species: use mouse or human"
+    assert species in ["mouse", "human"], "Not a valid species: use mouse or human"
     file = "MusMusculus_GeneMetadata.pickle.gz" if species == "mouse" else "MusMusculus_GeneMetadata.pickle.gz"
     with gzip.open(os.path.join(HERE, file), "rb") as pickle_file:
         database = pickle.load(pickle_file)
