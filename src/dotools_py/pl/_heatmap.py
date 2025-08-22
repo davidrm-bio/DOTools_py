@@ -181,7 +181,7 @@ def heatmap(
     :param legend_title: title for the colorbar.
     :param add_stats: add statistical annotation. Will add a square with an '*' in the center if the expression is significantly different in a group with respect to the others.
     :param df_pvals: dataframe with the pvals. Should be gene x group or group x gene in case of swap_axes is False.
-    :param stats_x_size: size of the asterisk.
+    :param stats_x_size: scaling factor to control the size of the asterisk.
     :param square_x_size: size and thickness of the square.
     :param test: test to use for test for significance.
     :param correction_method: multiple correction method to use.
@@ -207,13 +207,16 @@ def heatmap(
     # Checks
     sanitize_anndata(adata)
     features = [features] if isinstance(features, str) else features
+    features = features if isinstance(features, list) else list(features)
+    missing = [g for g in features if g not in adata.var_names]
+    assert len(missing) == 0, f'{missing} features missing in the object'
 
     # Get Data for the Heatmap
     if all(item in list(adata.var_names) for item in features):
         if logcounts:
             df = mean_expr(
                 adata, group_by=group_by, features=features, layer=layer, out_format="wide"
-            )  # genes x groups
+            )  # genes x groups (genes are the index)
         else:
             raise Exception("Not implemented, specified var_name value but logcounts is set to False")
     elif all(item in list(adata.obs.columns) for item in features):
@@ -231,12 +234,13 @@ def heatmap(
     )
 
     new_columns = groups_order if groups_order is not None else list(df.columns)
+
     new_column = (
         df.columns[
             dendrogram(linkage(df.T.values, method=clustering_method, metric=clustering_metric), no_plot=True)["leaves"]
         ]
         if cluster_y_axis
-        else list(df.columns)
+        else new_columns
     )
 
     df = df.reindex(index=new_index, columns=new_column)
@@ -355,7 +359,8 @@ def heatmap(
     # Parameter for stats
     square_x_size = {} if square_x_size is None else square_x_size
     square_x_size = {"width": square_x_size.get("weight", 1), "size": square_x_size.get("size", 0.8)}
-    stats_x_size = max(np.sqrt(height * width), 8) if stats_x_size is None else stats_x_size
+    # stats_x_size = max(np.sqrt(height * width), 14) if stats_x_size is None else stats_x_size
+    stats_x_size = min(width / df.shape[1], height / df.shape[1]) * 10 if stats_x_size is None else min(width / df.shape[1], height / df.shape[1]) * stats_x_size
 
     # Save the axis
     return_ax_dict = {}
@@ -380,7 +385,7 @@ def heatmap(
         ax=main_ax,
         linewidths=linewidth,
         cbar=False,
-        annot_kws={"color": "black", "size": stats_x_size, "ha": "center", "va": "center"},
+        annot_kws={"color": "black", "size": stats_x_size, "ha": "center", "va": "center", "fontfamily":'DejaVu Sans Mono'},
         annot=annot_pvals,
         fmt="s",
         square=square,
@@ -397,7 +402,7 @@ def heatmap(
     if add_stats:
         x, y = 0, 0.5
         sig_ax.scatter(x, y, s=500, facecolors="none", edgecolors="black", marker="s")
-        sig_ax.text(x, y, "*", fontsize=18, ha="center", va="center", color="black")
+        sig_ax.text(x, y, "*", fontsize=18, ha="center", va="center", color="black", fontfamily='DejaVu Sans Mono')
         sig_ax.text(x + 0.03, y, "FDR < 0.05", fontsize=12, va="center", fontweight="bold")
         sig_ax.set_xlim(x - 0.02, x + 0.1)
         sig_ax.set_title("Significance", fontsize="small", fontweight="bold")
