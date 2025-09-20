@@ -230,7 +230,7 @@ def heatmap(
             dendrogram(linkage(df.values, method=clustering_method, metric=clustering_metric), no_plot=True)["leaves"]
         ]
         if cluster_x_axis
-        else list(df.index)
+        else features
     )
 
     new_columns = groups_order if groups_order is not None else list(df.columns)
