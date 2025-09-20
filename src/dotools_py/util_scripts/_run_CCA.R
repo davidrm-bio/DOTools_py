@@ -26,7 +26,7 @@ option_list <- list(
                 metavar = "character"),
     make_option(c("--version"), type = "character", default = "v4",
                 help = "Seurat version approach to use (v4 or v5)",
-                metavar = "character"),
+                metavar = "character")
     # make_option(c("--multiprocess"), type="logical", default = FALSE,
     #            help = "Use multiprocess plan from future",
     #            metavar = "boolean"),
