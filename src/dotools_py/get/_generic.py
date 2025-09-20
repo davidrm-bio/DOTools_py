@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import scipy as sp
 from dotools_py import logger
+from dotools_py.utility._general import free_memory
 
 
 def _expm1_anndata(adata: ad.AnnData) -> None:
@@ -95,16 +96,20 @@ def expr(
     if groups is not None:
         if isinstance(groups, str):
             if adata.obs[groups].dtype.name in ["category", "object"]:
+                if any("-" in txt for txt in list(adata.obs[groups].cat.categories)):
+                    logger.warn("Replacing '-' in groups categories by '_'")
                 adata.obs[groups] = adata.obs[groups].str.replace("-", "_")
             table_expr[groups] = adata.obs[groups]  # One column
         else:
             for group in groups:  # Multiple columns
                 if adata.obs[group].dtype.name in ["category", "object"]:
+                    if any("-" in txt for txt in list(adata.obs[group].cat.categories)):
+                        logger.warn("Replacing '-' in groups categories by '_'")
                     adata.obs[group] = adata.obs[group].str.replace("-", "_")
                 table_expr[group] = adata.obs[group]
     if out_format == "long":
         table_expr = pd.melt(table_expr, id_vars=groups, var_name="genes", value_name="expr")
-
+    free_memory()
     return table_expr
 
 
@@ -195,6 +200,7 @@ def mean_expr(
         )
         if len(group_by) > 1:
             main_df.columns = main_df.columns.map("_".join)
+    free_memory()
     return main_df
 
 
