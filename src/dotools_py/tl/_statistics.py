@@ -1,0 +1,227 @@
+import os
+import numpy as np
+import pandas as pd
+import anndata as ad
+
+from dotools_py import logger
+from scipy.sparse import issparse
+from typing import Literal
+import dotools_py as do
+
+
+adata = do.dt.example_10x_processed()
+
+class MastTest:
+    def __init__(self,
+                 adata: ad.AnnData,
+                 condition_key: str,
+                 reference: str,
+                 group: str,
+                 layer: str = None,
+                 covariates: list = None,
+                 n_cpus: int = 20,
+                 method: Literal["glm", "glmer", "bayesglm"] = "bayesglm",
+                 ebayes: bool = True,
+                 parallel: bool = True,
+                 silent: bool =True,
+                 formula: str = None,
+                 ):
+
+        os.environ["OMP_NUM_THREADS"] = "1"  # Avoid problems with running R code
+
+        # TODO account when group is a list and several conditions are available
+
+        adata_copy = adata.copy()
+        self.adata = adata_copy
+        self.condition_key = condition_key
+        self.reference = reference
+        self.group = group
+        self.layer = layer
+        self.covariates = covariates
+        self.n_cpus = n_cpus
+        self.method = method
+        self.ebayes = ebayes
+        self.parallel = parallel
+        self.silent = silent
+        self._formula = formula
+        self.pvals = None
+
+        self._set_rpy2_logger()
+
+    def fit(self, **kwargs):
+        # Import rpy2
+        try:
+            from rpy2 import robjects as ro
+            from rpy2.robjects import numpy2ri, pandas2ri, r, DataFrame, StrVector, FloatVector
+            from rpy2.robjects.conversion import get_conversion, localconverter
+            from rpy2.robjects.packages import importr
+        except ImportError:
+            raise ImportError("MastTest requires rpy2 to be installed.")
+
+        # Import R packages
+        try:
+            MAST = importr("MAST")
+        except ImportError as e:
+            raise ImportError("MASTTest requires MAST to be installed") from e
+
+        base = importr("base")
+        stats = importr("stats")
+        SummarizedExperiment = importr("SummarizedExperiment")
+
+        self.adata.obs[self.condition_key] = pd.Categorical(self.adata.obs[self.condition_key], categories=[self.reference, self.group])
+
+        # Generate a dataframe with expression matrix
+        with localconverter(get_conversion() + numpy2ri.converter):
+            X = self.adata.X if self.layer is None else self.adata.layers[self.layer]  # Assume this is log-counts
+            X = X.T.toarray() if issparse(X) else X.T
+
+        # Transfer obs and vars to R
+        with localconverter(get_conversion() + pandas2ri.converter) as cv:
+            X_r = cv.py2rpy(pd.DataFrame(X, index=self.adata.var_names, columns=self.adata.obs_names))
+            obs_r = cv.py2rpy(self.adata.obs)
+            var_r = cv.py2rpy(self.adata.var)
+
+        levels = r('levels')(obs_r.rx2(self.condition_key))
+        logger.warn(f"Reference level is set to {levels[0]}")
+
+        # Generate SingleCellAssay
+        sca = MAST.FromMatrix(base.as_matrix(X_r), obs_r, var_r)
+
+        # Re-organise to set reference as first level
+        col_data = SummarizedExperiment.colData(sca)
+        condition_vector = r['slot'](col_data, 'listData').rx2(self.condition_key)
+        condition_vector = stats.relevel(x=condition_vector, ref=self.reference)
+        col_data.slots[self.condition_key] = condition_vector
+        sca.slots['colData'] = col_data
+
+        if self._formula is None:
+            if self.covariates is None:
+                latent_variables = base.c(self.condition_key)
+            else:
+                # Pass "condition" plus all elements in covariates as separate arguments
+                latent_variables = base.c(self.condition_key, *self.covariates)
+            formula = stats.as_formula(object=base.paste0(" ~ ", base.paste(latent_variables, collapse="+")))
+        else:
+            formula = stats.as_formula(str(self._formula))
+
+        ro.r(f'options(mc.cores = {self.n_cpus})')  # Allow parallelisation
+        zlmCond = MAST.zlm(formula=formula,
+                           sca=sca,
+                           method=self.method,
+                           ebayes=self.ebayes,
+                           ebayesControl=r('NULL'),
+                           force=False,
+                           hook=r('NULL'),
+                           parallel=self.parallel,
+                           onlyCoef=False,
+                           silent = self.silent,
+                           **kwargs
+                           )
+
+        ro.r('options(mc.cores = 1)')  # Set to one thread again
+        summary = r['summary']
+        zlm_summary = summary(zlmCond, doLRT=base.paste0(self.condition_key, self.group))
+
+        summaryDt = zlm_summary.rx2('datatable')  # equivalent to summaryCond$datatable
+
+        with localconverter(ro.default_converter + pandas2ri.converter):
+            summary_df = pandas2ri.rpy2py(summaryDt)
+
+        # 1. Subset where component == 'H'
+        filtered = summary_df[summary_df['component'] == 'H']
+        # 2. Extract p-values
+        p_val = filtered[['Pr(>Chisq)']].copy()
+        p_val.columns = ['pvals']
+        # 3. Extract gene IDs (assuming 1st column is 'primerid')
+        genes = filtered[['primerid']].copy()
+        # 4. Adjust p-values using R's p.adjust
+        p_adjust = ro.r['p.adjust']
+        from rpy2.robjects import FloatVector
+        pvals_r = FloatVector(p_val['pvals'].values)
+        padj_r = p_adjust(pvals_r, method='fdr')
+        with localconverter(ro.default_converter + pandas2ri.converter):
+            padj = pandas2ri.rpy2py(padj_r)
+        p_val['padj'] = padj
+
+        r_names = StrVector(genes["primerid"])
+        r_pvals = FloatVector(p_val['pvals'])
+        r_padj = FloatVector(p_val['padj'])
+
+        # Create R data.frame
+        df = DataFrame({
+            'names': r_names,
+            'pvals': r_pvals,
+            'padj': r_padj,
+        })
+        with localconverter(ro.default_converter + pandas2ri.converter):
+            df_py = pandas2ri.rpy2py(df)
+
+        self.pvals = df_py
+        self._formula = formula
+
+    @property
+    def formula(self):
+        if self._formula is None:
+            logger.info("formula not initialise, run fit()")
+            return None
+        else:
+            return str(self._formula).strip()
+
+    @property
+    def pvalues(self):
+        if self.pvals is None:
+            logger.info("pvals not calculated, run fit()")
+            return None
+        else:
+            return self.pvals
+
+
+    @staticmethod
+    def _set_rpy2_logger():
+        import logging
+        from datetime import datetime
+
+        class RemovePrefixFilter(logging.Filter):
+            def filter(self, record):
+                prefix = "R callback write-console: "
+                if record.msg.startswith(prefix):
+                    record.msg = record.msg[len(prefix):]
+                return True  # Keep the record
+
+        # Get rpy2 logger
+        rpy2_logger = logging.getLogger('rpy2')
+        # Remove existing handlers
+        for handler in rpy2_logger.handlers[:]:
+            rpy2_logger.removeHandler(handler)
+
+        # Create and add our handler
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.INFO)
+
+        # Simple formatter: just message with timestamp prefix added here
+        formatter = logging.Formatter('%(message)s')
+        handler.setFormatter(formatter)
+
+        # Add the filter to strip prefix
+        handler.addFilter(RemovePrefixFilter())
+
+        # Add handler and set level
+        rpy2_logger.addHandler(handler)
+        rpy2_logger.setLevel(logging.INFO)
+
+        # Wrap the handler's emit to add timestamp
+        old_emit = handler.emit
+
+        def emit_with_timestamp(record):
+            timestamp = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
+            record.msg = f"{timestamp} {record.msg}"
+            old_emit(record)
+
+        handler.emit = emit_with_timestamp
+
+
+
+#tester = MastTest(adata, "condition",  "healthy","disease", formula="~condition")
+#adata.obs["condition"] = pd.Categorical(adata.obs["condition"], categories=["disease", "healthy"])
+#df = tester.fit()
+
