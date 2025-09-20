@@ -460,15 +460,22 @@ def pseudobulking(
             # Generate technical replicates
             random.shuffle(bcs)
             idx = np.array_split(np.array(bcs), technical_replicates)
-            mtx_pl = pl.DataFrame()
+            mtx_pl = None
             for i, replicate in enumerate(idx):
                 batch_replicate = sdata[replicate, :]
                 mtx = batch_replicate.to_df(layer=layer)
                 mtx[keep_metadata] = batch_replicate.obs[keep_metadata].values
 
                 mtx_pl_tmp = pl.from_pandas(mtx)
-                mtx_pl_tmp[batch_key] = mtx_pl_tmp[batch_key] + "_" + str(i)
-                mtx_pl = pl.concat([mtx_pl_tmp, mtx_pl], how="vertical")
+
+                # mtx_pl_tmp[batch_key] = mtx_pl_tmp[batch_key] + "_" + str(i)
+
+                mtx_pl_tmp = mtx_pl_tmp.with_columns((pl.col(batch_key) + "_" + pl.lit(str(i))).alias(batch_key)).group_by(batch_key).agg(agg_exprs)
+                if mtx_pl is None:
+                    mtx_pl = mtx_pl_tmp
+                else:
+                    mtx_pl = pl.concat([mtx_pl, mtx_pl_tmp], how="vertical")
+                # mtx_pl = pl.concat([mtx_pl_tmp, mtx_pl], how="vertical")
         gc.collect()
         return mtx_pl
 
@@ -609,8 +616,8 @@ def rank_genes_pseudobulk(
                 logger.info(f"Test could not be computed for {ct} due to {e}")
 
         # Kill any active threads
-        for p in multiprocessing.active_children():
-            p.terminate()
+        # for p in multiprocessing.active_children():
+        #    p.terminate()
 
     elif method == "edger":
         logger.info("Run edgeR")
