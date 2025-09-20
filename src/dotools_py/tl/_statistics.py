@@ -1,4 +1,5 @@
 import os
+
 import numpy as np
 import pandas as pd
 import anndata as ad
@@ -7,9 +8,11 @@ from dotools_py import logger
 from scipy.sparse import issparse
 from typing import Literal
 import dotools_py as do
-
+from dotools_py.get._generic import mean_expr
+from dotools_py.get._generic import expr as get_expr
 
 adata = do.dt.example_10x_processed()
+
 
 class MastTest:
     def __init__(self,
@@ -23,7 +26,7 @@ class MastTest:
                  method: Literal["glm", "glmer", "bayesglm"] = "bayesglm",
                  ebayes: bool = True,
                  parallel: bool = True,
-                 silent: bool =True,
+                 silent: bool = True,
                  formula: str = None,
                  ):
 
@@ -48,6 +51,7 @@ class MastTest:
 
         self._set_rpy2_logger()
 
+
     def fit(self, **kwargs):
         # Import rpy2
         try:
@@ -68,7 +72,8 @@ class MastTest:
         stats = importr("stats")
         SummarizedExperiment = importr("SummarizedExperiment")
 
-        self.adata.obs[self.condition_key] = pd.Categorical(self.adata.obs[self.condition_key], categories=[self.reference, self.group])
+        self.adata.obs[self.condition_key] = pd.Categorical(self.adata.obs[self.condition_key],
+                                                            categories=[self.reference, self.group])
 
         # Generate a dataframe with expression matrix
         with localconverter(get_conversion() + numpy2ri.converter):
@@ -114,7 +119,7 @@ class MastTest:
                            hook=r('NULL'),
                            parallel=self.parallel,
                            onlyCoef=False,
-                           silent = self.silent,
+                           silent=self.silent,
                            **kwargs
                            )
 
@@ -156,8 +161,39 @@ class MastTest:
         with localconverter(ro.default_converter + pandas2ri.converter):
             df_py = pandas2ri.rpy2py(df)
 
+        df_py.rename(columns = {"names":"GeneName"}, inplace=True)
         self.pvals = df_py
         self._formula = formula
+
+    @property
+    def dge_table(self):
+        df_mean = mean_expr(self.adata, group_by=self.condition_key, out_format="wide")
+        logfoldchanges = np.log2((np.expm1(df_mean[self.group] + 1e-9)) /
+                                 (np.expm1(df_mean[self.reference]) + 1e-9))
+        # add small value to remove 0's
+        df_expr = get_expr(
+            self.adata, features=self.adata.var_names, groups=self.condition_key, layer=self.layer, out_format="wide"
+        ).set_index(self.condition_key)
+
+        obs_bool = df_expr > 0.0
+        df_pct = (
+            obs_bool.groupby(level=self.condition_key, observed=True).sum()
+            / obs_bool.groupby(level=self.condition_key, observed=True).count()
+        ).T
+        df_pct.reset_index(inplace=True)
+        df_pct.rename(columns={self.reference: "pts_ref",
+                               self.group: "pts_group",
+                               "index": "GeneName",}, inplace=True)
+        logfoldchanges = pd.DataFrame(logfoldchanges, columns=["log2fc"]).reset_index()
+        logfoldchanges.rename(columns={"gene": "GeneName"}, inplace=True)
+
+        table = pd.merge(logfoldchanges, df_pct, on="GeneName")
+
+
+        table = pd.merge(table, self.pvals, on="GeneName")
+        table = table[["GeneName", "log2fc", "pvals", "padj", "pts_group", "pts_ref"]]
+        return table
+
 
     @property
     def formula(self):
@@ -166,6 +202,7 @@ class MastTest:
             return None
         else:
             return str(self._formula).strip()
+
 
     @property
     def pvalues(self):
@@ -220,8 +257,21 @@ class MastTest:
         handler.emit = emit_with_timestamp
 
 
+    @staticmethod
+    def mast_version():
+        from rpy2.robjects.packages import importr
+        try:
+            MAST = importr("MAST")
+        except ImportError as e:
+            raise ImportError("MASTTest requires MAST to be installed") from e
+        logger.info("MAST v" + MAST.__version__)
 
-#tester = MastTest(adata, "condition",  "healthy","disease", formula="~condition")
-#adata.obs["condition"] = pd.Categorical(adata.obs["condition"], categories=["disease", "healthy"])
-#df = tester.fit()
+
+
+tester = MastTest(adata, "condition", "healthy", "disease", formula="~condition")
+# adata.obs["condition"] = pd.Categorical(adata.obs["condition"], categories=["disease", "healthy"])
+tester.fit()
+
+df = tester.dge_table()
+
 
