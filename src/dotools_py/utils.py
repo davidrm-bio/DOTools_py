@@ -3,6 +3,7 @@ import importlib
 import subprocess
 import sys
 from pathlib import Path
+from collections.abc import Iterable
 
 import anndata as ad
 import matplotlib.gridspec as gridspec
@@ -278,7 +279,6 @@ def timer(func):
     return _timer
 
 
-
 def draw_bracket(x_start, x_end, y_bottom=0, y_top=1, stem_length=0.2):
     import matplotlib.path
 
@@ -291,3 +291,52 @@ def draw_bracket(x_start, x_end, y_bottom=0, y_top=1, stem_length=0.2):
     codes = [matplotlib.path.Path.MOVETO, matplotlib.path.Path.LINETO,
              matplotlib.path.Path.LINETO, matplotlib.path.Path.LINETO]
     return matplotlib.path.Path(verts, codes)
+
+
+def iterase_input(data: str | Iterable) -> list:
+    """Convert input to list.
+
+    :param data: string or iterable (list, tuple, index, etc.)
+    :return: Returns a list.
+    """
+    if data is None:
+        return []
+    elif isinstance(data, str):
+        return [data]
+    elif isinstance(data, list):
+        return data
+    elif isinstance(data, Iterable):
+        return list(data)
+    else:
+        raise Exception("Input is not a string or iterable object")
+
+
+def check_missing(adata: ad.AnnData, features: str | list = None, groups: str | list = None) -> None:
+    """Check for missing features or columns in the observations from an AnnData Object.
+
+    :param adata: AnnData Object.
+    :param features: features to check for.
+    :param groups: column names in the observations to check for.
+    :return: Returns None. Will raise an assertion if any feature or column name is missing.
+    """
+
+    if features:
+        features = iterase_input(features)
+        missing = [g for g in features if g not in adata.var_names]
+
+        # features could be in .obs
+        missing_x2 = []
+        if len(missing) > 0:
+            missing_x2 = [g for g in features if g not in adata.obs.columns]
+
+        if len(missing_x2) > len(missing):
+            assert len(missing) == 0, f"{missing} missing in the AnnData Object"
+        else:
+            assert len(missing_x2) == 0, f"{missing_x2} missing in the AnnData Object"
+
+    if groups:
+        groups = iterase_input(groups)
+        missing = [g for g in groups if g not in adata.obs.columns]
+        assert len(missing) == 0, f"{missing} missing in the AnnData Object"
+
+    return None
