@@ -1,5 +1,6 @@
 
 from typing import Literal
+import operator
 
 import anndata as ad
 import pandas as pd
@@ -120,17 +121,21 @@ def mean_expr(
     features: list | str | None = None,
     out_format: Literal["long", "wide"] = "long",
     layer: str | None = None,
+    logcounts: bool = True,
 ) -> pd.DataFrame:
     """Calculate the average expression in an AnnData objects for features.
 
     This function calculates the average expression of a set of features grouping by one
-    or several categories. Assume log-normalised counts.
+    or several categories. Assume log-normalised counts. If logcounts is set to True, the
+    log10 transformation is undone for the mean expression calculation. The reported mean
+    expression is log-transformed.
 
     :param adata: Annotated data matrix.
     :param group_by: Metadata columns in `obs` to group by.
     :param features: List of features in `var_name` to use. If not set, it will be calculated over all the genes.
     :param out_format: Format of the Dataframe returned. This can be wide or long format.
     :param layer: Layer of the AnnData to use. If not set use `X`.
+    :param logcounts: if set to True, the log1p transformation is undone to calculate the mean exoression.
     :return: Returns a `DataFrame`. If `out_format` is set to `wide`, the index will be set to the gene names and the
             column names will be set to the groups. If `out_format` is set to `long`, the following fields are included:
             `gene`, containing the gene names; `groupN` containing the groups (For each metadata column a new column will be added), and
@@ -170,7 +175,9 @@ def mean_expr(
         adata.X = adata.layers[layer].copy()
 
     data = adata.copy()
-    _expm1_anndata(data)
+
+    if logcounts:
+        _expm1_anndata(data)
 
     # Group dt by the specified values
     group_obs = adata.obs.groupby(group_by, as_index=False)
@@ -178,9 +185,13 @@ def mean_expr(
     # Compute AverageExpression
     main_df = pd.DataFrame([])
     for group_name, df in group_obs:
-        df_tmp = np.log1p(
-            pd.DataFrame(data[df.index].X.mean(axis=0).T, columns=["expr"])
-        )  # Mean expr per gene in groupN
+        if logcounts:
+            df_tmp = np.log1p(
+                pd.DataFrame(data[df.index].X.mean(axis=0).T, columns=["expr"])
+            )  # Mean expr per gene in groupN
+        else:
+            df_tmp = pd.DataFrame(data[df.index].X.mean(axis=0).T, columns=["expr"])
+
         df_tmp["gene"] = adata[df.index].var_names  # Update with Gene names
         if type(group_name) is str:  # If only grouping by one category
             group_name = [group_name]
@@ -244,3 +255,92 @@ def dge_results(
             df_results["pts_ref"] = pts_ref.reindex(index=df_results.GeneName).tolist()
     return df_results
 
+
+def subset(adata: ad.AnnData,
+           obs_key: str ,
+           obs_groups: str | list | float | bool,
+           var_key: str  = None,
+           var_groups: str | list | float | bool = None,
+           comparison: Literal[">=", ">", "==", "<", "<=", "include", "exclude"] = "include",
+           copy: bool = False):
+    """Subset AnnData object.
+
+    Subset an AnnData object based on obs or var column. Currently it does not allow to subset
+    by multiple obs/var columns at the same time.
+
+    :param adata: AnnData Object.
+    :param obs_key: obs column to subset for. If a list is provided, it will subset for each column.
+    :param obs_groups: groups to include in the AnnData object
+    :param var_key: var column to subset for
+    :param var_groups: groups to include in the AnnData object
+    :param comparison: comparison to used for.
+    :param copy: if set to True, a copy is returned, otherwise a view of the AnnData is returned.
+    :return: Returns a view or a new AnnData object.
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> tcells = subset(adata, obs_key="annotation", obs_groups="T_cells")
+    >>> tcells
+    View of AnnData object with n_obs × n_vars = 464 × 1851
+        obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo', 'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster'
+        var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches', 'highly_variable_intersection'
+        uns: 'annotation_colors', 'annotation_recluster_colors', 'batch_colors', 'hvg', 'leiden', 'leiden_colors', 'log1p', 'neighbors', 'pca', 'umap'
+        obsm: 'X_CCA', 'X_pca', 'X_umap'
+        varm: 'PCs'
+        layers: 'counts', 'logcounts'
+        obsp: 'connectivities', 'distances'
+    >>> adata_subset = subset(adata, obs_key="total_counts", obs_groups=1000, comparison=">=", copy=True)
+    >>> adata_subset
+    AnnData object with n_obs × n_vars = 699 × 1851
+        obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo', 'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster'
+        var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches', 'highly_variable_intersection'
+        uns: 'annotation_colors', 'annotation_recluster_colors', 'batch_colors', 'hvg', 'leiden', 'leiden_colors', 'log1p', 'neighbors', 'pca', 'umap'
+        obsm: 'X_CCA', 'X_pca', 'X_umap'
+        varm: 'PCs'
+        layers: 'counts', 'logcounts'
+        obsp: 'connectivities', 'distances'
+
+    """
+
+    assert comparison in [">=", ">", "==", "<", "<=", "include", "exclude"], "Not a valid comparison key"
+    assert obs_key in adata.obs.columns, "Not a valid obs key"
+    assert var_key in adata.var.columns, "Not a valid var key"
+
+    if comparison in ["include", "exclude"]:
+        obs_groups = [obs_groups] if isinstance(obs_groups, str) else obs_groups
+        var_groups = [var_groups] if isinstance(var_groups, str) else var_groups
+
+    operations = {
+        "==": operator.eq,
+        "!=": operator.ne,
+        ">": operator.gt,
+        ">=": operator.ge,
+        "<": operator.lt,
+        "<=": operator.le
+    }
+
+    # Subset by obs
+    if obs_key is not None:
+        if comparison == "exclude":
+            adata = adata[~adata.obs[obs_key].isin(obs_groups)]
+        elif comparison == "include":
+            adata = adata[adata.obs[obs_key].isin(obs_groups)]
+        else:
+            mask = operations[comparison](adata.obs[obs_key], obs_groups).values
+            adata = adata[mask, :]
+
+    # Subset by var
+    if var_key is not None:
+        if comparison == "exclude":
+            adata = adata[~adata.var[var_key].isin(var_groups)]
+        elif comparison == "include":
+            adata = adata[adata.obs[var_key].isin(var_groups)]
+        else:
+            mask = adata[:, operations[comparison](adata.obs[var_key], var_groups)]
+            adata = adata[:, mask]
+    if copy:
+        return adata.copy()
+    else:
+        return adata
