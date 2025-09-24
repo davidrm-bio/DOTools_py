@@ -12,6 +12,7 @@ AnnData object.
 
     get.expr
     get.mean_expr
+    get.subset
     get.dge_results
 ```
 
