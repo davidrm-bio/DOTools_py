@@ -1,20 +1,80 @@
 import os
+from typing import Literal
 
 import numpy as np
 import pandas as pd
 import anndata as ad
+from scipy.sparse import issparse
 
 from dotools_py import logger
-from scipy.sparse import issparse
-from typing import Literal
-import dotools_py as do
 from dotools_py.get._generic import mean_expr
 from dotools_py.get._generic import expr as get_expr
 
-adata = do.dt.example_10x_processed()
 
 
 class MastTest:
+    """Class to perform MAST test.
+
+    This class allows to run the MAST test on an AnnData object. Requires the R package MAST to be installed.
+    The test assumes that the expression data is log-normalised.
+
+
+    Parameters
+    ----------
+    adata
+        Annotated data matrix
+    condition_key
+        Column in `obs` with the conditions for each cell
+    reference
+        Condition to be used as the reference
+    group
+        Condition to be used as the alternative condition to test against
+    layer
+        Layer in the AnnData to use for testing
+    covariates
+        Additional covariates to consider for the MAST test
+    n_cpus
+        Number of cores to used for the inference
+    method
+        Method to used for the inference
+    formula
+        Formula for the test
+    kwargs
+        Additional arguments to pass to MAST::zlm
+
+    Example
+    -------
+
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> tester = MastTest(adata=adata, condition_key="condition", reference="healthy", group="disease", layer="logcounts", n_cpus=5, method="bayesglm", parallel=True, formula="~condition")
+    >>> tester.fit()
+    2025-09-24 13:27:56,435 - Reference level is set to healthy
+    [2025-09-24 13:27:56] `fData` has no primerid.  I'll make something up.
+    [2025-09-24 13:27:56] `cData` has no wellKey.  I'll make something up.
+    [2025-09-24 13:27:56] Assuming data assay in position 1, with name et is log-transformed.
+    [2025-09-24 13:27:59] Done!
+    [2025-09-24 13:27:59] Combining coefficients and standard errors
+    [2025-09-24 13:27:59] Calculating log-fold changes
+    [2025-09-24 13:27:59] Calculating likelihood ratio tests
+    [2025-09-24 13:27:59] Refitting on reduced model...
+    [2025-09-24 13:28:03] Done!
+    >>> tester.pvalues.head(3)
+          GeneName     pvals      padj
+    1   A4GALT  0.001722  0.015546
+    2     AAK1  0.019197  0.105754
+    3     ABAT  0.551787  0.842536
+    >>> tester.dge_table.head(3)
+          GeneName     log2fc     pvals      padj  pts_group   pts_ref
+    0   A4GALT  26.073313  0.001722  0.015546   0.022222  0.000000
+    1     AAK1  -0.429676  0.019197  0.105754   0.338889  0.457692
+    2     ABAT   0.775196  0.551787  0.842536   0.033333  0.023077
+    >>> tester.formula
+    Out[17]: '~condition'
+    >>> tester.mast_version()
+    2025-09-24 13:30:45,484 - MAST v1.33.0
+
+    """
     def __init__(self,
                  adata: ad.AnnData,
                  condition_key: str,
@@ -29,6 +89,21 @@ class MastTest:
                  silent: bool = True,
                  formula: str = None,
                  ):
+        """Initialise the class.
+
+        :param adata: AnnData object to be used for testing
+        :param condition_key: column in `obs` with conditions
+        :param reference: reference condition
+        :param group: alternative condition to test against
+        :param layer: layer to use for testing
+        :param covariates: covariates to correct for in the MAST test
+        :param n_cpus: number of cores to used for the inference
+        :param method: method to use for the inference
+        :param ebayes:
+        :param parallel: allow parallelization
+        :param silent: reduce verbosity
+        :param formula: formula to use for the inference
+        """
 
         os.environ["OMP_NUM_THREADS"] = "1"  # Avoid problems with running R code
 
@@ -53,6 +128,11 @@ class MastTest:
 
 
     def fit(self, **kwargs):
+        """
+
+        :param kwargs: additional arguments pass to Mast::zml
+        :return: The attribute pvalues will be set containing the p-values and the adjusted p-values.
+        """
         # Import rpy2
         try:
             from rpy2 import robjects as ro
@@ -166,7 +246,23 @@ class MastTest:
         self._formula = formula
 
     @property
-    def dge_table(self):
+    def dge_table(self) -> pd.DataFrame:
+        """Generate table summarising the results from the DGE analysis.
+
+        :return: Returns a dataframe with the following columns:
+                `GeneName`
+                    Contains the genes that have been tested
+                `log2fc`
+                    Contains the logfolchanges
+                `pvals`
+                    Contains the pvalues
+                `padj`
+                    Contains the adjusted p-values. Correction performed with Benjamini-Hochberg
+                `pts_group`
+                    Percentage of cells in the group expressing the gene
+                `pts_ref`
+                    Percentage of cells in the reference condition expressing the gene
+        """
         df_mean = mean_expr(self.adata, group_by=self.condition_key, out_format="wide")
         logfoldchanges = np.log2((np.expm1(df_mean[self.group] + 1e-9)) /
                                  (np.expm1(df_mean[self.reference]) + 1e-9))
@@ -196,7 +292,11 @@ class MastTest:
 
 
     @property
-    def formula(self):
+    def formula(self) -> str | None:
+        """Formula used to fit the model.
+
+        :return: Returns the formula used to fit the model.
+        """
         if self._formula is None:
             logger.info("formula not initialise, run fit()")
             return None
@@ -205,7 +305,11 @@ class MastTest:
 
 
     @property
-    def pvalues(self):
+    def pvalues(self) -> pd.DataFrame | None:
+        """Dataframe with the p-values from the test.
+
+        :return: Returns a dataframe with the p-values and adjusted p-values from the test.
+        """
         if self.pvals is None:
             logger.info("pvals not calculated, run fit()")
             return None
@@ -214,7 +318,11 @@ class MastTest:
 
 
     @staticmethod
-    def _set_rpy2_logger():
+    def _set_rpy2_logger() -> None:
+        """Manage the logger from rpy2.
+
+        :return: None
+        """
         import logging
         from datetime import datetime
 
@@ -252,26 +360,20 @@ class MastTest:
         def emit_with_timestamp(record):
             timestamp = datetime.now().strftime("[%Y-%m-%d %H:%M:%S]")
             record.msg = f"{timestamp} {record.msg}"
-            old_emit(record)
+            #old_emit(record)  #TODO test if hiving this is fine
 
         handler.emit = emit_with_timestamp
-
+        return None
 
     @staticmethod
     def mast_version():
+        """Get the version from MAST used.
+
+        :return:
+        """
         from rpy2.robjects.packages import importr
         try:
             MAST = importr("MAST")
         except ImportError as e:
             raise ImportError("MASTTest requires MAST to be installed") from e
         logger.info("MAST v" + MAST.__version__)
-
-
-
-tester = MastTest(adata, "condition", "healthy", "disease", formula="~condition")
-# adata.obs["condition"] = pd.Categorical(adata.obs["condition"], categories=["disease", "healthy"])
-tester.fit()
-
-df = tester.dge_table()
-
-
