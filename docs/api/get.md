@@ -15,5 +15,6 @@ AnnData object.
     get.subset
     get.dge_results
     get.log2fc
+    get.pcts_cells
 ```
 

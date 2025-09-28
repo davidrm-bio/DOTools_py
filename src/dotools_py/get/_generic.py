@@ -359,7 +359,7 @@ def log2fc(adata: ad.AnnData,
     :param group_by: Column in `obs` to group by.
     :param reference: Reference condition to use for the calculation.
     :param groups: Alternative condiitons to use. If None, all the condiitons will be used.
-    :param features: Features to use for calculating the log2foldchanges
+    :param features: Features to use for calculating the log2foldchanges.
     :param layer: Layer in the AnnData to use for the calculation.
     :return: Returns a DataFrame with the log2foldchange. One column will be added for each condition.
 
@@ -399,6 +399,35 @@ def log2fc(adata: ad.AnnData,
     return logfoldchanges
 
 
+def pcts_cells(adata,
+               group_by: str | list,
+               features: str | list = None,
+               min_expr: float = 0.0,
+               ) -> pd.DataFrame:
+    """Calculate the percentage of cells that express a feature.
+
+    :param adata: Annotated data matrix.
+    :param group_by: Column in `obs` to group by. Several columns can be provided.
+    :param features: Features to use for calculating the log2foldchanges.
+    :param min_expr: Minimum value to use for the estimation of percentages.
+    :return: Returns a DataFrame with the percentage of cells expressing a feature in each group.
+    """
+
+    features = list(adata.var_names) if features is None else features  # Calculate log2fc on all genes
+
+    df_expr = expr(
+        adata, features=features, groups=group_by, out_format="wide"
+    ).set_index(group_by)
+
+    obs_bool = df_expr > min_expr
+    df_pct = (
+        obs_bool.groupby(level=group_by, observed=True).sum()
+        / obs_bool.groupby(level=group_by, observed=True).count()
+    ).T
+    df_pct.columns = ["_".join(col) for col in df_pct]
+    df_pct.reset_index(inplace=True)
+    df_pct.rename(columns={"index":"genes"}, inplace=True)
+    return  df_pct
 
 
 
