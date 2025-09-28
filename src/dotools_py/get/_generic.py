@@ -22,6 +22,7 @@ def _expm1_anndata(adata: ad.AnnData) -> None:
     else:
         adata.X = np.expm1(adata.X)
 
+
 def expr(
     adata: ad.AnnData,
     features: str | list,
@@ -112,7 +113,6 @@ def expr(
         table_expr = pd.melt(table_expr, id_vars=groups, var_name="genes", value_name="expr")
     free_memory()
     return table_expr
-
 
 
 def mean_expr(
@@ -215,7 +215,6 @@ def mean_expr(
     return main_df
 
 
-
 def dge_results(
     adata: ad.AnnData,
     key: str = "rank_genes_groups",
@@ -262,7 +261,7 @@ def subset(adata: ad.AnnData,
            var_key: str  = None,
            var_groups: str | list | float | bool = None,
            comparison: Literal[">=", ">", "==", "<", "<=", "include", "exclude"] = "include",
-           copy: bool = False):
+           copy: bool = False) -> ad.AnnData:
     """Subset AnnData object.
 
     Subset an AnnData object based on obs or var column. Currently it does not allow to subset
@@ -344,3 +343,63 @@ def subset(adata: ad.AnnData,
         return adata.copy()
     else:
         return adata
+
+
+
+def log2fc(adata: ad.AnnData,
+           group_by: str,
+           reference: str,
+           groups: str | list = None,
+           features: str | list = None,
+           layer: str = None,
+           ) -> pd.DataFrame:
+    """Calculate the log2foldchanges for a set of groups.
+
+    :param adata: Annotated data matrix
+    :param group_by: Column in `obs` to group by.
+    :param reference: Reference condition to use for the calculation.
+    :param groups: Alternative condiitons to use. If None, all the condiitons will be used.
+    :param features: Features to use for calculating the log2foldchanges
+    :param layer: Layer in the AnnData to use for the calculation.
+    :return: Returns a DataFrame with the log2foldchange. One column will be added for each condition.
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> df = do.get.log2fc(adata, group_by="condition", reference="healthy")
+    >>> df.head(5)
+                log2fc_disease
+    gene
+    A4GALT       26.073313
+    AAK1         -0.429676
+    ABAT          0.775196
+    ABCB4       -22.599501
+    ABCB9        -1.669137
+    """
+
+    features = list(adata.var_names) if features is None else features  # Calculate log2fc on all genes
+    if groups is None:
+        groups = list(adata.obs[group_by].unique())
+        groups.remove(reference)
+    elif isinstance(groups, str):
+        groups = [groups]
+
+
+    df_mean = mean_expr(adata, group_by=group_by, features=features, out_format="wide",  layer=layer)
+
+    logfoldchanges = pd.DataFrame([])
+    for group in groups:
+        if group == reference:
+            continue
+        tmp = pd.DataFrame(np.log2((np.expm1(df_mean[groups[0]] + 1e-9)) /
+                             (np.expm1(df_mean[reference]) + 1e-9)), columns=["log2fc_" + groups[0]])
+        logfoldchanges = pd.concat([logfoldchanges, tmp], axis=1)
+    logfoldchanges.index.name = None
+    return logfoldchanges
+
+
+
+
+
+

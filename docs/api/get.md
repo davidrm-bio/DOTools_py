@@ -14,5 +14,6 @@ AnnData object.
     get.mean_expr
     get.subset
     get.dge_results
+    get.log2fc
 ```
 
