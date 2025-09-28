@@ -411,6 +411,21 @@ def pcts_cells(adata,
     :param features: Features to use for calculating the log2foldchanges.
     :param min_expr: Minimum value to use for the estimation of percentages.
     :return: Returns a DataFrame with the percentage of cells expressing a feature in each group.
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> df = do.get.pcts_cells(adata, group_by=["condition", "annotation"])
+    >>> df.head(5)
+            genes  disease_B_cells  ...  healthy_T_cells  healthy_pDC
+    0  ATP2A1-AS1             0.00  ...             0.01         0.00
+    1      STK17A             0.57  ...             0.49         0.17
+    2    C19orf18             0.00  ...             0.00         0.00
+    3        TPP2             0.03  ...             0.18         0.17
+    4       MFSD1             0.03  ...             0.06         0.50
+    [5 rows x 11 columns]
+
     """
 
     features = list(adata.var_names) if features is None else features  # Calculate log2fc on all genes
@@ -425,8 +440,10 @@ def pcts_cells(adata,
         / obs_bool.groupby(level=group_by, observed=True).count()
     ).T
     df_pct.columns = ["_".join(col) for col in df_pct]
+    df_pct = df_pct.round(2)
     df_pct.reset_index(inplace=True)
     df_pct.rename(columns={"index":"genes"}, inplace=True)
+
     return  df_pct
 
 
