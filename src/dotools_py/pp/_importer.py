@@ -354,26 +354,26 @@ def importer_py(
 
     The input is a list with paths to H5 files generated with
     `CellRanger <https://www.10xgenomics.com/support/software/cell-ranger/latest>`_,
-    `Cellbender <https://cellbender.readthedocs.io/en/latest/>`_
-    or `STARsolo <https://github.com/alexdobin/STAR>`_ and a list with the batch name for each sample. A dictionary
-    with extra metadata information can be provided. The order of the batch name and metadata should always match
-    to the order of the list with the H5 file paths.
+    `Cellbender <https://cellbender.readthedocs.io/en/latest/>`_, or
+    `STARsolo <https://github.com/alexdobin/STAR>`_. A list of batch names for each sample must also be provided.
+    Optionally, a dictionary with additional metadata can be passed. The order of batch names and metadata must
+    match the order of the file paths.
 
-    For each sample a several quality and filtering steps are applied:
-    - Filter genes expressed in low number of cells.
-    - Filter cells with low number of genes.
-    - Filter cells with high mitochondrial content. Recommended to use 5% for scRNA and 3% for snRNA.
-    - Filter cells based on nUMI and features. There are two modes: 1) **Absolute filtering**: sets absolute values
-      for the maximum and minimum number of UMI and features, and 2) **Quantile filtering**, filters the top and/or
-      lower quantile.
-    - Remove doublets using scDblFinder, Scrublet or DoubletDetection.
+    For each sample, several quality and filtering steps are applied:
 
-    An ExcelSheet with stats on how many cells and features were removed in each step, and violin plots showing the
-    distribution of `total_counts`, `n_genes_by_counts` and `pct_mt_content` per  cell before and after the quality
-    control will be generated. These files will be saved under the folder containing the H5 files.
+    - Filter genes expressed in a low number of cells.
+    - Filter cells with a low number of genes.
+    - Filter cells with high mitochondrial content (recommended: 5% for scRNA, 3% for snRNA).
+    - Filter cells based on nUMI and features using two modes:
+        1. **Absolute filtering**: Sets absolute values for min/max UMI and features.
+        2. **Quantile filtering**: Filters top/lower quantiles.
+    - Remove doublets using scDblFinder, Scrublet, or DoubletDetection.
 
-    After the quality control, the data will be log-normalised and scaled. Additionally, the highly variable genes
-    and PCA will be calculated.
+    An Excel sheet summarizing how many cells/genes were removed at each step will be generated,
+    along with violin plots showing the distribution of `total_counts`, `n_genes_by_counts`,
+    and `pct_mt_content` before and after QC. These outputs will be saved in the folder containing the H5 files.
+
+    After QC, the data will be log-normalized and scaled. Highly variable genes and PCA will also be computed.
 
     :param paths: list with the path to the H5 files.
     :param ids: list with the batch name for each sample.
