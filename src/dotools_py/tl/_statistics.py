@@ -20,25 +20,29 @@ class MastTest:
     Parameters
     ----------
     adata
-        Annotated data matrix
+        Annotated data matrix.
     condition_key
-        Column in `obs` with the conditions for each cell
+        Column in `obs` with the conditions for each cell.
     reference
-        Condition to be used as the reference
+        Condition to be used as the reference.
     group
-        Condition to be used as the alternative condition to test against
+        Condition to be used as the alternative to test against. Only one condition can be accepted.
     layer
-        Layer in the AnnData to use for testing
+        Layer in the AnnData to use for testing.
     covariates
-        Additional covariates to consider for the MAST test
+        Additional covariates to consider for the MAST test.
     n_cpus
-        Number of cores to used for the inference
+        Number of cores to used for the inference.
     method
-        Method to used for the inference
+        Method to used for the inference. See `Mast::zlm <https://rglab.github.io/MAST/reference/zlm.html>`_.
     formula
-        Formula for the test
-    kwargs
-        Additional arguments to pass to MAST::zlm
+        Formula for the test.
+    ebayes
+        If set to `True`, regularize variance using empirical bayes method.
+    parallel
+        If set to `True`, then multiple cores will be used in fitting.
+    silent
+        Silence common problems with fitting some genes.
 
     Example
     -------
@@ -97,7 +101,7 @@ class MastTest:
         :param covariates: covariates to correct for in the MAST test
         :param n_cpus: number of cores to used for the inference
         :param method: method to use for the inference
-        :param ebayes:
+        :param ebayes: If set to `True`, regularize variance using empirical bayes method.
         :param parallel: allow parallelization
         :param silent: reduce verbosity
         :param formula: formula to use for the inference
@@ -129,7 +133,7 @@ class MastTest:
         """
 
         :param kwargs: additional arguments pass to Mast::zml
-        :return: The attribute pvalues will be set containing the p-values and the adjusted p-values.
+        :return: The attribute p-values will be set containing the p-values and the adjusted p-values.
         """
         # Import rpy2
         try:
