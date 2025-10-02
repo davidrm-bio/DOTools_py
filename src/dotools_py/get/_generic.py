@@ -98,14 +98,14 @@ def expr(
     if groups is not None:
         if isinstance(groups, str):
             if adata.obs[groups].dtype.name in ["category", "object"]:
-                if any("-" in txt for txt in list(adata.obs[groups].cat.categories)):
+                if any("-" in txt for txt in list(adata.obs[groups].unique())):
                     logger.warn("Replacing '-' in groups categories by '_'")
                 adata.obs[groups] = adata.obs[groups].str.replace("-", "_")
             table_expr[groups] = adata.obs[groups]  # One column
         else:
             for group in groups:  # Multiple columns
                 if adata.obs[group].dtype.name in ["category", "object"]:
-                    if any("-" in txt for txt in list(adata.obs[group].cat.categories)):
+                    if any("-" in txt for txt in list(adata.obs[group].unique())):
                         logger.warn("Replacing '-' in groups categories by '_'")
                     adata.obs[group] = adata.obs[group].str.replace("-", "_")
                 table_expr[group] = adata.obs[group]
