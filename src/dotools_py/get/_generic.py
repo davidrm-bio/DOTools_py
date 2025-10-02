@@ -1,4 +1,3 @@
-
 from typing import Literal
 import operator
 
@@ -8,6 +7,7 @@ import numpy as np
 import scipy as sp
 from dotools_py import logger
 from dotools_py.utility._general import free_memory
+from dotools_py.utils import sanitize_anndata
 
 
 def _expm1_anndata(adata: ad.AnnData) -> None:
@@ -67,6 +67,7 @@ def expr(
     CATGGTACAAACGGCA-1-batch1  0.0    T_cells
 
     """
+    sanitize_anndata(adata)
     # Set-up configuration
     if features is not None:
         adata = adata[:, features]  # Retain only the specified features
@@ -164,6 +165,8 @@ def mean_expr(
     ABCB9   0.000000   0.000000  0.027683  0.057814  0.000000
 
     """
+
+    sanitize_anndata(adata)
     features = [features] if isinstance(features, str) else features
     group_by = [group_by] if isinstance(group_by, str) else group_by
     assert out_format == "wide" or out_format == "long", f'{out_format} not recognize, try "long" or "wide"'
@@ -303,6 +306,7 @@ def subset(adata: ad.AnnData,
 
     """
 
+    sanitize_anndata(adata)
     assert comparison in [">=", ">", "==", "<", "<=", "include", "exclude"], "Not a valid comparison key"
     if obs_key is not None:
         assert obs_key in adata.obs.columns, "Not a valid obs key"
