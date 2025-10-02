@@ -256,8 +256,8 @@ def dge_results(
 
 
 def subset(adata: ad.AnnData,
-           obs_key: str ,
-           obs_groups: str | list | float | bool,
+           obs_key: str = None,
+           obs_groups: str | list | float | bool = None,
            var_key: str  = None,
            var_groups: str | list | float | bool = None,
            comparison: Literal[">=", ">", "==", "<", "<=", "include", "exclude"] = "include",
@@ -304,8 +304,10 @@ def subset(adata: ad.AnnData,
     """
 
     assert comparison in [">=", ">", "==", "<", "<=", "include", "exclude"], "Not a valid comparison key"
-    assert obs_key in adata.obs.columns, "Not a valid obs key"
-    assert var_key in adata.var.columns, "Not a valid var key"
+    if obs_key is not None:
+        assert obs_key in adata.obs.columns, "Not a valid obs key"
+    if var_key is not None:
+        assert var_key in adata.var.columns, "Not a valid var key"
 
     if comparison in ["include", "exclude"]:
         obs_groups = [obs_groups] if isinstance(obs_groups, str) else obs_groups
@@ -335,9 +337,9 @@ def subset(adata: ad.AnnData,
         if comparison == "exclude":
             adata = adata[~adata.var[var_key].isin(var_groups)]
         elif comparison == "include":
-            adata = adata[adata.obs[var_key].isin(var_groups)]
+            adata = adata[adata.var[var_key].isin(var_groups)]
         else:
-            mask = adata[:, operations[comparison](adata.obs[var_key], var_groups)]
+            mask = operations[comparison](adata.var[var_key], var_groups).values
             adata = adata[:, mask]
     if copy:
         return adata.copy()
@@ -439,7 +441,9 @@ def pcts_cells(adata,
         obs_bool.groupby(level=group_by, observed=True).sum()
         / obs_bool.groupby(level=group_by, observed=True).count()
     ).T
-    df_pct.columns = ["_".join(col) for col in df_pct]
+    if isinstance(group_by, list):
+        if len(group_by) > 1:
+            df_pct.columns = ["_".join(col) for col in list(df_pct.columns)]
     df_pct = df_pct.round(2)
     df_pct.reset_index(inplace=True)
     df_pct.rename(columns={"index":"genes"}, inplace=True)
