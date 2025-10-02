@@ -1,8 +1,8 @@
-# Data `dt`
+# Data: `dt`
 The data module contains functions to use with sc/snRNA from the
 heart and an example dataset from PBMC from 10x.
 
-## Datasets
+## Example datasets
 ```{eval-rst}
 .. module:: dotools_py.dt
 .. currentmodule:: dotools_py
