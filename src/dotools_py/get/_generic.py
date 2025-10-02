@@ -11,9 +11,9 @@ from dotools_py.utils import sanitize_anndata
 
 
 def _expm1_anndata(adata: ad.AnnData) -> None:
-    """Apply expm1 transformation for the X dt.
+    """Apply expm1 transformation for the X data.
 
-    :param adata: annotated dt matrix
+    :param adata: annotated data matrix
     :return: None, changes are inplace
     """
     if sp.sparse.issparse(adata.X):
@@ -32,18 +32,28 @@ def expr(
 ) -> pd.DataFrame:
     """Extract the expression of features.
 
-    This function extract the expression from an AnnData object and returns a dataframe. If layer
+    This function extract the expression from an AnnData object and returns a DataFrame. If layer
     is not specified the expression in `X` will be extracted. Additionally, metadata from `obs` can be added
     to the dataframe.
 
     :param adata: Annotated data matrix.
-    :param groups: Metadata column in `obs` to include in the Dataframe.
-    :param features: Gene names in `var_names` to include.
-    :param out_format: Format of the dataframe (wide or long).
-    :param layer: Layer in the anndata object to extract the expression from.
-    :return: Returns a `DataFrame`.  If `out_format` is set to `wide`, the index will be cell barcodes and the column names
-            will be set to the gene names. If `groups` are specified, extra columns will be added. If `out_format` is set to `long`, the following fields
-            are included: `genes`, containing the gene names; `groups`, containing the groups, and `expr`, containing the mean expression values.
+    :param groups: Metadata column in `obs` to include in the DataFrame.
+    :param features: Name of the features in `var_names` to extract the expression of.
+    :param out_format: Format of the dataframe. The `wide` format will generate a DataFrame with shape n_obs x n_vars,
+                      while the `long` format will generate an unpivot version.
+    :param layer: Layer in the AnnData object to extract the expression from. If set to `None` the expression in
+                  `X` will be used.
+
+    Returns
+    -------
+    Returns a `DataFrame`. If `out_format` is set to `wide`, the index will be the cell barcodes and the column names
+    will be set to the gene names. If `groups` are specified, extra columns will be present. If `out_format` is set to
+    `long`, the following fields are included:
+
+    `genes`
+        Contains the gene names.
+    `expr`
+        Contains the expression values extracted.
 
     Example
     -------
@@ -137,10 +147,18 @@ def mean_expr(
     :param out_format: Format of the Dataframe returned. This can be wide or long format.
     :param layer: Layer of the AnnData to use. If not set use `X`.
     :param logcounts: if set to True, the log1p transformation is undone to calculate the mean exoression.
-    :return: Returns a `DataFrame`. If `out_format` is set to `wide`, the index will be set to the gene names and the
-            column names will be set to the groups. If `out_format` is set to `long`, the following fields are included:
-            `gene`, containing the gene names; `groupN` containing the groups (For each metadata column a new column will be added), and
-            `expr`, containing the mean expression values.
+
+    Returns
+    -------
+    Returns a `DataFrame`. If `out_format` is set to `wide`, the index will be set to the gene names and the column
+    names will be set to the groups. If `out_format` is set to `long`, the following fields are included:
+
+    `gene`
+        Contains the gene names.
+    `groupN`
+        Contains the groups (For each metadata column a new column will be added).
+    `expr`
+        Contains the mean expression values.
 
     Example
     -------
@@ -224,11 +242,17 @@ def dge_results(
 ) -> pd.DataFrame:
     """Extract DEGs from AnnData object.
 
-    This function extract the results of the DGE analysis results from the uns attribute of an AnnData object.
+    This function extract the results of the differential gene expression analysis results from the `uns`
+    attribute of an AnnData object.
 
-    :param adata: annotated data matrix.
-    :param key: uns key with DGE results.
-    :return: dataframe with DGE results.
+    :param adata: Annotated data matrix.
+    :param key: `uns` key with results.
+
+    Returns
+    -------
+    Returns a DataFrame with the results of the differential gene expression analysis generated from
+    `rank_genes_groups`.
+
     """
     import scanpy as sc
 
@@ -251,7 +275,7 @@ def dge_results(
         result = adata.uns[key]
         ref = result["params"]["reference"]
         pts_ref = result["pts"][ref]
-        if "group" in df_results and len(df_results.group.unique()) > 1:
+        if "group" in df_results.columns and len(df_results.group.unique()) > 1:
             df_results["pts_ref"] = df_results["GeneName"].map(pts_ref)
         else:
             df_results["pts_ref"] = pts_ref.reindex(index=df_results.GeneName).tolist()
@@ -267,7 +291,7 @@ def subset(adata: ad.AnnData,
            copy: bool = False) -> ad.AnnData:
     """Subset AnnData object.
 
-    Subset an AnnData object based on obs or var column. Currently it does not allow to subset
+    Subset an AnnData object based on `obs` or `var` column. Currently it does not allow to subset
     by multiple obs/var columns at the same time.
 
     :param adata: AnnData Object.
@@ -278,6 +302,10 @@ def subset(adata: ad.AnnData,
     :param comparison: comparison to used for.
     :param copy: if set to True, a copy is returned, otherwise a view of the AnnData is returned.
     :return: Returns a view or a new AnnData object.
+
+    Returns
+    -------
+    Returns an AnnData Object if copy is set to `True`, otherwise returns a View of an AnnData after subsetting.
 
     Example
     -------
@@ -361,13 +389,16 @@ def log2fc(adata: ad.AnnData,
            ) -> pd.DataFrame:
     """Calculate the log2foldchanges for a set of groups.
 
-    :param adata: Annotated data matrix
+    :param adata: Annotated data matrix.
     :param group_by: Column in `obs` to group by.
     :param reference: Reference condition to use for the calculation.
     :param groups: Alternative condiitons to use. If None, all the condiitons will be used.
     :param features: Features to use for calculating the log2foldchanges.
     :param layer: Layer in the AnnData to use for the calculation.
-    :return: Returns a DataFrame with the log2foldchange. One column will be added for each condition.
+
+    Returns
+    -------
+    Returns a DataFrame with the log2-foldchanges. One column will be added for each condition in `groups`
 
     Example
     -------
@@ -416,7 +447,10 @@ def pcts_cells(adata,
     :param group_by: Column in `obs` to group by. Several columns can be provided.
     :param features: Features to use for calculating the log2foldchanges.
     :param min_expr: Minimum value to use for the estimation of percentages.
-    :return: Returns a DataFrame with the percentage of cells expressing a feature in each group.
+
+    Returns
+    -------
+    Returns a DataFrame with the percentage of cells expressing a feature in each group.
 
     Example
     -------
