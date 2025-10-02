@@ -29,10 +29,11 @@ def _qc_vln(
 ) -> None:
     """Violin Plots showing basic QC stats.
 
-    Generate ViolinPlots to show the distribution of total counts, number of genes and percentage of mitochondrial genes.
+    Generate ViolinPlots to show the distribution of total counts, number of genes and percentage of
+    mitochondrial genes.
 
     :param adata: annotated dt matrix.
-    :param title: zitle of the Plot.
+    :param title: title of the Plot.
     :param path: path to figure folder.
     :param filename: name of the file.
     :param stats: `.obs` column name to plot.
@@ -73,7 +74,7 @@ def _filter_quantiles(
 
     :param adata: annotated dt matrix
     :param low: lower quantile
-    :param high: upper qauntile
+    :param high: upper quantile
     :return: annotated dt matrix
     """
     counts = adata.obs["total_counts"]
@@ -205,13 +206,13 @@ def _qc_scrna(
     # Step 1 -
     logger.info("Remove Cells with low number of genes")
     sc.pp.filter_cells(adata, min_genes=min_genes_in_cell, inplace=True)
-    df.loc[1] = ["Rm_poor_Cells", adata.shape[0], adata.shape[1], "Remove cells with low number of genes"]
+    df.loc[1] = ["Rm_Cells_lowGenes", adata.shape[0], adata.shape[1], f"Remove cells with <{min_genes_in_cell} genes"]
 
     # Step 2 -
     logger.info("Remove Genes lowly expressed")
     sc.pp.filter_genes(adata, min_cells=min_cells_with_genes, inplace=True)
     df.loc[2] = [
-        "Rm_low_Genes",
+        "Rm_Genes_lowCells",
         adata.shape[0],
         adata.shape[1],
         f"Remove genes express in less than {min_cells_with_genes} cells",
@@ -221,7 +222,7 @@ def _qc_scrna(
     logger.info("Remove cells with high MT-content")
     adata = adata[adata.obs.pct_counts_mt < cut_mt, :].copy()
     df.loc[3] = [
-        "Rm_cell_high_MT",
+        "Rm_Cell_HighMT",
         adata.shape[0],
         adata.shape[1],
         f"Remove cells with >{cut_mt}% of Mitochondrial genes",
@@ -244,10 +245,12 @@ def _qc_scrna(
     # Apply quantile-based filtering (conditionally)
     adata = _filter_quantiles(adata, low_quantile, high_quantile)
     df.loc[4] = [
-        "Rm_Cells_nFeatures",
+        "Rm_Cells_nUMI_nGenes",
         adata.shape[0],
         adata.shape[1],
-        "Remove cells based on nUMI counts and nFeatures",
+        f"Remove cells based on nUMI counts[Absolute (Min/Max): {min_counts}/{max_counts}, "
+        f"Quantile (low/high): {low_quantile}/{high_quantile}] and nFeatures [Absolute (Min/Max): "
+        f"{min_genes}/{max_genes}]",
     ]
 
     # Step 5 -
@@ -280,28 +283,47 @@ def _qc_scrna(
         n_doublets = adata.obs["doublet_class"].value_counts()["doublet"]
         adata = adata[adata.obs["doublet_class"] == "singlet"].copy()
         logger.info(f"Remove {n_doublets} doublets")
-        df.loc[5] = ["Rm_doublets", adata.shape[0], adata.shape[1], "Remove neotypic doublets"]
+        df.loc[5] = ["Rm_Doublets", adata.shape[0], adata.shape[1], f"Remove neotypic doublets using {doublet_tool}"]
 
     # Save Metrics File
-    if metrics is True:
+    if metrics:
+        from dotools_py.utils import  make_grid_spec
+        from dotools_py.utility import get_hex_colormaps
+        import matplotlib.lines as mlines
         df_plot = df.iloc[:, :-1].melt(id_vars="QC_Step")  # Exclude comments
-        fig, axs = plt.subplots(1, 1, figsize=(5, 6))  # initializes figure and plots
-        bp = sns.barplot(
-            df_plot,
-            hue="QC_Step",
-            x="value",
-            y="variable",
-            order=["nCells", "nFeatures"],
-            hue_order=list(df["QC_Step"]),
-            palette="tab20",
-            ax=axs,
+
+        fig, gs = make_grid_spec(
+            None or (8, 5), nrows=1, ncols=2, wspace=0.7 / 6, width_ratios=[6 - (0.9 + 0) + 0, 0.9]
         )
+
+        ax = fig.add_subplot(gs[0])
+
+        bp = sns.barplot(df_plot, hue="QC_Step", x="value", y="variable",
+                         order=["nCells", "nFeatures"], hue_order=list(df["QC_Step"]),
+                         palette="tab10", ax=ax, legend=False)
+
         for container in bp.containers:
-            bp.bar_label(container)
-        bp.set_title("")
+            bp.bar_label(container, fmt='{:,.0f}')
+        bp.set_title("Summary Quality Control", fontdict={"weight":"bold"})
         bp.set_ylabel("", fontsize=18)
         bp.set_xlabel("Counts", fontsize=18)
-        bp.legend(title="QC_Step", fontsize=12, frameon=False, title_fontproperties={"weight": "bold", "size": 15})
+        bp.set_yticklabels(bp.get_yticklabels(), rotation=90, va="center", fontdict={"weight":"bold"})
+
+        axs_legend = fig.add_subplot(gs[1])
+        colors_dict = dict(zip(list(df["QC_Step"]), get_hex_colormaps("tab10"), strict=False))
+        handles = []
+        for lab, c in colors_dict.items():
+            handles.append(mlines.Line2D([0], [0], marker=".", color=c, lw=0, label=lab,
+                                         markerfacecolor=c, markeredgecolor=None, markersize=18))
+
+        legend = axs_legend.legend(handles=handles, frameon=False, loc="center left", ncols=1, title="",
+                                   prop={"size": 12, "weight": "bold"})
+        legend.get_title().set_fontweight("bold")
+        legend.get_title().set_fontsize(12 + 2)
+        axs_legend.tick_params(axis="both", left=False, labelleft=False, labelright=False, bottom=False,
+                               labelbottom=False)
+        axs_legend.spines[["right", "left", "top", "bottom"]].set_visible(False)
+        axs_legend.grid(visible=False)
         plt.savefig(os.path.join(qc_path, f"{today}_QC_Metrics{ids}.svg"), bbox_inches="tight")
         plt.close(fig)
 
@@ -330,27 +352,28 @@ def importer_py(
 ) -> ad.AnnData:
     """Quality control analysis for sc/snRNA.
 
-    The input is a list with paths to H5 files generated with `CellRanger <https://www.10xgenomics.com/support/software/cell-ranger/latest>`_,
+    The input is a list with paths to H5 files generated with
+    `CellRanger <https://www.10xgenomics.com/support/software/cell-ranger/latest>`_,
     `Cellbender <https://cellbender.readthedocs.io/en/latest/>`_
     or `STARsolo <https://github.com/alexdobin/STAR>`_ and a list with the batch name for each sample. A dictionary
-    with extra metadata information can be provided. The order should always be mainted.
+    with extra metadata information can be provided. The order of the batch name and metadata should always match
+    to the order of the list with the H5 file paths.
 
     For each sample a several quality and filtering steps are applied:
-
-        * Filter genes express in low number of cells.
-        * Filter cells with low number of genes.
-        * Filter cells with high mitochondrial content. Recommended to use 5% for scRNA and 3% for snRNA.
-        * Filter cells based on UMI and features. There are two modes: **Absolute filtering**, which set
-          absolute values for the maxnimum and minimum number of UMI and features or **Quantile filtering**, which filter
-          the top and/or lower quantile.
-        * Remove doublets using scDblFinder, Scrublet or DoubletDetection.
+    - Filter genes expressed in low number of cells.
+    - Filter cells with low number of genes.
+    - Filter cells with high mitochondrial content. Recommended to use 5% for scRNA and 3% for snRNA.
+    - Filter cells based on nUMI and features. There are two modes:
+        - **Absolute filtering**: sets absolute values for the maximum and minimum number of UMI and features,
+        - **Quantile filtering**, filters the top and/or lower quantile.
+    - Remove doublets using scDblFinder, Scrublet or DoubletDetection.
 
     An ExcelSheet with stats on how many cells and features were removed in each step, and violin plots showing the
     distribution of `total_counts`, `n_genes_by_counts` and `pct_mt_content` per  cell before and after the quality
     control will be generated. These files will be saved under the folder containing the H5 files.
 
-    After the quality control, the dt will be log-normalised and scaled. Aditionaly, the highly variable genes and PCA
-    will be calculated.
+    After the quality control, the data will be log-normalised and scaled. Additionally, the highly variable genes
+    and PCA will be calculated.
 
     :param paths: list with the path to the H5 files.
     :param ids: list with the batch name for each sample.
@@ -447,20 +470,24 @@ def importer_py(
         adata_dict.values(), label=batch_key, keys=adata_dict.keys(), join="outer", index_unique="-", fill_value=0
     )
     logger.info("Normalisation of the expression")
-    _normalise(adata_concat, n_reads=n_reads, scale=True)
+    _normalise(adata_concat, n_reads=n_reads, scale=False)
 
     logger.info("Finding Highly Variable Genes shared across samples")
     sc.pp.highly_variable_genes(adata_concat, batch_key=batch_key)
 
     logger.info("Run PCA")
-    sc.pp.pca(adata_concat, layer="scaled")
+    hvg = adata_concat[:, adata_concat.var.highly_variable].copy()
+    sc.pp.scale(hvg, zero_center=True)  # Scale only on HVGs to replicate Seurat Approach
+    sc.pp.pca(hvg)  # PCA on Scaled HVGs
+    adata_concat.obsm["X_pca"] = hvg.obsm["X_pca"].copy()  # Save in original object
+
     return adata_concat
 
 
 def sctransform_normalise(adata: ad.AnnData, batch_key: str = None, layer=None) -> None:
     """Normalisation based on `SCTransform <https://github.com/satijalab/sctransform>`_.
 
-    This function performs an alternative normalisation base on the SCTransform.
+    This function performs an alternative normalisation based on the SCTransform.
 
     :param adata: AnnData object with counts in `X`.
     :param batch_key: obs metadata with batch information.
@@ -473,9 +500,14 @@ def sctransform_normalise(adata: ad.AnnData, batch_key: str = None, layer=None) 
     >>> adata = do.dt.example_10x_processed()
     >>> adata
     AnnData object with n_obs × n_vars = 700 × 1851
-    obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo', 'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster'
-    var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches', 'highly_variable_intersection'
-    uns: 'annotation_colors', 'annotation_recluster_colors', 'batch_colors', 'hvg', 'leiden', 'leiden_colors', 'log1p', 'neighbors', 'pca', 'umap'
+    obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts',
+         'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo',
+         'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type',
+         'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster'
+    var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches',
+         'highly_variable_intersection'
+    uns: 'annotation_colors', 'annotation_recluster_colors', 'batch_colors', 'hvg', 'leiden', 'leiden_colors', 'log1p',
+         'neighbors', 'pca', 'umap'
     obsm: 'X_CCA', 'X_pca', 'X_umap'
     varm: 'PCs'
     layers: 'counts', 'logcounts'
@@ -484,8 +516,12 @@ def sctransform_normalise(adata: ad.AnnData, batch_key: str = None, layer=None) 
     >>> do.pp.sctransform_normalise(adata, batch_key="batch", layer="counts")
     >>> adata
     AnnData object with n_obs × n_vars = 700 × 1181
-    obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo', 'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster'
-    var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches', 'highly_variable_intersection', 'SCT_rm'
+    obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts',
+         'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo',
+         'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type',
+         'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster'
+    var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches',
+         'highly_variable_intersection', 'SCT_rm'
     obsm: 'SCT_rm'
     varm: 'PCs'
     layers: 'counts', 'logcounts', 'SCT_norm', 'SCT_counts'
