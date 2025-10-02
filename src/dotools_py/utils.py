@@ -254,11 +254,32 @@ def deprecated_function(func):
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        warnings.warn(f"{func.__name__} is deprecated and cannot be called.", category=DeprecationWarning, stacklevel=2)
-        raise DeprecatedFunctionError(f"{func.__name__} is no longer available.")
+        warnings.warn(f"{func.__name__} will be deprecated and cannot be called.", category=DeprecationWarning, stacklevel=2)
+        #raise DeprecatedFunctionError(f"{func.__name__} is no longer available.")
 
     return wrapper
 
+
+def deprecated_fxn(message=None):
+    """Decorator to mark a function as deprecated.
+
+    Args:
+        message (str, optional): Custom deprecation message. If not provided,
+                                 a default message will be used.
+    """
+    import warnings
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            warn_msg = (
+                message
+                if message
+                else f"{func.__name__} is deprecated and will be removed in a future version."
+            )
+            warnings.warn(warn_msg, category=DeprecationWarning, stacklevel=2)
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
 
 def timer(func):
     """Decorator to measure how much time a function took to run.
