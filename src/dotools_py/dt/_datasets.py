@@ -10,22 +10,23 @@ from dotools_py.utils import convert_path
 HERE = Path(__file__).parent
 
 
-def example_10x(path: str | Path = "/tmp/dootools_datasets/") -> None:
+def example_10x(path: str | Path = "/tmp/dotools_datasets/") -> None:
     """Download 10X datasets.
 
     Downloads a datasets of PBMC from healty and malignant B cells. Two H5 files will be downloaded
-    (`raw_feature_bc_matrix.h5`) and (`filtered_feature_bc_matrix.h5`) for each condition (healthy and disease). They will
-    be saved following the structure output from CellRanger (e.g., `healhty/outs/*.h5` or `disease/outs/*.h5`).
+    (`raw_feature_bc_matrix.h5`) and (`filtered_feature_bc_matrix.h5`) for each condition (healthy and disease). They
+    will be saved following the structure output from CellRanger (e.g., `healhty/outs/*.h5` or `disease/outs/*.h5`).
 
     :param path: path where the data is downloaded. Two subfolders will be created.
-    :return: H5 files are saved under the provided path. For each condition a subfolder will be created in the provided path.
+    :return: H5 files are saved under the provided path. For each condition a subfolder will be created in the provided
+            path.
 
     Example
     -------
     >>> import dotools_py as do
     >>> import scanpy as sc
-    >>> do.dt.example_10x("/tmp/dootools_datasets/")
-    >>> adata = sc.read_10x_h5("/tmp/dootools_datasets/healthy/outs/filtered_feature_bc_matrix.h5")
+    >>> do.dt.example_10x("/tmp/dotools_datasets/")
+    >>> adata = sc.read_10x_h5("/tmp/dotools_datasets/healthy/outs/filtered_feature_bc_matrix.h5")
     >>> adata
     AnnData object with n_obs × n_vars = 7865 × 33538
     var: 'gene_ids', 'feature_types', 'genome', 'pattern', 'read', 'sequence'
@@ -39,10 +40,14 @@ def example_10x(path: str | Path = "/tmp/dootools_datasets/") -> None:
     disease_path = path / "disease" / "outs"
     disease_path.mkdir(parents=True, exist_ok=True)
 
-    healthy_link1 = "https://cf.10xgenomics.com/samples/cell-exp/3.0.0/pbmc_10k_protein_v3/pbmc_10k_protein_v3_filtered_feature_bc_matrix.h5"
-    healthy_link2 = "https://cf.10xgenomics.com/samples/cell-exp/3.0.0/pbmc_10k_protein_v3/pbmc_10k_protein_v3_raw_feature_bc_matrix.h5"
-    disease_link1 = "https://cf.10xgenomics.com/samples/cell-exp/3.0.0/malt_10k_protein_v3/malt_10k_protein_v3_filtered_feature_bc_matrix.h5"
-    disease_link2 = "https://cf.10xgenomics.com/samples/cell-exp/3.0.0/malt_10k_protein_v3/malt_10k_protein_v3_raw_feature_bc_matrix.h5"
+    healthy_link1 = ("https://cf.10xgenomics.com/samples/cell-exp/"
+                     "3.0.0/pbmc_10k_protein_v3/pbmc_10k_protein_v3_filtered_feature_bc_matrix.h5")
+    healthy_link2 = ("https://cf.10xgenomics.com/samples/cell-exp/"
+                     "3.0.0/pbmc_10k_protein_v3/pbmc_10k_protein_v3_raw_feature_bc_matrix.h5")
+    disease_link1 = ("https://cf.10xgenomics.com/samples/cell-exp/"
+                     "3.0.0/malt_10k_protein_v3/malt_10k_protein_v3_filtered_feature_bc_matrix.h5")
+    disease_link2 = ("https://cf.10xgenomics.com/samples/cell-exp/"
+                     "3.0.0/malt_10k_protein_v3/malt_10k_protein_v3_raw_feature_bc_matrix.h5")
     for name, link in [
         ("healthy filtered", healthy_link1),
         ("healthy raw", healthy_link2),
@@ -84,9 +89,14 @@ def example_10x_processed() -> ad.AnnData:
     >>> adata = do.dt.example_10x_processed()
     >>> adata
     AnnData object with n_obs × n_vars = 700 × 1851
-    obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo', 'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster'
-    var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches', 'highly_variable_intersection'
-    uns: 'annotation_colors', 'annotation_recluster_colors', 'batch_colors', 'hvg', 'leiden', 'leiden_colors', 'log1p', 'neighbors', 'pca', 'umap'
+    obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts',
+         'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo',
+         'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot',
+         'celltypist_conf_score', 'annotation', 'annotation_recluster'
+    var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches',
+         'highly_variable_intersection'
+    uns: 'annotation_colors', 'annotation_recluster_colors', 'batch_colors', 'hvg', 'leiden', 'leiden_colors', 'log1p',
+         'neighbors', 'pca', 'umap'
     obsm: 'X_CCA', 'X_pca', 'X_umap'
     varm: 'PCs'
     layers: 'counts', 'logcounts'
