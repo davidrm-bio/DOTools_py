@@ -19,11 +19,12 @@ from tqdm import tqdm
 
 from dotools_py import logger
 from dotools_py.tl._rankGenes import rank_genes_groups
-from dotools_py.utils import convert_path, get_paths_utils, sanitize_anndata
+from dotools_py.utils import convert_path, get_paths_utils, sanitize_anndata, deprecated_fxn
 from dotools_py.get import mean_expr, dge_results
 
 
 # DGE Analysis
+@deprecated_fxn("Use `MastTest` instead.")
 def run_mast(
     adata: ad.AnnData, cond_key: str, reference: str, disease: str | list, covariates: str | list | None = None
 ) -> pd.DataFrame:
@@ -51,6 +52,8 @@ def run_mast(
     --------
         :func:`dotools_py.tl.rank_genes_groups`: run DEA at single-cell level
         :func:`dotools_py.tl.grouped_ttest`: run DEA at pseudobulk level
+        :func:`dotools_py.tl.MastTest`: run MAST with more flexibility
+
 
     Example
     -------
