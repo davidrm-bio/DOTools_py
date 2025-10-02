@@ -106,6 +106,7 @@ optional-dependencies.test = [
   "scvi-tools",
   "seaborn",
   "tqdm",
+  "pyarrow"
 ]
 # https://docs.pypi.org/project_metadata/#project-urls
 urls.Documentation = "https://DOTools_py.readthedocs.io/"
