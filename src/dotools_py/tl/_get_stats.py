@@ -218,7 +218,8 @@ def rank_genes_condition(
         groups = [groups] if isinstance(groups, str) else groups
     else:
         groups = list(adata_copy.obs[groupby].unique())
-        groups.remove(reference)
+        if reference != "rest":
+            groups.remove(reference)
 
     if subset_by:
         categories = list(adata_copy.obs[subset_by].cat.categories)
@@ -266,6 +267,7 @@ def grouped_ttest(
     annot_key: str = "annotation",
     cond_key: str = "condition",
     batch_key: str = "batch",
+    equal_var: bool = True,
     key_added: str = "grouped_ttest",
     layer: str = None,
     get_results: bool = False,
@@ -282,6 +284,7 @@ def grouped_ttest(
     :param annot_key: obs column name with the cell type annotation.
     :param cond_key: obs column name with the conditions.
     :param batch_key: obs column name with the sample IDs.
+    :param equal_var: If set to true, assume equal variance for both populations tested.
     :param key_added: key to use in uns.
     :param layer: layer of the anndata object to use.
     :param get_results: return a dataframe with results.
@@ -314,11 +317,15 @@ def grouped_ttest(
             df_b_wide = df_b.pivot(index="gene", values="expr", columns="group2")
 
             p_values = pd.DataFrame(df_a_wide.index, columns=["gene"])
-            p_values["annotation"] = cell
+            p_values["statistic"] = pd.DataFrame(ttest_ind(df_a_wide, df_b_wide, axis=1, equal_var=equal_var)[0])
+            p_values["pval"] = pd.DataFrame(ttest_ind(df_a_wide, df_b_wide, axis=1, equal_var=equal_var)[1])
             p_values["condition"] = "-Vs-".join(comb)
-            p_values["pval"] = pd.DataFrame(ttest_ind(df_a_wide, df_b_wide, axis=1)[1])
+            p_values["annotation"] = cell
 
             main_df = pd.concat([main_df, p_values], axis=0)
+
+    main_df["pval"] = main_df["pval"].fillna(1)
+    main_df["statistic"] = main_df["statistic"].fillna(0)
 
     adata.uns[key_added] = main_df
     if get_results:
