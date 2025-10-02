@@ -70,10 +70,11 @@ def run_cellbender(
     :param cpu_threads: number of CPUs to use for training.
     :param epochs: number of epochs to train for. The default number is 150, higher number might lead to overfitting.
     :param lr: learning rate.
-    :param estimator_multiple_cpu: use multiple CPUs for the generation of results. It is not recommended for big datasets.
+    :param estimator_multiple_cpu: use multiple CPUs for the generation of results. It is not recommended for big
+                                  datasets.
     :param log: generate a log file with the stdout from running CellBender.
-    :param conda_path: path to the conda environment with cellbender installed. If not provided, a conda environment will
-                       be created in `~/.venv/cellbender`.
+    :param conda_path: path to the conda environment with cellbender installed. If not provided, a conda environment
+                       will be created in `~/.venv/cellbender`.
     :param run_dropletutils: run DropletUtils to estimate the expected number of cells and total number of droplets to
                              use as a prior for cellbender.
     :return: H5 files with the corrected expression matrix will be saved in the output folder
