@@ -1,4 +1,4 @@
-# Plotting `pl`
+# Plotting: `pl`
 
 The plotting module {mod}`dotools_py.pl` contains a collection of
 functions for enhance visualisation of sc/snRNA-seq data.
