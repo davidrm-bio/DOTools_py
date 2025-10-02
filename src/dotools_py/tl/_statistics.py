@@ -251,19 +251,23 @@ class MastTest:
     def dge_table(self) -> pd.DataFrame:
         """Generate table summarising the results from the DGE analysis.
 
-        :return: Returns a dataframe with the following columns:
-                `GeneName`
-                    Contains the genes that have been tested
-                `log2fc`
-                    Contains the logfolchanges
-                `pvals`
-                    Contains the pvalues
-                `padj`
-                    Contains the adjusted p-values. Correction performed with Benjamini-Hochberg
-                `pts_group`
-                    Percentage of cells in the group expressing the gene
-                `pts_ref`
-                    Percentage of cells in the reference condition expressing the gene
+        Returns
+        --------
+        Returns a dataframe with the following columns:
+
+        `GeneName`
+            Contains the genes that have been tested.
+        `log2fc`
+            Contains the log-foldchanges.
+        `pvals`
+            Contains the p-values.
+        `padj`
+            Contains the adjusted p-values. Correction performed with Benjamini-Hochberg.
+        `pts_group`
+            Percentage of cells in the group expressing the gene.
+        `pts_ref`
+            Percentage of cells in the reference condition expressing the gene.
+
         """
         df_mean = mean_expr(self.adata, group_by=self.condition_key, out_format="wide")
         logfoldchanges = np.log2((np.expm1(df_mean[self.group] + 1e-9)) /

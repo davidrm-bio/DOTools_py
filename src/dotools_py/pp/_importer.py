@@ -363,9 +363,9 @@ def importer_py(
     - Filter genes expressed in low number of cells.
     - Filter cells with low number of genes.
     - Filter cells with high mitochondrial content. Recommended to use 5% for scRNA and 3% for snRNA.
-    - Filter cells based on nUMI and features. There are two modes:
-        - **Absolute filtering**: sets absolute values for the maximum and minimum number of UMI and features,
-        - **Quantile filtering**, filters the top and/or lower quantile.
+    - Filter cells based on nUMI and features. There are two modes: 1) **Absolute filtering**: sets absolute values
+      for the maximum and minimum number of UMI and features, and 2) **Quantile filtering**, filters the top and/or
+      lower quantile.
     - Remove doublets using scDblFinder, Scrublet or DoubletDetection.
 
     An ExcelSheet with stats on how many cells and features were removed in each step, and violin plots showing the

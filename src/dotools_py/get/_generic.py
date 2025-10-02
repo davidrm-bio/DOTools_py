@@ -245,8 +245,12 @@ def dge_results(
     This function extract the results of the differential gene expression analysis results from the `uns`
     attribute of an AnnData object.
 
-    :param adata: Annotated data matrix.
-    :param key: `uns` key with results.
+    Parameters
+    ----------
+    adata
+        Annotated data matrix.
+    key
+        `uns` key with results.
 
     Returns
     -------
