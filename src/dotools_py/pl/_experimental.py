@@ -12,7 +12,8 @@ from dotools_py.get._generic import expr as get_expr
 from dotools_py.utility._plotting import get_hex_colormaps
 from dotools_py.utils import make_grid_spec, logmean, logsem, convert_path
 
-
+# TODO --> Do mean over pseudobulk and stats like scanpro --> Anova/kruskal/Mannwhitney/ttest
+# TODO--> if it changes in any of the conditions significantly
 def lineplot(adata: ad.AnnData,
              x_axis: str,
              features: str | list,
