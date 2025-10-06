@@ -361,3 +361,23 @@ def check_missing(adata: ad.AnnData, features: str | list = None, groups: str | 
         assert len(missing) == 0, f"{missing} missing in the AnnData Object"
 
     return None
+
+
+
+def logmean(x):
+    """Calculate mean expression of log data.
+
+    :param x: Values in log space.
+    :return: Returns the mean expression in log space.
+    """
+    return np.log1p(np.mean(np.expm1(x)))
+
+
+def logsem(x):
+    """Calculate standard error of the mean of log data.
+
+    :param x: Values in log space
+    :return: Returns the SEM in log space
+    """
+    from scipy.stats import sem
+    return np.log1p(sem(np.expm1(x)))
