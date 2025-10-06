@@ -129,10 +129,9 @@ class MastTest:
         self._set_rpy2_logger()
 
 
-    def fit(self, **kwargs):
-        """
+    def fit(self):
+        """Fit the model.
 
-        :param kwargs: additional arguments pass to Mast::zml
         :return: The attribute p-values will be set containing the p-values and the adjusted p-values.
         """
         # Import rpy2
@@ -202,7 +201,6 @@ class MastTest:
                            parallel=self.parallel,
                            onlyCoef=False,
                            silent=self.silent,
-                           **kwargs
                            )
 
         ro.r('options(mc.cores = 1)')  # Set to one thread again
@@ -375,7 +373,7 @@ class MastTest:
     def mast_version():
         """Get the version from MAST used.
 
-        :return:
+        :return: Returns None.
         """
         from rpy2.robjects.packages import importr
         try:
