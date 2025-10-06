@@ -470,25 +470,28 @@ def cell_props(
 
 def volcano_plot(
     dge: pd.DataFrame,
-    lfc_col: str = "logfoldchanges",
-    pval_col: str = "pvals_adj",
-    gene_col: str = "names",
+    lfc_col: str = "log2fc",
+    pval_col: str = "padj",
+    gene_col: str = "GeneName",
     path: str | None = None,
     filename: str = "Volcano.svg",
     pval_lim: float = 2e-10,
-    lfc_lim: tuple = (-10, 10),
+    lfc_lim: tuple = (-6, 6),
     title: str = "",
-    figsize: tuple[int, int] = (18, 9),
+    figsize: tuple[int, int] = (7, 5),
+    ax: plt.Axes = None,
+    legend_loc: Literal["top", "bottom", "right"] = "right",
+    legend_cols: int = 1,
     mygenes: list | None = None,
     lfc_cut: float = 0.25,
     pval_cut: float = 0.05,
     clean: bool = True,
-    dot_size: float = 2.5,
+    dot_size: float = 3,
     topn: int = 10,
     textprops: dict = None,
     show: bool = True,
     **kwargs,
-) -> plt.Axes | None:
+) -> dict | None:
     """Generate a volcano plot.
 
     Genes will be colored differently depending on the p-value (Pval) and logfoldchange (LFC):
@@ -511,6 +514,9 @@ def volcano_plot(
     :param lfc_lim: X-axis limit. Genes with a > LFC will be ignored.
     :param title: a text to add as the title of the plot.
     :param figsize: size of the plot.
+    :param ax: matplotlib axis.
+    :param legend_loc: location of the legend.
+    :param legend_cols: number of columns for the legend.
     :param lfc_cut: significance threshold for the LFC.
     :param pval_cut: significance threshold for the P-value.
     :param mygenes: list of genes to be annotated.
@@ -532,80 +538,74 @@ def volcano_plot(
         do.tl.rank_genes_groups(adata,  'condition', method='wilcoxon', tie_correct=True, pts=True)
         table = do.get.dge_results(adata)
         table = table[table.group == 'disease']
-        do.pl.volcano_plot(table, 'log2fc', 'padj', 'GeneName', show=True)
+        do.pl.volcano_plot(table, 'log2fc', 'padj', 'GeneName')
 
     """
     dge = dge.copy()  # Do not Modify input
 
-    textprops = {} if textprops is None else textprops
-    textprops = {"weight": textprops.get("weight", "bold"), "size": textprops.get("size", 13)}
-
-    # Replace Pvals & LFC greater than limit to the limit
+    # Data Preparation # # #
+    ## Replace Pvals and LFCs greater than limit with the limit
     dge[pval_col][dge[pval_col] < pval_lim] = pval_lim
-
-    assert lfc_lim[0] < lfc_lim[1], f"{lfc_lim[0]} cannot be greater than {lfc_lim[1]}"
     dge[lfc_col][dge[lfc_col] < lfc_lim[0]] = lfc_lim[0]
     dge[lfc_col][dge[lfc_col] > lfc_lim[1]] = lfc_lim[1]
 
-    if clean:
-        # Remove Genes with P adjusted == 1 (Not Informative)
+    if clean: # Remove Genes with P adjusted == 1 (Not Informative)
         dge = dge[dge[pval_col] < 1]
         dge = dge[dge[lfc_col] > lfc_lim[0]]
         dge = dge[dge[lfc_col] < lfc_lim[1]]
 
-    # Define 3 Categories: LFC > lfc_cut; Pval < pval_cut & combination
-    pvals = dge[pval_col].to_numpy()
-    lfcs = dge[lfc_col].to_numpy()
-    genes = dge[gene_col].to_numpy()
-    cat1 = np.where((pvals < pval_cut) & ((lfcs > lfc_cut) | (lfcs < -lfc_cut)))
-    cat2 = np.where((pvals < pval_cut) & (lfcs > -lfc_cut) & (lfcs < lfc_cut))
-    cat3 = np.where((pvals > pval_cut) & ((lfcs > lfc_cut) | (lfcs < -lfc_cut)))
+    ## Define 4 Categories for colors
+    pvals, lfcs, genes = dge[pval_col].to_numpy(), dge[lfc_col].to_numpy(), dge[gene_col].to_numpy()
+    cat1 = np.where((pvals < pval_cut) & ((lfcs > lfc_cut) | (lfcs < -lfc_cut)))[0]  # Significant for both
+    cat2 = np.where((pvals < pval_cut) & (lfcs > -lfc_cut) & (lfcs < lfc_cut))[0]  # Significant for padj
+    cat3 = np.where((pvals > pval_cut) & ((lfcs > lfc_cut) | (lfcs < -lfc_cut)))[0]  # Significant for lfc
+    cat4 = [val for val in range(len(lfcs)) if val not in list(np.concatenate((cat1, cat2, cat3)))] # not significant
 
-    # Generate Plot
-    # Create scatter Plot
-    fig, axs = plt.subplots(1, 1, figsize=figsize)
-    axs.scatter(lfcs, -np.log10(pvals), color="grey", alpha=0.7, label="NS", s=dot_size**2, rasterized=True)
-    axs.scatter(
-        lfcs[cat1],
-        -np.log10(pvals[cat1]),
-        color="tomato",
-        alpha=0.7,
-        label="FDR & log2FC",
-        s=dot_size**2,
-        rasterized=True,
-    )
-    axs.scatter(
-        lfcs[cat2],
-        -np.log10(pvals[cat2]),
-        color="lightsteelblue",
-        alpha=0.7,
-        label="FDR",
-        s=dot_size**2,
-        rasterized=True,
-    )
-    axs.scatter(
-        lfcs[cat3], -np.log10(pvals[cat3]), color="limegreen", alpha=0.7, label="log2FC", s=dot_size**2, rasterized=True
-    )
-    axs.spines[["top", "right"]].set_visible(False)
-    axs.grid(False)
+    # Set figure layout # # #
+    width, height = figsize
+    loc_key = 0
+    if legend_loc == "right":
+        fig_args = {"nrows": 1, "ncols": 2, "width_ratios":[width - (1.5 + 0) + 0, 1.5], "wspace": 0.7/width}
+        legend_loc = "center left"
+    elif legend_loc in ["bottom", "top"]:
+        loc_key = loc_key + 1 if legend_loc == "top" else loc_key
+        height_ratios = [height - (1.5 + 0) + 0, 1] if legend_loc == "bottom" else [1, height - (1.5 + 0) + 0]
+        fig_args = {"nrows": 2, "ncols": 1, "height_ratios": height_ratios, "hspace": 0.7 / height}
+        legend_loc = "center" if legend_loc =="bottom" else "center"
+        legend_cols = 2 if legend_cols == 1 else legend_cols
+    else:
+        raise  NotImplementedError(f"{legend_loc} is not a valid key for legend_loc")
 
-    # Add significant lines
-    axs.axhline(-np.log10(pval_cut), color="black", linestyle="--", alpha=0.8)
-    axs.axvline(-lfc_cut, color="black", linestyle="--", alpha=0.8)
-    axs.axvline(lfc_cut, color="black", linestyle="--", alpha=0.8)
+    ## Generate the plot
+    fig, gs = make_grid_spec(ax or (width, height), **fig_args)
 
-    topPos = (
-        dge[(dge[pval_col] < pval_cut) & (dge[lfc_col] > lfc_cut)]
-        .sort_values(lfc_col, ascending=False)[gene_col]
-        .head(topn)
-        .tolist()
-    )
-    topNeg = (
-        dge[(dge[pval_col] < pval_cut) & (dge[lfc_col] < -lfc_cut)]
-        .sort_values(lfc_col, ascending=True)[gene_col]
-        .head(topn)
-        .tolist()
-    )
+    ## Add Main Axis
+    axs = fig.add_subplot(gs[0]) if loc_key == 0 else fig.add_subplot(gs[1])
+    axs.scatter(lfcs[cat1], -np.log10(pvals[cat1]), color="tomato", alpha=0.75, label="Padj & log2FC", s=dot_size**2,
+                rasterized=True)
+    axs.scatter(lfcs[cat2], -np.log10(pvals[cat2]), color="royalblue", alpha=0.75, label="Padj", s=dot_size**2,
+                rasterized=True)
+    axs.scatter(lfcs[cat3], -np.log10(pvals[cat3]), color="limegreen", alpha=0.75, label="log2FC", s=dot_size**2,
+                rasterized=True)
+    axs.scatter(lfcs[cat4], -np.log10(pvals[cat4]), color="gainsboro", alpha=0.75, label="NS", s=dot_size**2, rasterized=True)
+
+    # Add lfc/pvals significance lines
+    axs.axhline(-np.log10(pval_cut), color="black", linestyle="--", alpha=0.5)
+    axs.axvline(-lfc_cut, color="black", linestyle="--", alpha=0.5)
+    axs.axvline(lfc_cut, color="black", linestyle="--", alpha=0.5)
+
+    textprops = {} if textprops is None else textprops
+    textprops = {"weight": textprops.get("weight", "bold"), "size": textprops.get("size", 13)}
+
+    # Add text
+    topPos = (dge[(dge[pval_col] < pval_cut) & (dge[lfc_col] > lfc_cut)]
+              .sort_values(lfc_col, ascending=False)[gene_col]
+              .head(topn)
+              .tolist())
+    topNeg = (dge[(dge[pval_col] < pval_cut) & (dge[lfc_col] < -lfc_cut)]
+              .sort_values(lfc_col, ascending=True)[gene_col]
+              .head(topn)
+              .tolist())
     texts = []
     for x, y, l in zip(lfcs, pvals, genes, strict=False):
         if mygenes is None:
@@ -618,23 +618,30 @@ def volcano_plot(
                 texts.append(plt.text(x, -np.log10(y), l, ha="center", va="center", fontdict=textprops))
     adjust_text(texts, arrowprops={"arrowstyle": "-", "color": "k", "lw": 0.5}, **kwargs)
 
-    # Add Axis labels, Legend, & Title
+    # Layout for Main Axis
+    axs.spines[["top", "right"]].set_visible(False)
+    axs.grid(False)
     axs.set_xlabel("Log2FC")
     axs.set_ylabel("-log10(FDR)")
     axs.set_title(title)
-    axs.legend(
-        loc="upper center",
-        bbox_to_anchor=(0.5, -0.13),
-        frameon=False,
-        ncols=2,
-        markerscale=dot_size,
-        prop={"weight": "bold"},
-    )
+
+    ## Add Legend Axis
+    legend_axs = fig.add_subplot(gs[1]) if loc_key == 0 else fig.add_subplot(gs[0])
+    handles = []
+    for c, lab in [("tomato", "Padj & log2FC"), ("royalblue", "Padj"),
+                   ("limegreen", "log2FC"), ("gainsboro", "NS")]:
+        handles.append(mlines.Line2D([0], [0], marker=".",  color=c, lw=0, label=lab, markerfacecolor=c,
+                                     markeredgecolor=None, markersize=18))
+    legend_axs.legend(handles=handles, frameon=False, loc=legend_loc, ncols=legend_cols, title="")
+    legend_axs.tick_params(axis="both", left=False, labelleft=False, labelright=False, bottom=False, labelbottom=False)
+    legend_axs.spines[["right", "left", "top", "bottom"]].set_visible(False)
+    legend_axs.grid(visible=False)
+    legend_axs.patch.set_alpha(0.0)
 
     if path is not None:
         plt.savefig(convert_path(path) / filename, bbox_inches="tight")
     if not show:
-        return axs
+        return {"mainplot_ax": axs, "legend_ax": legend_axs}
     else:
         return plt.show()
 
