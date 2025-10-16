@@ -381,3 +381,32 @@ def logsem(x):
     """
     from scipy.stats import sem
     return np.log1p(sem(np.expm1(x)))
+
+
+def save_plot(path: str | Path | None, filename: str) -> None:
+    """Save a plot.
+
+    :param path: Path to the folder where to save the plot.
+    :param filename: Name of the file.
+    :return: Returns None. If path is None, no plot is saved.
+    """
+    if path is not None:
+        plt.savefig(convert_path(path) / filename, bbox_inches="tight")
+    return None
+
+
+def return_axis(show: bool, axis: dict | plt.Axes, tight: bool = True) -> None | plt.Axes:
+    """Whether to return axis or not.
+
+    :param show: Boolean to indicate if the axis is returned or not.
+    :param axis: Dictionary of axis or axis.
+    :param tight: Tight layout.
+    :return: Returns None if show is True, otherwise returns the axis.
+    """
+    if show:
+        if tight:
+            plt.tight_layout()
+        return  plt.show()
+    else:
+        return axis
+

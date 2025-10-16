@@ -29,7 +29,7 @@ from scanpy.plotting._utils import (
 from scanpy.plotting._anndata import VarGroups, _plot_var_groups_brackets
 from dotools_py import logger
 from dotools_py.get._generic import expr as get_expr
-from dotools_py.utils import convert_path, sanitize_anndata, draw_bracket
+from dotools_py.utils import convert_path, sanitize_anndata, draw_bracket, save_plot, return_axis
 from dotools_py.pl._heatmap import small_squares
 from dotools_py.tl._get_stats import rank_genes_groups
 
@@ -2046,12 +2046,11 @@ def dotplot(
     if set_equal_aspect:
         axis_dict['mainplot_ax'].set_aspect(set_equal_aspect)
 
+    save_plot(path=path, filename=filename)
+    return  return_axis(show, axis_dict, tight=True)
 
-    if path is not None:
-        plt.savefig(convert_path(path) / filename, bbox_inches="tight")
-
-    if show:
-        plt.tight_layout()
-        return plt.show()
-    else:
-        return axis_dict
+    #if show:
+    #    plt.tight_layout()
+    #    return plt.show()
+    #else:
+    #    return axis_dict

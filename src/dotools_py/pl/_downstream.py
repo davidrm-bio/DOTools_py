@@ -15,7 +15,7 @@ from matplotlib.colors import LinearSegmentedColormap, ListedColormap
 from dotools_py import logger
 from dotools_py.get import mean_expr
 from dotools_py.utility import generate_cmap
-from dotools_py.utils import convert_path, format_terms_gsea, make_grid_spec, require_dependencies, sanitize_anndata
+from dotools_py.utils import convert_path, format_terms_gsea, make_grid_spec, require_dependencies, sanitize_anndata, save_plot, return_axis
 
 
 def expr_correlation(
@@ -819,11 +819,10 @@ def split_bar_gsea(
             fontsize=txt_size,
         )
     # Save Plot
-    if path is not None:
-        plt.savefig(convert_path(path) / filename, bbox_inches="tight")
-
+    save_plot(path=path, filename=filename)
+    return  return_axis(show, axs, tight=False)
     # If show is False, return axs
-    if not show:
-        return axs
-    else:
-        return plt.show()
+    #if not show:
+    #    return axs
+    #else:
+    #    return plt.show()
