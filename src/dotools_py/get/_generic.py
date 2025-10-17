@@ -4,10 +4,11 @@ import operator
 import anndata as ad
 import pandas as pd
 import numpy as np
+from numba import njit
 import scipy as sp
 from dotools_py import logger
 from dotools_py.utility._general import free_memory
-from dotools_py.utils import sanitize_anndata
+from dotools_py.utils import sanitize_anndata, iterase_input
 
 
 def _expm1_anndata(adata: ad.AnnData) -> None:
@@ -383,6 +384,9 @@ def subset(adata: ad.AnnData,
         return adata
 
 
+@njit(parallel = True)
+def _get_log2fc(group: np.array, ref: np.array, psc = 1e-9):
+    return np.log2((np.expm1(group) + psc) / (np.expm1(ref) + psc))
 
 def log2fc(adata: ad.AnnData,
            group_by: str,
@@ -419,24 +423,21 @@ def log2fc(adata: ad.AnnData,
     ABCB9        -1.669137
     """
 
-    features = list(adata.var_names) if features is None else features  # Calculate log2fc on all genes
-    if groups is None:
-        groups = list(adata.obs[group_by].unique())
-        groups.remove(reference)
-    elif isinstance(groups, str):
-        groups = [groups]
+    # Get the data
+    features = iterase_input(features)
+    features = list(adata.var_names) if len(features) == 0 else features # Take all genes if None
 
+    groups = iterase_input(groups)
+    groups = list(adata.obs[group_by].unique()) if len(groups) == 0 else groups  # Test all groups if None
+    groups.remove(reference)
 
     df_mean = mean_expr(adata, group_by=group_by, features=features, out_format="wide",  layer=layer)
 
-    logfoldchanges = pd.DataFrame([])
+    logfoldchanges = pd.DataFrame([], index=features)
     for group in groups:
-        if group == reference:
-            continue
-        tmp = pd.DataFrame(np.log2((np.expm1(df_mean[groups[0]] + 1e-9)) /
-                             (np.expm1(df_mean[reference]) + 1e-9)), columns=["log2fc_" + groups[0]])
-        logfoldchanges = pd.concat([logfoldchanges, tmp], axis=1)
-    logfoldchanges.index.name = None
+        # Speed up with numba
+        foldchanges = _get_log2fc(group=df_mean[groups[0]].to_numpy(), ref=df_mean[reference].to_numpy())
+        logfoldchanges["log2fc_" + groups[0]] = foldchanges
     return logfoldchanges
 
 
