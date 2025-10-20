@@ -14,10 +14,11 @@ import polars
 import scanpy as sc
 import scanpy.external as sce
 from tqdm import tqdm
+from scvi.model import SCVI
 
 from dotools_py import logger
 from dotools_py.dt import standard_ct_labels_heart
-from dotools_py.utils import convert_path, get_paths_utils, transfer_labels
+from dotools_py.utils import convert_path, get_paths_utils, transfer_labels, check_missing
 
 DictUpdateCellLabels = standard_ct_labels_heart()
 
@@ -26,7 +27,7 @@ def _run_cca(
     adata: ad.AnnData,
     batch_key: str,
     version: str = "v4",
-) -> np.array:
+) -> np.ndarray:
     """Integrate AnnData using CCA from Seurat.
 
     :param adata: anndata object.
@@ -62,7 +63,6 @@ def _run_cca(
         os.path.join(tmpdir_path, "adata_hvg_seurat_AnchorIntegration.csv"), infer_schema_length=0
     )
     cca_matrix = cca_matrix.to_pandas().astype(float)
-    cca_matrix = cca_matrix.set_index(adata.obs_names)
     return cca_matrix.values
 
 
@@ -72,15 +72,15 @@ def _run_scvi(
     layer_counts: str = "counts",
     layer_logcounts: str = "logcounts",
     categorical_covariates: list = None,
-    continuos_covariates: list = None,
+    continuous_covariates: list = None,
     n_hidden: int = 128,
     n_latent: int = 30,
     n_layers: int = 3,
-    dispersion: str = "gene-batch",
-    gene_likelihood: str = "zinb",
+    dispersion: Literal["gene", "gene-batch", "gene-label", "gene-cell"] = "gene-batch",
+    gene_likelihood: Literal["zinb", "nb", "poisson", "normal"] = "zinb",
     get_model: bool = False,
     **kwargs,
-) -> None:
+) -> None | SCVI:
     """Run scVI.
 
     Run scVI to integrate sc/snRNA more information on
@@ -91,7 +91,7 @@ def _run_scvi(
     :param layer_counts: layer with counts. Raw counts are required.
     :param layer_logcounts: layer with log-counts. Log-counts required for calculation of HVG.
     :param categorical_covariates: `.obs` column names with categorical covariates for scVI inference.
-    :param continuos_covariates: `.obs` column names with continuous covariates for scVI inference.
+    :param continuous_covariates: `.obs` column names with continuous covariates for scVI inference.
     :param n_hidden: number of hidden layers.
     :param n_latent: dimensions of the latent space.
     :param n_layers: number of layers.
@@ -116,7 +116,7 @@ def _run_scvi(
         hvg,
         layer=layer_counts,
         batch_key=batch_key,
-        continuous_covariate_keys=continuos_covariates,
+        continuous_covariate_keys=continuous_covariates,
         categorical_covariate_keys=categorical_covariates,
     )
 
@@ -145,17 +145,13 @@ def integrate_data(
     adata,
     batch_key: str,
     hvg_batch: bool = True,
-    harmony: bool = False,
-    scanorama: bool = False,
-    bbknn: bool = False,
-    cca4: bool = False,
-    cca5: bool = False,
-    scvi: bool = False,
+    method: Literal["harmony", "scanorama", "bbknn", "cca4", "cca5", "scvi"] = "scvi",
     resolution: float = 0.3,
     categorical_covariates: list = None,
-    continuos_covariates: list = None,
+    continuous_covariates: list = None,
+    get_model: bool = False,
     **kwargs,
-) -> None:
+) -> None | SCVI:
     """Integrate a concatenated AnnData.
 
     Integrate and perform batch correction for an AnnData with several samples. Different batch correction methods are
@@ -174,18 +170,14 @@ def integrate_data(
     :param batch_key: Metadata column in `obs` with batch information.
     :param hvg_batch: If set to `True`, the highly variable genes shared across samples will be used for the
                      integration.
-    :param harmony: Integrate using harmony.
-    :param scanorama: Integrate using scanorama.
-    :param bbknn: Integrate using bbknn.
-    :param cca4: Integrate using cca version 4.
-    :param cca5: Integrate using cca version 5.
-    :param scvi: Integrate using scvi.
+    :param method: Integration method to use.
     :param resolution: Resolution for the leiden clustering.
     :param categorical_covariates: Categorical covariates for scVI.
-    :param continuos_covariates: Continuous covariates for scVI.
+    :param continuous_covariates: Continuous covariates for scVI.
+    :param get_model: Set to True to Return the scVI model.
     :param kwargs: Additional arguments for
                   `scVI model <https://docs.scvi-tools.org/en/stable/api/reference/scvi.model.SCVI.html>`_.
-    :return: Returns `None`. The following fields will be set:
+    :return: Returns `None` or the scVI model if `get_model` is `True`. The following fields will be set:
 
             `adata.obsm['X_pca']`: :class:`numpy.ndarray` (dtype ``float``)
                 PCA representation of data.
@@ -235,45 +227,47 @@ def integrate_data(
     obsp: 'connectivities', 'distances'
 
     """
-    logger.info("Computing HVGs")
+    method = method.lower()
+    check_missing(adata, groups=batch_key)
     hvg_batch = batch_key if hvg_batch else None
+
+    logger.info("Computing HVGs")
     sc.pp.highly_variable_genes(adata, batch_key=hvg_batch)
     hvg = adata[:, adata.var.highly_variable].copy()
     sc.pp.scale(hvg)
     sc.pp.pca(hvg)
 
-    dim_reduc = "X_pca"
+    dim_reduc, model = "X_pca", None
     neighbors_within_batch = 25 if adata.n_obs > 100_000 else 3  # Community recommendations
-    if harmony:
+    if method == "harmony":
         logger.info("Integration using Harmony")
-        sce.pp.harmony_integrate(hvg, key=batch_key, max_iter_harmony=100)
+        sce.pp.harmony_integrate(hvg, key=batch_key, max_iter_harmony=150)
         adata.obsm["X_harmony"] = hvg.obsm["X_pca_harmony"]
         dim_reduc = "X_harmony"
-    if scanorama:
+    if method == "scanorama":
         logger.info("Integration using Scanorama")
         sce.pp.scanorama_integrate(hvg, key=batch_key)
         adata.obsm["X_scanorama"] = hvg.obsm["X_scanorama"]
         dim_reduc = "X_scanorama"
-    if bbknn:
+    if method == "bbknn":
         logger.info("Integration using BBKNN")
-    if scvi:
+    if method == "scvi":
         logger.info("Integration using scVI")
-        _run_scvi(
-            adata,
-            batch_key,
-            categorical_covariates=categorical_covariates,
-            continuos_covariates=continuos_covariates,
-            **kwargs,
-        )
+        model = _run_scvi(adata, batch_key=batch_key,
+                          categorical_covariates=categorical_covariates,
+                          continuous_covariates=continuous_covariates,
+                          get_model=get_model,
+                          **kwargs,
+                          )
         dim_reduc = "X_scVI"
-    if cca4:
+    if method == "cca4":
         logger.info("Integration using CCA (Seurat v4 approach)")
         adata.obsm["X_CCA"] = _run_cca(hvg, batch_key, version="v4")
         logger.info("Using CCA matrix for PCA")
         hvg.X = adata.obsm["X_CCA"].copy()
         sc.pp.pca(hvg)
         adata.obsm["X_pca"] = hvg.obsm["X_pca"]
-    if cca5:
+    if method == "cca5":
         logger.info("Integration using CCA (Seurat v5 approach)")
         adata.obsm["X_CCA"] = _run_cca(hvg, batch_key, version="v5")
         dim_reduc = "X_CCA"
@@ -286,24 +280,23 @@ def integrate_data(
 
     logger.info(f"Clustering cells using Leiden (resolution {resolution})")
     sc.tl.leiden(adata, resolution=resolution, flavor="igraph", n_iterations=2, directed=False)
-    return None
+    return model
 
 
 def update_cell_labels(
     adata: ad.AnnData, cell_col: str,
     key_added: str = "annotation",
     dict_data: str | dict = "default"
-) -> ad.AnnData:
-    """Rename cell type labels generated by celltypist.
+) -> None:
+    """Rename cell-type labels generated by Celltypist.
 
-    This function will rename the cell type labels returned by celltypist
-    when using the Heart Model.
+    This function will rename the cell type labels returned by Celltypist when using the Heart Model.
 
-    :param adata: anndata object previously analysed by Celltypist
-    :param cell_col: `.obs` column with cell type labels
-    :param key_added: `.obs` column where new labels are saved
+    :param adata: Anndata object previously analysed by Celltypist.
+    :param cell_col: Column in `obs` with cell type labels.
+    :param key_added: Column in `obs` where new labels will be saved.
     :param dict_data: Dictionary with the labels to use to update the labels.
-    :return: annotated data matrix.
+    :return: Returns `None`.
     """
     if dict_data == "default":
         dict_data = DictUpdateCellLabels
@@ -312,7 +305,7 @@ def update_cell_labels(
         dict_data[cell] if cell in dict_data else list(adata.obs[cell_col])[idx]
         for idx, cell in enumerate(list(adata.obs[cell_col]))
     ]
-    return adata
+    return None
 
 
 def auto_annot(
@@ -333,7 +326,7 @@ def auto_annot(
 ) -> None:
     """Semi-automatic annotation based on CellTypist.
 
-    This function takes an AnnData object with log-counts in `.X` and annotate the clusters employing a model available
+    This function takes an AnnData object with log-counts in `X` and annotate the clusters employing a model available
     for `Celltypist <https://www.celltypist.org/>`_.
 
     :param adata: Annotated data matrix.
@@ -355,15 +348,18 @@ def auto_annot(
     :param pl_cell_prob: Generate a Dotplot to visualise the cell probabilities for each cluster.
     :param path: Path to save the dotplot of cell probabilities.
     :param filename: Name of the file.
-    :return: Return `None`. The following fields will be set:
 
-            `adata.obs['autoAnnot' | key_added]`: :class:`pandas.Series` (dtype ``category``)
-                Array that stores the predicted annotation for each cell.
-            `adata.obs['celltypist_conf_score']`: :class:`pandas.Series` (dtype ``float``)
-                Array that stores the confidence scores for the prediction.
-            `adata.obs['annotation' | key_updated]`: :class:`pandas.Series` (dtype ``category``)
-                 If `update_label` is set to True, this  field will be set and contains an array that stores the
-                 predicted annotation for each cell updated based on the dictionary `dict_labels`.
+    Returns
+    -------
+    Return `None`. The following fields will be set:
+
+    `adata.obs['autoAnnot' | key_added]`: :class:`pandas.Series` (dtype ``category``)
+        Array that stores the predicted annotation for each cell.
+    `adata.obs['celltypist_conf_score']`: :class:`pandas.Series` (dtype ``float``)
+        Array that stores the confidence scores for the prediction.
+    `adata.obs['annotation' | key_updated]`: :class:`pandas.Series` (dtype ``category``)
+         If `update_label` is set to True, this  field will be set and contains an array that stores the
+         predicted annotation for each cell updated based on the dictionary `dict_labels`.
 
     Example
     -------
@@ -380,13 +376,10 @@ def auto_annot(
     ✅ Majority voting done!
 
     """
+    check_missing(adata, groups=cluster_key)
+
     if update_models:
         celltypist.models.download_models(force_update=True)
-    # if model not in list(celltypist.models.models_description()["model"]):
-    #     raise Exception(
-    #         f"The model {model} is not available.
-    #         Please specify a valid model \n\n{celltypist.models.models_description()}"
-    #     )
 
     adata_copy = adata.copy()
     steps = ["Setting-up", "Predicting", "Saving predictions", "Updating labels"]
@@ -416,7 +409,7 @@ def auto_annot(
         if pl_cell_prob:
             try:
                 axs = celltypist.dotplot(
-                    predictions_cells, use_as_prediction= "predicted_labels", use_as_reference=cluster_key,
+                    predictions_cells, use_as_prediction="predicted_labels", use_as_reference=cluster_key,
                     title="", show=False)
                 axs["mainplot_ax"].spines[["top", "right"]].set_visible(True)
                 if path is not None:
@@ -641,7 +634,7 @@ def reclustering(
     transfer_labels(adata, adata_subset, col_original=key_added, col_subset=key_added, labels_original=celltype)
 
     # Remove colors in uns to avoid problems when plotting
-    keys_colors =[ k for k in adata.uns.keys() if '_colors' in k]
+    keys_colors = [k for k in adata.uns.keys() if '_colors' in k]
     for key in keys_colors:
         del adata.uns[key]
     keys_colors = [k for k in adata_subset.uns.keys() if '_colors' in k]
