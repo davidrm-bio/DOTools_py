@@ -324,7 +324,7 @@ def subset(adata: ad.AnnData,
     """
 
     sanitize_anndata(adata)
-    check_missing(adata, groups=obs_key, vars=var_key)
+    check_missing(adata, groups=obs_key, variables=var_key)
     assert comparison in [">=", ">", "==", "<", "<=", "include", "exclude"], "Not a valid comparison key"
 
     if comparison in ["include", "exclude"]:
