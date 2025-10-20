@@ -34,7 +34,7 @@ def test_mean_expr():
     # Check the long format
     df = do.get.mean_expr(adata, "annotation")
     assert isinstance(df, pd.DataFrame)
-    cols = {"gene", "group0", "expr"}
+    cols = {"gene", "annotation", "expr"}
     assert cols.issubset(df.columns)
 
     # Check the wide format
@@ -81,7 +81,7 @@ def test_log2fc():
     df = do.get.log2fc(adata, "condition", "healthy", "disease")
 
     assert isinstance(df, pd.DataFrame)
-    cols = {"log2fc_disease"}
+    cols = {"genes", "log2fc_disease"}
     assert cols.issubset(df.columns)
     return None
 
@@ -113,4 +113,4 @@ def test_get_dge_table():
     cols = {'group', 'GeneName', 'wilcox_score', 'log2fc', 'pvals', 'padj', 'pts_group', 'pts_ref'}
     assert cols.issubset(table.columns)
 
-    return
+    return None

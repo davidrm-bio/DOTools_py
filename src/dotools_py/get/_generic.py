@@ -6,9 +6,12 @@ import pandas as pd
 import numpy as np
 from numba import njit
 import scipy as sp
-from dotools_py import logger
 from dotools_py.utility._general import free_memory
-from dotools_py.utils import sanitize_anndata, iterase_input
+from dotools_py.utils import sanitize_anndata, iterase_input, check_missing
+from dotools_py.settings._global_parameters import FAST_ARRAY_UTILS
+
+if FAST_ARRAY_UTILS:
+    import fast_array_utils
 
 
 def _expm1_anndata(adata: ad.AnnData) -> None:
@@ -79,48 +82,25 @@ def expr(
 
     """
     sanitize_anndata(adata)
+    features = iterase_input(features)
+    groups = iterase_input(groups)
+    assert len(features) != 0, "No features provided"
+    assert out_format == "wide" or out_format == "long", f'{out_format} not recognize, try "long" or "wide"'
+
+    # Remove features not present and warn
+    check_missing(adata, features=features, groups=groups)
+
     # Set-up configuration
-    if features is not None:
-        adata = adata[:, features]  # Retain only the specified features
+    adata = adata[:, features]  # Retain only the specified features
     if layer is not None:
         adata.X = adata.layers[layer].copy()  # Select the specified layer
 
-    # Check out_format specified
-    assert out_format == "wide" or out_format == "long", f'{out_format} not recognize, try "long" or "wide"'
-    features = [features] if isinstance(features, str) else features
-
-    # Remove features not present and warn
-    features_copy = []
-    for g in features:
-        if g not in list(adata.var_names):
-            logger.warn(f"{g} not in adata.var_names, ignoring")
-        else:
-            features_copy.append(g)
-
-    assert len(features_copy) != 0, "None of {features} in adata.var_names"
-    features = features_copy
-
     # Extract expression
-    table_expr = pd.DataFrame(
-        adata[:, features].X.toarray(),  # densify the matrix (Replace .A)
-        index=adata.obs_names,
-        columns=features,
-    )
+    table_expr = adata.to_df().copy()
+
     # Add Metadata
     if groups is not None:
-        if isinstance(groups, str):
-            if adata.obs[groups].dtype.name in ["category", "object"]:
-                if any("-" in txt for txt in list(adata.obs[groups].unique())):
-                    logger.warn("Replacing '-' in groups categories by '_'")
-                adata.obs[groups] = adata.obs[groups].str.replace("-", "_")
-            table_expr[groups] = adata.obs[groups]  # One column
-        else:
-            for group in groups:  # Multiple columns
-                if adata.obs[group].dtype.name in ["category", "object"]:
-                    if any("-" in txt for txt in list(adata.obs[group].unique())):
-                        logger.warn("Replacing '-' in groups categories by '_'")
-                    adata.obs[group] = adata.obs[group].str.replace("-", "_")
-                table_expr[group] = adata.obs[group]
+        table_expr[groups] = adata.obs[groups]
     if out_format == "long":
         table_expr = pd.melt(table_expr, id_vars=groups, var_name="genes", value_name="expr")
     free_memory()
@@ -147,19 +127,20 @@ def mean_expr(
     :param features: List of features in `var_name` to use. If not set, it will be calculated over all the genes.
     :param out_format: Format of the Dataframe returned. This can be wide or long format.
     :param layer: Layer of the AnnData to use. If not set use `X`.
-    :param logcounts: if set to True, the log1p transformation is undone to calculate the mean exoression.
+    :param logcounts: Set to `True` if the input is in log space.
 
     Returns
     -------
-    Returns a `DataFrame`. If `out_format` is set to `wide`, the index will be set to the gene names and the column
-    names will be set to the groups. If `out_format` is set to `long`, the following fields are included:
+    Returns a `DataFrame` with the mean expression in log1p transformation. If `out_format` is set to `wide`, the index
+    will be set to the gene names and the column names will be set to the groups. If `out_format` is set to `long`,
+    the following fields are included:
 
     `gene`
         Contains the gene names.
     `groupN`
         Contains the groups (For each metadata column a new column will be added).
     `expr`
-        Contains the mean expression values.
+        Contains the mean expression values after log1p transformation.
 
     Example
     -------
@@ -186,13 +167,13 @@ def mean_expr(
     """
 
     sanitize_anndata(adata)
-    features = [features] if isinstance(features, str) else features
-    group_by = [group_by] if isinstance(group_by, str) else group_by
+    features = list(adata.var_names) if len(iterase_input(features)) == 0 else iterase_input(features)
+    group_by = iterase_input(group_by)
+    check_missing(adata, features=features, groups=group_by)
     assert out_format == "wide" or out_format == "long", f'{out_format} not recognize, try "long" or "wide"'
 
     # Set-up configuration
-    if features is not None:
-        adata = adata[:, features]
+    adata = adata[:, features]
     if layer is not None:
         adata.X = adata.layers[layer].copy()
 
@@ -201,24 +182,29 @@ def mean_expr(
     if logcounts:
         _expm1_anndata(data)
 
-    # Group dt by the specified values
+    # Group data by the specified values
     group_obs = adata.obs.groupby(group_by, as_index=False)
 
     # Compute AverageExpression
     main_df = pd.DataFrame([])
     for group_name, df in group_obs:
-        if logcounts:
-            df_tmp = np.log1p(
-                pd.DataFrame(data[df.index].X.mean(axis=0).T, columns=["expr"])
-            )  # Mean expr per gene in groupN
+        if FAST_ARRAY_UTILS:
+            current_mean = fast_array_utils.stats.mean(data[df.index].X, axis=0)
+            current_mean = np.log1p(current_mean) if logcounts else current_mean
+            df_tmp = pd.DataFrame(current_mean, columns=["expr"])
         else:
-            df_tmp = pd.DataFrame(data[df.index].X.mean(axis=0).T, columns=["expr"])
+            if logcounts:
+                df_tmp = np.log1p(
+                    pd.DataFrame(data[df.index].X.mean(axis=0).T, columns=["expr"])
+                )  # Mean expr per gene in groupN
+            else:
+                df_tmp = pd.DataFrame(data[df.index].X.mean(axis=0).T, columns=["expr"])
 
         df_tmp["gene"] = adata[df.index].var_names  # Update with Gene names
-        if type(group_name) is str:  # If only grouping by one category
-            group_name = [group_name]
+        group_name = iterase_input(group_name)
         for idx, name in enumerate(group_name):
-            df_tmp["group" + str(idx)] = str(name).replace("-", "_")  # Update with metadata
+            #df_tmp["group" + str(idx)] = str(name).replace("-", "_")  # Update with metadata
+            df_tmp[group_by[idx]] = name
         main_df = pd.concat([main_df, df_tmp], axis=0)
     main_df["expr"] = pd.to_numeric(main_df["expr"])  # Convert to numeric values
 
@@ -228,9 +214,7 @@ def mean_expr(
 
     # Change to wide format
     if out_format == "wide":
-        main_df = pd.pivot_table(
-            main_df, index="gene", columns=list(main_df.columns[main_df.columns.str.startswith("group")]), values="expr"
-        )
+        main_df = pd.pivot_table(main_df, index="gene", columns=group_by, values="expr")
         if len(group_by) > 1:
             main_df.columns = main_df.columns.map("_".join)
     free_memory()
@@ -288,10 +272,10 @@ def dge_results(
 
 
 def subset(adata: ad.AnnData,
-           obs_key: str = None,
-           obs_groups: str | list | float | bool = None,
-           var_key: str  = None,
-           var_groups: str | list | float | bool = None,
+           obs_key: str | None = None,
+           obs_groups: str | list | float | bool | None = None,
+           var_key: str | None  = None,
+           var_groups: str | list | float | bool | None = None,
            comparison: Literal[">=", ">", "==", "<", "<=", "include", "exclude"] = "include",
            copy: bool = False) -> ad.AnnData:
     """Subset AnnData object.
@@ -300,12 +284,12 @@ def subset(adata: ad.AnnData,
     by multiple obs/var columns at the same time.
 
     :param adata: AnnData Object.
-    :param obs_key: obs column to subset for. If a list is provided, it will subset for each column.
-    :param obs_groups: groups to include in the AnnData object
-    :param var_key: var column to subset for
-    :param var_groups: groups to include in the AnnData object
-    :param comparison: comparison to used for.
-    :param copy: if set to True, a copy is returned, otherwise a view of the AnnData is returned.
+    :param obs_key: Column in `obs` to subset for.
+    :param obs_groups: Groups or values to include or filter for the AnnData object.
+    :param var_key: Column in `var` to subset for.
+    :param var_groups: Groups or values to include or filter for in the AnnData object.
+    :param comparison: Method to filter the AnnData object.
+    :param copy: if set to `True`, a copy is returned, otherwise a view of the AnnData is returned.
     :return: Returns a view or a new AnnData object.
 
     Returns
@@ -340,24 +324,16 @@ def subset(adata: ad.AnnData,
     """
 
     sanitize_anndata(adata)
+    check_missing(adata, groups=obs_key, vars=var_key)
     assert comparison in [">=", ">", "==", "<", "<=", "include", "exclude"], "Not a valid comparison key"
-    if obs_key is not None:
-        assert obs_key in adata.obs.columns, "Not a valid obs key"
-    if var_key is not None:
-        assert var_key in adata.var.columns, "Not a valid var key"
 
     if comparison in ["include", "exclude"]:
-        obs_groups = [obs_groups] if isinstance(obs_groups, str) else obs_groups
-        var_groups = [var_groups] if isinstance(var_groups, str) else var_groups
+        obs_groups = iterase_input(obs_groups)
+        var_groups = iterase_input(var_groups)
 
-    operations = {
-        "==": operator.eq,
-        "!=": operator.ne,
-        ">": operator.gt,
-        ">=": operator.ge,
-        "<": operator.lt,
-        "<=": operator.le
-    }
+    operations = {"==": operator.eq, "!=": operator.ne,
+                  ">": operator.gt, ">=": operator.ge,
+                  "<": operator.lt, "<=": operator.le}
 
     # Subset by obs
     if obs_key is not None:
@@ -385,23 +361,24 @@ def subset(adata: ad.AnnData,
 
 
 @njit(parallel = True)
-def _get_log2fc(group: np.array, ref: np.array, psc = 1e-9):
+def _get_log2fc(group: np.ndarray, ref: np.ndarray, psc = 1e-9):
     return np.log2((np.expm1(group) + psc) / (np.expm1(ref) + psc))
+
 
 def log2fc(adata: ad.AnnData,
            group_by: str,
            reference: str,
-           groups: str | list = None,
-           features: str | list = None,
-           layer: str = None,
+           groups: str | list | None = None,
+           features: str | list | None = None,
+           layer: str | None = None,
            ) -> pd.DataFrame:
     """Calculate the log2foldchanges for a set of groups.
 
     :param adata: Annotated data matrix.
     :param group_by: Column in `obs` to group by.
     :param reference: Reference condition to use for the calculation.
-    :param groups: Alternative condiitons to use. If None, all the condiitons will be used.
-    :param features: Features to use for calculating the log2foldchanges.
+    :param groups: Alternative condititons to use. If `None`, all the condititons will be used.
+    :param features: Features to use for calculating the log2foldchanges. If set to `None` all features will be used.
     :param layer: Layer in the AnnData to use for the calculation.
 
     Returns
@@ -414,30 +391,31 @@ def log2fc(adata: ad.AnnData,
     >>> adata = do.dt.example_10x_processed()
     >>> df = do.get.log2fc(adata, group_by="condition", reference="healthy")
     >>> df.head(5)
-                log2fc_disease
-    gene
-    A4GALT       26.073313
-    AAK1         -0.429676
-    ABAT          0.775196
-    ABCB4       -22.599501
-    ABCB9        -1.669137
+            genes  log2fc_disease
+    0  ATP2A1-AS1       26.073313
+    1      STK17A       -0.429677
+    2    C19orf18        0.775196
+    3        TPP2      -22.599501
+    4       MFSD1       -1.669137
+
     """
 
     # Get the data
     features = iterase_input(features)
-    features = list(adata.var_names) if len(features) == 0 else features # Take all genes if None
-
-    groups = iterase_input(groups)
-    groups = list(adata.obs[group_by].unique()) if len(groups) == 0 else groups  # Test all groups if None
-    groups.remove(reference)
+    features = list(adata.var_names) if len(iterase_input(features)) == 0 else iterase_input(features)
+    groups = list(adata.obs[group_by].unique()) if len(iterase_input(groups)) == 0 else iterase_input(groups)
+    if reference in groups:
+        groups.remove(reference)
 
     df_mean = mean_expr(adata, group_by=group_by, features=features, out_format="wide",  layer=layer)
 
     logfoldchanges = pd.DataFrame([], index=features)
     for group in groups:
         # Speed up with numba
-        foldchanges = _get_log2fc(group=df_mean[groups[0]].to_numpy(), ref=df_mean[reference].to_numpy())
-        logfoldchanges["log2fc_" + groups[0]] = foldchanges
+        foldchanges = _get_log2fc(group=df_mean[group].to_numpy(), ref=df_mean[reference].to_numpy())
+        logfoldchanges["log2fc_" + group] = foldchanges
+    logfoldchanges.reset_index(inplace=True)
+    logfoldchanges.rename(columns={"index":"genes"}, inplace=True)
     return logfoldchanges
 
 
@@ -450,7 +428,7 @@ def pcts_cells(adata,
 
     :param adata: Annotated data matrix.
     :param group_by: Column in `obs` to group by. Several columns can be provided.
-    :param features: Features to use for calculating the log2foldchanges.
+    :param features: Features to use for the calculation. If set to `None`, all features will be used.
     :param min_expr: Minimum value to use for the estimation of percentages.
 
     Returns
@@ -472,9 +450,8 @@ def pcts_cells(adata,
     [5 rows x 11 columns]
 
     """
-
-    features = list(adata.var_names) if features is None else features  # Calculate log2fc on all genes
-
+    features = list(adata.var_names) if len(iterase_input(features)) == 0 else iterase_input(features)
+    group_by = iterase_input(group_by)
     df_expr = expr(
         adata, features=features, groups=group_by, out_format="wide"
     ).set_index(group_by)
@@ -484,15 +461,9 @@ def pcts_cells(adata,
         obs_bool.groupby(level=group_by, observed=True).sum()
         / obs_bool.groupby(level=group_by, observed=True).count()
     ).T
-    if isinstance(group_by, list):
-        if len(group_by) > 1:
-            df_pct.columns = ["_".join(col) for col in list(df_pct.columns)]
+    if len(group_by) > 1:
+        df_pct.columns = ["_".join(col) for col in list(df_pct.columns)]
     df_pct = df_pct.round(2)
     df_pct.reset_index(inplace=True)
     df_pct.rename(columns={"index":"genes"}, inplace=True)
-
-    return  df_pct
-
-
-
-
+    return df_pct
