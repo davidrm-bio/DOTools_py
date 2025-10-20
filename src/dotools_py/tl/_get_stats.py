@@ -402,6 +402,7 @@ def rank_genes_pseudobulk(
         :func:`dotools_py.tl.rank_genes_consensus`: run DEA at pseudobulk and single-cell level between condition for all clusters
 
     """
+
     from pydeseq2.dds import DeseqDataSet
     from pydeseq2.default_inference import DefaultInference
     from pydeseq2.ds import DeseqStats
@@ -502,7 +503,7 @@ def rank_genes_consensus(
     logcounts_layer: str = "logcounts",
     min_cells: int = 50,
     pseudobulk_approach: Literal["sum", "mean"] = "sum",
-    technical_replicates: int = 2,
+    technical_replicates: int = 1,
     min_counts: int = 10,
     workers: int = 8,
     path: str | Path | None = None,
@@ -597,7 +598,6 @@ def rank_genes_consensus(
         df_pseudobulk.set_index("Unnamed: 0", inplace=True)
         df_pseudobulk.index.name = None
 
-    df = df_pseudobulk.copy()
 
     # CleanUp
     df_pseudobulk["GeneName"] = df_pseudobulk.index
@@ -675,9 +675,9 @@ def rank_genes_consensus(
     )
 
     # Mean per cluster for each sample correct
-    df_mean = mean_expr(adata, group_by=[batch_key, cluster_key], features=list(adata.var_names))
-    df_mean["group0"] = "MeanExpr_" + df_mean[batch_key].astype(str)
-    df_mean = df_mean.pivot(index=["gene", cluster_key], columns=batch_key, values="expr").reset_index()
+    df_mean = mean_expr(adata, group_by=[condition_key, cluster_key], features=list(adata.var_names))
+    df_mean[condition_key] = "MeanExpr_" + df_mean[condition_key].astype(str)
+    df_mean = df_mean.pivot(index=["gene", cluster_key], columns=condition_key, values="expr").reset_index()
     df_mean.rename(columns={"gene": "GeneName", cluster_key: cluster_key}, inplace=True)
     df_mean = df_mean.reset_index(drop=True)
 
