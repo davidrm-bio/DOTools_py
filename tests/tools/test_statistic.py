@@ -1,6 +1,5 @@
 import dotools_py as do
 import pandas as pd
-import anndata as ad
 
 
 def test_rank_genes_condition():
