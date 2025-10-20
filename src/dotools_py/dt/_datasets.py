@@ -1,8 +1,6 @@
 from pathlib import Path
 
 import anndata as ad
-import requests
-from tqdm import tqdm
 
 from dotools_py import logger
 from dotools_py.utils import convert_path
@@ -13,11 +11,11 @@ HERE = Path(__file__).parent
 def example_10x(path: str | Path = "/tmp/dotools_datasets/") -> None:
     """Download 10X datasets.
 
-    Downloads a datasets of PBMC from healty and malignant B cells. Two H5 files will be downloaded
+    Downloads a dataset of PBMC from healty and malignant B cells. Two H5 files will be downloaded
     (`raw_feature_bc_matrix.h5`) and (`filtered_feature_bc_matrix.h5`) for each condition (healthy and disease). They
     will be saved following the structure output from CellRanger (e.g., `healhty/outs/*.h5` or `disease/outs/*.h5`).
 
-    :param path: path where the data is downloaded. Two subfolders will be created.
+    :param path: Path where the data is downloaded. Two subfolders will be created.
     :return: H5 files are saved under the provided path. For each condition a subfolder will be created in the provided
             path.
 
@@ -32,6 +30,9 @@ def example_10x(path: str | Path = "/tmp/dotools_datasets/") -> None:
     var: 'gene_ids', 'feature_types', 'genome', 'pattern', 'read', 'sequence'
 
     """
+    from tqdm import tqdm
+    import requests
+
     logger.info(f"Downloading data to {path}")
     path = convert_path(path)
     path.mkdir(parents=True, exist_ok=True)
@@ -78,10 +79,10 @@ def example_10x(path: str | Path = "/tmp/dotools_datasets/") -> None:
 def example_10x_processed() -> ad.AnnData:
     """Load example datasets from 10x processed.
 
-    Loads a reduced version of the example datasets from healthy and malignant B cells from 10x use in the
+    Loads a reduced version of the example datasets from healthy and malignant B cells from 10x used in the
     tutorial of the package.
 
-    :return: AnnData
+    :return: AnnData object processed with 700 cells and 1851 genes.
 
     Example
     -------

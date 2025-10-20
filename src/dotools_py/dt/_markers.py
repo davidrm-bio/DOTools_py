@@ -8,8 +8,8 @@ def heart_markers(
 ) -> dict:
     """Marker genes for cell-types in the heart.
 
-    :param species: format for gene names. Options: mouse or human.
-    :return: Dictionary with a list of marker genes for major cell-types present in the heart.
+    :param species: Format for gene names. Set `human` for everything upper case and `mouse` for capitalise.
+    :return: Returns a dictionary with a list of marker genes for major cell-types present in the heart.
 
     Example
     -------
@@ -75,7 +75,7 @@ def standard_ct_labels_heart() -> dict:
     investigated on the dataset. The model might assigned a cell-type based on similarity, however, the assignment
     might be incorrect if the cell-type is not present in the model.
 
-    :return: Dictionary with the labels from the model as keys and the updated labels as values.
+    :return: Returns a dictionary with the labels from the model as keys and the updated labels as values.
 
     Example
     -------
