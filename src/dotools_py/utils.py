@@ -332,12 +332,14 @@ def iterase_input(data: str | Iterable) -> list:
         raise Exception("Input is not a string or iterable object")
 
 
-def check_missing(adata: ad.AnnData, features: str | list = None, groups: str | list = None) -> None:
+def check_missing(adata: ad.AnnData, features: str | list = None, groups: str | list = None,
+                  variables: str | list = None) -> None:
     """Check for missing features or columns in the observations from an AnnData Object.
 
     :param adata: AnnData Object.
     :param features: features to check for.
     :param groups: column names in the observations to check for.
+    :param variables: column names in the variables to check for.
     :return: Returns None. Will raise an assertion if any feature or column name is missing.
     """
 
@@ -358,6 +360,10 @@ def check_missing(adata: ad.AnnData, features: str | list = None, groups: str | 
     if groups:
         groups = iterase_input(groups)
         missing = [g for g in groups if g not in adata.obs.columns]
+        assert len(missing) == 0, f"{missing} missing in the AnnData Object"
+    if variables:
+        variables = iterase_input(variables)
+        missing = [g for g in variables if g not in adata.var.columns]
         assert len(missing) == 0, f"{missing} missing in the AnnData Object"
 
     return None
