@@ -1,134 +1,69 @@
 import itertools
 import os
-import random
 import subprocess
 import uuid
 from pathlib import Path
 from typing import Literal
 
 import anndata as ad
-import gseapy
 import numpy as np
 import pandas as pd
-import scanpy as sc
-from pydeseq2.dds import DeseqDataSet
-from pydeseq2.default_inference import DefaultInference
-from pydeseq2.ds import DeseqStats
-from scipy.stats import ttest_ind
-from tqdm import tqdm
 
 from dotools_py import logger
 from dotools_py.tl._rankGenes import rank_genes_groups
-from dotools_py.utils import convert_path, get_paths_utils, sanitize_anndata, deprecated_fxn
+from dotools_py.tl._statistics import MastTest
+from dotools_py.utils import convert_path, get_paths_utils, sanitize_anndata, iterase_input
 from dotools_py.get import mean_expr, dge_results
-
+from dotools_py.get import pseudobulk as pseudobulking
 
 # DGE Analysis
-@deprecated_fxn("Use `MastTest` instead.")
-def run_mast(
-    adata: ad.AnnData, cond_key: str, reference: str, disease: str | list, covariates: str | list | None = None
-) -> pd.DataFrame:
-    """Run MAST Test for sc/snRNAseq.
-
-    :param adata: Annotated Data matrix.
-    :param cond_key: Metadata column in `obs`  with condition groups.
-    :param reference: Reference condition.
-    :param disease: Disease conditions.
-    :param covariates: Extra covariates to account for.
-    :return: Returns a `DataFrame`. The following fields are included:
-
-             `GeneName`
-                Name of the genes
-             `pvals` and  `padj`
-                The adjusted p-value uses Benjamini-Hochberg correction method.
-             `log2fc`
-                Log2FoldChamge
-             `pts_ref` and `pts_group`
-                Percentage of cells in the reference in the disease group expressing the gene
-             `groups`
-                Column containing the group tested
-
-    See Also
-    --------
-        :func:`dotools_py.tl.rank_genes_groups`: run DEA at single-cell level
-        :func:`dotools_py.tl.grouped_ttest`: run DEA at pseudobulk level
-        :func:`dotools_py.tl.MastTest`: run MAST with more flexibility
-
-
-    Example
-    -------
-    >>> import dotools_py as do
-    >>> adata = do.dt.example_10x_processed()
-    >>> df = do.tl.run_mast(adata, "condition", "healthy", "disease")
-    >>> df.head(5)
-          GeneName     pvals    log2fc      padj   pts_ref  pts_group   groups
-    0   A4GALT  0.001722 -1.018231  0.015546  0.003846   0.000000  disease
-    1     AAK1  0.019197  0.517996  0.105754  0.457692   0.516667  disease
-    2     ABAT  0.551787  1.530515  0.842536  0.000000   0.000000  disease
-    3    ABCB4  0.581264 -1.968762  0.842536  0.176923   0.050000  disease
-    4    ABCB9  0.458918 -1.468043  0.808238  0.121154   0.044444  disease
-
-    """
-    rscript = get_paths_utils("_Run_MAST.R")
-
-    tmpdir_path = Path("/tmp") / f"MAST_Test_{uuid.uuid4().hex}"
-    tmpdir_path.mkdir(parents=True, exist_ok=False)
-
-    del adata.uns, adata.raw
-    adata.write(tmpdir_path / "adata.h5ad")
-
-    in_path = os.path.join(tmpdir_path, "adata.h5ad")
-
-    disease = [disease] if isinstance(disease, str) else disease
-
-    dge_main = pd.DataFrame()
-    for alternative in disease:
-        logger.info(f"Running test for {alternative}")
-
-        cmd = [
-            "Rscript",
-            rscript,
-            "--input=" + in_path,
-            "--out=" + str(tmpdir_path) + "/dge_mast.csv",
-            "--key=" + cond_key,
-            "--ref=" + reference,
-            "--disease=" + alternative,
-        ]
-        cmd += ["--covariates=" + covariates] if covariates is not None else []
-        subprocess.call(cmd)
-        dge = pd.read_csv(os.path.join(tmpdir_path, "dge_mast.csv"))
-        dge["groups"] = alternative
-        dge_main = pd.concat([dge_main, dge])
-
-    dge_main.rename(
-        columns={
-            "primerid": "GeneName",
-            "mean2...mean1": "log2fc",
-        },
-        inplace=True,
-    )
-    del dge_main["Unnamed: 0"]
-    return dge_main
-
-
-
 def _run_test(
-    adata: ad.AnnData, method: str, groupby: str, reference: str, groups: list, covariates: list
+    adata: ad.AnnData,
+    method: str,
+    groupby: str,
+    reference: str,
+    groups: list,
+    covariates: list | None = None,
+    n_cpus: int = 20,
+    mast_method: Literal["glm", "glmer", "bayesglm"] = "bayesglm",
+    parallel: bool = True,
+    formula: str = "~condition"
 ) -> pd.DataFrame:
     """Run DGE test.
 
-    :param adata: annotated data matrix.
-    :param method: test to use.
-    :param groupby: obs column to groupby.
-    :param reference: reference condition.
-    :param groups: alternative conditions.
-    :param covariates: covariates to correct for in MAST test.
+    :param adata: Annotated data matrix.
+    :param method: Test to use.
+    :param groupby: Column in `obs`  to group by.
+    :param reference: Reference condition.
+    :param groups: Alternative conditions.
+    :param covariates: Covariates to correct for in MAST test.
     :return: dataframe with DGE results.
     """
+    groups = iterase_input(groups)
+
     if method.lower() == "mast":
-        logger.info("Running MAST test in R.")
+        logger.info("Running MAST test")
         assert reference != "rest", "Specify a reference when using MAST test"
-        dge = run_mast(adata, cond_key=groupby, reference=reference, disease=groups, covariates=covariates)
+
+        dge = pd.DataFrame([])
+        for group in groups:
+            tester = MastTest(adata=adata,
+                              condition_key=groupby,
+                              reference=reference,
+                              group=group,
+                              covariates=covariates,
+                              n_cpus=n_cpus,
+                              method=mast_method,
+                              ebayes=True,
+                              parallel=parallel,
+                              silent=True,
+                              formula=formula,
+                              )
+            tester.fit()
+            table = tester.dge_table.copy()
+            table["group"] = group
+            dge = pd.concat([dge, table])
+
     elif method in ["wilcoxon", "logreg", "t-test", "t-test_overestim_var"]:
         logger.info(f"Running {method} test.")
         try:
@@ -142,7 +77,7 @@ def _run_test(
             logger.warn(f"Error running test:\n{e}")
             dge = None
     else:
-        NameError(f"{method} not implemented. Use: mast, wilcoxon, logreg, t-test, t-test_overestim_var")
+        raise NameError(f"{method} not implemented. Use: mast, wilcoxon, logreg, t-test, t-test_overestim_var")
     return dge
 
 
@@ -159,44 +94,53 @@ def rank_genes_condition(
     filename: str = "DGE.xlsx",
     layer: str = None,
     covariates: list | None = None,
+    n_cpus: int = 20,
+    mast_method: Literal["glm", "glmer", "bayesglm"] = "bayesglm",
+    parallel: bool = True,
+    formula: str = "~condition",
     get_results: bool = True,
     key_added: str = "rank_genes_condition",
-) -> pd.DataFrame | None:
+) -> None | pd.DataFrame:
     """Run DGE Analysis.
 
     Run differential expression analysis. Besides the methods implemented in scanpy (wilcoxon, t-test, logreg and
     t-test_overestim_var), the `MAST <https://genomebiology.biomedcentral.com/articles/10.1186/s13059-015-0844-5>`_
-    test can be used. If subset_by is provided the DGE analysis will be run over each
-    category. Benjamini-hochberg correction method is used for multiple testing.
+    test can be used. If subset_by is provided the DGE analysis will be run over each group.
+    Benjamini-Hochberg correction method is used for multiple testing.
 
     After running DGE analysis and if path is provided an ExcelSheet will be generated with 3 sheets: 1) AllGenes
     containing all the genes, 2) UpregGenes containing upregulated genes and 3) DownregGenes containing downregulated
     genes. The up- and down-regulated genes are filtered depending on the pval_cutoff and log2fc_cutoff. The results will
     be saved in the uns attribute under `rank_genes_condition`.
 
-    :param adata: annotated data matrix.
-    :param groupby: obs column with condition to test for.
-    :param subset_by: obs column to subset by.  (e.g., column name with cell-type annotation)
-    :param reference: reference condition.
-    :param groups: alternative conditions to test for.
-    :param method: method to test. Available: wilcoxon, mast, t-test, logreg and t-test_overestim_var.
-    :param pval_cutoff: p-value cutoff.
-    :param log2fc_cutoff: log2 foldchange cutoff.
-    :param path: path to save ExcelSheet.
-    :param filename: name of the ExcelSheet.
-    :param layer: layer of the AnnData to use.
-    :param covariates: extra covariates to correct for in the MAST test.
-    :param get_results: return a dataframe with results.
-    :param key_added:  key to use in uns.
-    :return: Returns a `DataFrame` if `get_results` is set to True with the results from the differential expression
-             analysis. If a path is provided, the DataFrame  will be saved under the specified path. The following fields are included:
+    :param adata: Annotated data matrix.
+    :param groupby: Column in `obs` with conditions to test.
+    :param subset_by: Column in `obs` to subset by.  (e.g., column with cell-type annotation)
+    :param reference: Reference condition.
+    :param groups: Alternative conditions.
+    :param method: Method to test.
+    :param pval_cutoff: P-value cutoff to filter when generating the ExcelSheet.
+    :param log2fc_cutoff: log2 foldchange cutoff to filter when generating the ExcelSheet.
+    :param path: Path to save ExcelSheet.
+    :param filename: Name of the ExcelSheet.
+    :param layer: Layer of the AnnData to use.
+    :param covariates: list with extra covariates to correct for in the MAST test.
+    :param n_cpus: Number of threads to use for the MAST test.
+    :param mast_method: Method available in `MAST.zlm´.
+    :param parallel: Parallelize the inference for MAST.
+    :param formula: Formula for the MAST test.
+    :param get_results: Return a dataframe with results.
+    :param key_added: Key to use in uns.
+    :return: Returns a `DataFrame` if `get_results` is set to `True` with the results from the differential expression
+             analysis. If a path is provided, the DataFrame  will be saved under the specified path.
+             The following fields are included:
 
              `GeneName`
                 Name of the genes
              `pvals` and  `padj`
                 The adjusted p-value uses Benjamini-Hochberg correction method.
              `log2fc`
-                Log2FoldChamge
+                Log2FoldChange
              `pts_ref` and `pts_group`
                 Percentage of cells in the reference in the disease group expressing the gene
              `groups`
@@ -217,12 +161,9 @@ def rank_genes_condition(
     if layer is not None:
         adata_copy.X = adata_copy.layers[layer].copy()
 
-    if groups is not None:
-        groups = [groups] if isinstance(groups, str) else groups
-    else:
-        groups = list(adata_copy.obs[groupby].unique())
-        if reference != "rest":
-            groups.remove(reference)
+    groups = list(adata_copy.obs[groupby].unique()) if groups is None else iterase_input(groups)
+    if reference in groups:
+        groups.remove(reference)
 
     if subset_by:
         categories = list(adata_copy.obs[subset_by].cat.categories)
@@ -231,7 +172,8 @@ def rank_genes_condition(
             logger.info(f"Running DGEs for {catg}.")
             sdata = adata_copy[adata_copy.obs[subset_by] == catg]
             dge_s = _run_test(
-                sdata, method=method, groupby=groupby, reference=reference, groups=groups, covariates=covariates
+                sdata, method=method, groupby=groupby, reference=reference, groups=groups, covariates=covariates,
+                n_cpus = n_cpus, mast_method = mast_method, parallel = parallel, formula = formula
             )
             if dge_s is None:
                 continue
@@ -240,7 +182,8 @@ def rank_genes_condition(
     else:
         logger.info("Running DGEs.")
         dge = _run_test(
-            adata_copy, method=method, groupby=groupby, reference=reference, groups=groups, covariates=covariates
+            adata_copy, method=method, groupby=groupby, reference=reference, groups=groups, covariates=covariates,
+            n_cpus=n_cpus, mast_method=mast_method, parallel=parallel, formula=formula
         )
 
     adata.uns[key_added] = dge  # Save inplace
@@ -252,10 +195,10 @@ def rank_genes_condition(
             for case in groups:
                 dge_up = dge[
                     (dge["padj"] < pval_cutoff) & (dge["log2fc"] > log2fc_cutoff) & (dge[dge["group"] == case])
-                ]
+                    ]
                 dge_down = dge[
                     (dge["padj"] < pval_cutoff) & (dge["log2fc"] < -log2fc_cutoff) & (dge[dge["group"] == case])
-                ]
+                    ]
 
                 dge_up.to_excel(writer, sheet_name=f"UpregGenes_{case}", index=False)
                 dge_down.to_excel(writer, sheet_name=f"DownregGenes_{case}", index=False)
@@ -270,11 +213,13 @@ def grouped_ttest(
     annot_key: str = "annotation",
     cond_key: str = "condition",
     batch_key: str = "batch",
+    reference: str = "rest",
+    groups: str | list = None,
     equal_var: bool = True,
     key_added: str = "grouped_ttest",
     layer: str = None,
     get_results: bool = False,
-) -> pd.DataFrame | None:
+) -> None | pd.DataFrame :
     """Calculate grouped t-test.
 
     This function calculate a grouped t-test for all the genes in each group in annot_key. For each gene,
@@ -283,52 +228,65 @@ def grouped_ttest(
     t-test will be computed for A-Vs-B; A-Vs-C and B-Vs-C). Results are saved as a dataframe in the
     uns attribute.
 
-    :param adata: annotated data matrix.
-    :param annot_key: obs column name with the cell type annotation.
-    :param cond_key: obs column name with the conditions.
-    :param batch_key: obs column name with the sample IDs.
-    :param equal_var: If set to true, assume equal variance for both populations tested.
-    :param key_added: key to use in uns.
-    :param layer: layer of the anndata object to use.
-    :param get_results: return a dataframe with results.
-    :return: Returns a `DataFrame` if `get_results` is set to True with the results from the differential expression analysis.
-             The `DataFrame` with the results are also saved in the AnnData in `adata.uns['grouped_ttest' | key_added]`.
+    :param adata: Annotated data matrix.
+    :param annot_key: Column in `obs` with the cell type annotation.
+    :param cond_key: Column in `obs` with the conditions.
+    :param batch_key: Column in `obs`  with the sample IDs.
+    :param reference: Reference condition.
+    :param groups: Alternative conditions.
+    :param equal_var: If set to `True`, assume equal variance for both populations tested.
+    :param key_added: Key to use in uns.
+    :param layer: Layer of the AnnData object to use.
+    :param get_results: Return a DataFrame with the results.
+
+    Returns
+    -------
+    Returns a `DataFrame` if `get_results` is set to `True` with the results from the differential expression
+    analysis. The `DataFrame` with the results are also saved in the AnnData in:
+
+    `adata.uns['grouped_ttest' | key_added]`.
 
     See Also
     --------
         :func:`dotools_py.tl.rank_genes_groups`: run DEA at single-cell level between condition for all genes
 
     """
+    from scipy.stats import ttest_ind
+
     if layer is not None:
         adata.X = adata.layers[layer].copy()  # Select the specified layer
+    groups = iterase_input(groups)
 
     main_df = pd.DataFrame([])
     for cell in adata.obs[annot_key].unique():
         subset = adata[adata.obs[annot_key] == cell]  # Select a cell type
-        df_expr = mean_expr(subset, [annot_key, cond_key, batch_key], layer=layer)  # Compute average expression
+        df_expr = mean_expr(subset, [annot_key, cond_key, batch_key], layer=layer)  # Mean vals in log space
 
-        cond_comb = [
-            comb for comb in itertools.combinations(adata.obs[cond_key].unique(), 2)
-        ]  # Get all conditions combinations
+        if reference == "rest":
+            cond_comb = [
+                comb for comb in itertools.combinations(adata.obs[cond_key].unique(), 2)
+            ]  # Get all conditions combinations
+        else:
+            groups = groups if len(groups) != 0 else iterase_input(adata.obs[cond_key].unique())
+            if reference in groups:
+                groups.remove(reference)
+            cond_comb = [(reference, g) for g in groups]
 
         # Compute t-test for all possible combinations
         for comb in cond_comb:
-            df_a = df_expr[df_expr["group1"] == comb[0]]
-            df_b = df_expr[df_expr["group1"] == comb[1]]
+            df_a = df_expr[df_expr[cond_key] == comb[0]]
+            df_b = df_expr[df_expr[cond_key] == comb[1]]
 
-            df_a_wide = df_a.pivot(index="gene", values="expr", columns="group2")
-            df_b_wide = df_b.pivot(index="gene", values="expr", columns="group2")
+            df_a_wide = df_a.pivot(index="gene", values="expr", columns=batch_key)
+            df_b_wide = df_b.pivot(index="gene", values="expr", columns=batch_key)
 
             p_values = pd.DataFrame(df_a_wide.index, columns=["gene"])
-            p_values["statistic"] = pd.DataFrame(ttest_ind(df_a_wide, df_b_wide, axis=1, equal_var=equal_var)[0])
-            p_values["pval"] = pd.DataFrame(ttest_ind(df_a_wide, df_b_wide, axis=1, equal_var=equal_var)[1])
+            p_values["statistic"] = pd.DataFrame(ttest_ind(df_a_wide, df_b_wide, axis=1, equal_var=equal_var)[0]).fillna(0)
+            p_values["pval"] = pd.DataFrame(ttest_ind(df_a_wide, df_b_wide, axis=1, equal_var=equal_var)[1]).fillna(1)
             p_values["condition"] = "-Vs-".join(comb)
             p_values["annotation"] = cell
 
             main_df = pd.concat([main_df, p_values], axis=0)
-
-    main_df["pval"] = main_df["pval"].fillna(1)
-    main_df["statistic"] = main_df["statistic"].fillna(0)
 
     adata.uns[key_added] = main_df
     if get_results:
@@ -347,8 +305,8 @@ def go_analysis(
     path: str = None,
     filename: str = "",
     specie: Literal["Mouse", "Human"] = "Mouse",
-    go_catgs: str | list = ["GO_Molecular_Function_2023", "GO_Cellular_Component_2023", "GO_Biological_Process_2023"],
-) -> pd.DataFrame | None:
+    go_catgs: str | list = ("GO_Molecular_Function_2023", "GO_Cellular_Component_2023", "GO_Biological_Process_2023"),
+) -> None | pd.DataFrame:
     """Run Gene Ontology using EnrichR API.
 
     Perform gene ontology analysis base on the `EnrichR <https://maayanlab.cloud/Enrichr/>`_ interface.
@@ -365,7 +323,9 @@ def go_analysis(
     :param go_catgs: Gene Ontology Classes to use
     :return: Return a `DataFrame` with Gene Ontology Analysis results. If a path is provided the results will be saved.
     """
-    go_catgs = [go_catgs] if isinstance(go_catgs, str) else go_catgs
+    import gseapy
+
+    go_catgs = iterase_input(go_catgs)
 
     logger.info("Running GSA on Up- and Down-regulated genes")
     df_up = df[(df[pval_key] < pval_cutoff) & (df[log2fc_key] > log2fc_cutoff)]
@@ -385,148 +345,6 @@ def go_analysis(
         return res
 
 
-def pseudobulking(
-    adata: ad.AnnData,
-    batch_key: str,
-    cluster_key: str,
-    keep_metadata: list = None,
-    min_cells: int = 10,
-    pseudobulk_approach: Literal["sum", "mean"] = "sum",
-    technical_replicates: int = 1,
-    min_counts: int = 10,
-    layer: str = None,
-    workers: int = 5,
-) -> ad.AnnData:
-    """Generate pseudobulk AnnData of clusters.
-
-    Generate a pseudobulk AnnData for each cluster, the input is expected to be raw counts. To generate
-    the pseudobulk AnnData object two modes for aggregating the counts can be used: `sum` or `mean`. Additionally,
-    pseudo-replicates can be generated if specified.
-
-    :param adata: Annotated data matrix.
-    :param batch_key: Metadata column in `obs` with batch groups.
-    :param cluster_key: Metadata column in `obs` with cluster groups.
-    :param keep_metadata: Metadata in `obs` to keep. If more than one value is available for a group the first one is taken.
-    :param min_cells: Minimum number of cells in a cluster for each sample in order to generate a pseudobulk.
-                      If the cluster has less it will be excluded.
-    :param pseudobulk_approach: Mode of aggregations.
-    :param technical_replicates: Number of technical replicates to generate.
-    :param min_counts: Minimum number of counts for a gene to be included.
-    :param layer: Layer to use.
-    :param workers: Number of theads to use to parallelize the pseudo-bulking
-    :return: AnnData with pseudobulk counts for each cluster.
-
-    Example
-    -------
-    >>> import dotools_py as do
-    >>> adata = do.dt.example_10x_processed()
-    >>> pdata = do.tl.pseudobulking(adata, batch_key="batch", cluster_key="annotation")
-    Pseudo-bulked groups: 100%|██████████| 10/10 [00:08<00:00,  1.19it/s]
-    OMP: Info #276: omp_set_nested routine deprecated, please use omp_set_max_active_levels instead.
-    2025-08-01 16:41:13,927 - Removed 796 genes for having less than 10 total counts
-    >>> pdata
-    AnnData object with n_obs × n_vars = 7 × 1055
-        obs: 'annotation', 'batch', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'pct_counts_in_top_50_genes', 'pct_counts_in_top_100_genes', 'pct_counts_in_top_200_genes', 'pct_counts_in_top_500_genes'
-        var: 'n_cells_by_counts', 'mean_counts', 'log1p_mean_counts', 'pct_dropout_by_counts', 'total_counts', 'log1p_total_counts'
-
-    """
-    import polars as pl
-    from joblib import Parallel, delayed
-    import scipy.sparse as sp
-    import gc
-    import multiprocessing
-
-    keep_metadata = [] if keep_metadata is None else keep_metadata
-    keep_metadata = [keep_metadata] if isinstance(keep_metadata, str) else keep_metadata
-    keep_metadata = keep_metadata + [cluster_key, batch_key]
-
-    # Define the groups to pseudo-bulk
-    groups = adata.obs[[cluster_key, batch_key]]
-    groups = groups.groupby([cluster_key, batch_key])
-    groups = groups.groups
-
-    # Create dictionary to specify how to pseudobulk
-    aggregate_info = dict.fromkeys(adata.var_names, pseudobulk_approach)
-    aggregate_info.update(dict.fromkeys(keep_metadata, "first"))
-    del aggregate_info[batch_key]
-    agg_exprs = [getattr(pl.col(col), func)().alias(col) for col, func in aggregate_info.items()]
-
-    def _process_group(
-        cluster: str,
-        batch: str,
-        bcs: list
-    ) -> pl.DataFrame | None:
-        sdata = adata[adata.obs_names.isin(bcs), :]
-
-        if sdata.n_obs < min_cells:
-            logger.info(f"Excluding {cluster} in {batch} for having less than {min_cells}")
-            return None
-
-        if technical_replicates == 1:
-            mtx = sdata.to_df(layer=layer)
-            mtx[keep_metadata] = sdata.obs[keep_metadata].values
-            mtx_pl = pl.from_pandas(mtx).group_by(batch_key).agg(agg_exprs)
-        else:
-            # Generate technical replicates
-            random.shuffle(bcs)
-            idx = np.array_split(np.array(bcs), technical_replicates)
-            mtx_pl = None
-            for i, replicate in enumerate(idx):
-                batch_replicate = sdata[replicate, :]
-                mtx = batch_replicate.to_df(layer=layer)
-                mtx[keep_metadata] = batch_replicate.obs[keep_metadata].values
-
-                mtx_pl_tmp = pl.from_pandas(mtx)
-
-                # mtx_pl_tmp[batch_key] = mtx_pl_tmp[batch_key] + "_" + str(i)
-
-                mtx_pl_tmp = mtx_pl_tmp.with_columns((pl.col(batch_key) + "_" + pl.lit(str(i))).alias(batch_key)).group_by(batch_key).agg(agg_exprs)
-                if mtx_pl is None:
-                    mtx_pl = mtx_pl_tmp
-                else:
-                    mtx_pl = pl.concat([mtx_pl, mtx_pl_tmp], how="vertical")
-                # mtx_pl = pl.concat([mtx_pl_tmp, mtx_pl], how="vertical")
-        gc.collect()
-        return mtx_pl
-
-
-    # Process groups in parallel
-    with Parallel(n_jobs=workers, backend="loky") as parallel:
-        results = parallel(
-            delayed(_process_group)(cluster, batch, list(bcs))
-            for (cluster, batch), bcs in tqdm(groups.items(), desc="Pseudo-bulked groups")
-        )
-
-    # Kill any active threads
-    for p in multiprocessing.active_children():
-        p.terminate()
-
-    #results = Parallel(n_jobs=workers)(
-    #    delayed(_process_group)(cluster, batch, list(bcs))
-    #    for (cluster, batch), bcs in tqdm(groups.items(), desc="Pseudo-bulked groups")
-    #)
-
-    # Generate the pseudo-bulked AnnData
-    df_main = [res for res in results if res is not None]
-    df_main = pl.concat(df_main, how="vertical")
-    df_main = df_main.to_pandas()
-    df_main = df_main.fillna(0)  # Make sure we do not have NaNs
-
-    pdata = ad.AnnData(df_main[adata.var_names], obs=df_main[keep_metadata])
-    pdata.obs_names = ['psBC-' + str(idx) for idx in range(pdata.n_obs)]
-    pdata.var_names_make_unique()
-    pdata.X = np.nan_to_num(pdata.X, nan=0)
-    if not sp.isspmatrix_csr(pdata.X):
-        pdata.X = sp.csr_matrix(pdata.X)
-
-    # Remove genes that have low amount of counts
-    sc.pp.calculate_qc_metrics(pdata, inplace=True)
-    n_vars = pdata.n_vars
-    pdata = pdata[:, pdata.var.total_counts > min_counts].copy()
-    n_vars = n_vars - pdata.n_vars
-    logger.info(f"Removed {n_vars} genes for having less than {min_counts} total counts")
-    return pdata
-
 
 def rank_genes_pseudobulk(
     adata: ad.AnnData,
@@ -543,11 +361,11 @@ def rank_genes_pseudobulk(
     technical_replicates: int = 1,
     min_counts: int = 10,
     workers: int = 8,
-    path: str = None,
+    path: str | None = None,
     filename: str = "DEA_Pseudobulk.xlsx",
     get_results: bool = True,
     key_added: str = "rank_genes_pseudobulk",
-) -> pd.DataFrame | None:
+) -> None | pd.DataFrame:
     """Running DEA using pseudobulk approach.
 
     Perform differential expression analysis (DEA) using DESeq2 or EdgeR. This functions has a similar behavior as
@@ -584,7 +402,9 @@ def rank_genes_pseudobulk(
         :func:`dotools_py.tl.rank_genes_consensus`: run DEA at pseudobulk and single-cell level between condition for all clusters
 
     """
-    import multiprocessing
+    from pydeseq2.dds import DeseqDataSet
+    from pydeseq2.default_inference import DefaultInference
+    from pydeseq2.ds import DeseqStats
 
     # Step 1 - Generate Pseudo-bulk data
     logger.info("Generating Pseudo-bulk data")
@@ -600,6 +420,7 @@ def rank_genes_pseudobulk(
         keep_metadata=[condition_key],
         workers=workers
     )
+
     sanitize_anndata(pdata_cts)
 
     # Step 2 - Run test
@@ -624,10 +445,6 @@ def rank_genes_pseudobulk(
                 df_main = pd.concat([df_main, results])
             except ValueError as e:
                 logger.info(f"Test could not be computed for {ct} due to {e}")
-
-        # Kill any active threads
-        # for p in multiprocessing.active_children():
-        #    p.terminate()
 
     elif method == "edger":
         logger.info("Run edgeR")
@@ -696,7 +513,7 @@ def rank_genes_consensus(
     pval_cutoff: float = 0.05,
     get_results: bool = True,
     key_added: str = "rank_genes_consensus",
-) -> pd.DataFrame | None:
+) -> None | pd.DataFrame :
     """Run single-cell and pseudo-bulk differential expression analysis.
 
     This function performs differential gene expression analysis between two conditions for
@@ -772,7 +589,7 @@ def rank_genes_consensus(
         min_counts=min_counts,
         pseudobulk_approach=pseudobulk_approach,
         technical_replicates=technical_replicates,
-        n_cpus=workers,
+        workers=workers,
     )
     logger.info("Generating consensus DataFrame")
 
@@ -859,9 +676,9 @@ def rank_genes_consensus(
 
     # Mean per cluster for each sample correct
     df_mean = mean_expr(adata, group_by=[batch_key, cluster_key], features=list(adata.var_names))
-    df_mean["group0"] = "MeanExpr_" + df_mean["group0"].astype(str)
-    df_mean = df_mean.pivot(index=["gene", "group1"], columns="group0", values="expr").reset_index()
-    df_mean.rename(columns={"gene": "GeneName", "group1": cluster_key}, inplace=True)
+    df_mean["group0"] = "MeanExpr_" + df_mean["group0"].astype(str)  # TODO Update
+    df_mean = df_mean.pivot(index=["gene", "group1"], columns="group0", values="expr").reset_index()  # TODO Update
+    df_mean.rename(columns={"gene": "GeneName", "group1": cluster_key}, inplace=True)  # TODO Update
     df_mean = df_mean.reset_index(drop=True)
 
     df_consensus = df_consensus.merge(df_mean, on=["GeneName", cluster_key])
