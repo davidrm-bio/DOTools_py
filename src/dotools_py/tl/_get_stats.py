@@ -676,9 +676,9 @@ def rank_genes_consensus(
 
     # Mean per cluster for each sample correct
     df_mean = mean_expr(adata, group_by=[batch_key, cluster_key], features=list(adata.var_names))
-    df_mean["group0"] = "MeanExpr_" + df_mean["group0"].astype(str)  # TODO Update
-    df_mean = df_mean.pivot(index=["gene", "group1"], columns="group0", values="expr").reset_index()  # TODO Update
-    df_mean.rename(columns={"gene": "GeneName", "group1": cluster_key}, inplace=True)  # TODO Update
+    df_mean["group0"] = "MeanExpr_" + df_mean[batch_key].astype(str)
+    df_mean = df_mean.pivot(index=["gene", cluster_key], columns=batch_key, values="expr").reset_index()
+    df_mean.rename(columns={"gene": "GeneName", cluster_key: cluster_key}, inplace=True)
     df_mean = df_mean.reset_index(drop=True)
 
     df_consensus = df_consensus.merge(df_mean, on=["GeneName", cluster_key])
