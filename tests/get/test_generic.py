@@ -114,3 +114,13 @@ def test_get_dge_table():
     assert cols.issubset(table.columns)
 
     return None
+
+
+def test_pseudobulk():
+    adata = do.dt.example_10x_processed()
+
+    pdata = do.get.pseudobulk(adata, "condition", "annotation", min_cells=0, min_counts=0)
+
+    assert isinstance(pdata, ad.AnnData)
+    assert pdata.n_obs == 10
+    return None
