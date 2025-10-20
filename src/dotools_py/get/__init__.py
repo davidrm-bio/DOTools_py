@@ -3,4 +3,5 @@ from dotools_py.get._generic import (expr,
                                      dge_results,
                                      subset,
                                      log2fc,
-                                     pcts_cells)
+                                     pcts_cells,
+                                     pseudobulk)

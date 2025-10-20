@@ -1,11 +1,15 @@
 from typing import Literal
 import operator
+from tqdm import tqdm
+import random
 
 import anndata as ad
 import pandas as pd
 import numpy as np
 from numba import njit
 import scipy as sp
+
+from dotools_py import logger
 from dotools_py.utility._general import free_memory
 from dotools_py.utils import sanitize_anndata, iterase_input, check_missing
 from dotools_py.settings._global_parameters import FAST_ARRAY_UTILS
@@ -467,3 +471,145 @@ def pcts_cells(adata,
     df_pct.reset_index(inplace=True)
     df_pct.rename(columns={"index":"genes"}, inplace=True)
     return df_pct
+
+
+def pseudobulk(
+    adata: ad.AnnData,
+    batch_key: str,
+    cluster_key: str,
+    keep_metadata: list = None,
+    min_cells: int = 10,
+    pseudobulk_approach: Literal["sum", "mean"] = "sum",
+    technical_replicates: int = 1,
+    min_counts: int = 10,
+    layer: str = None,
+    workers: int = 5,
+) -> ad.AnnData:
+    """Generate pseudobulk AnnData of clusters.
+
+    Generate a pseudobulk AnnData for each cluster, the input is expected to be raw counts. To generate
+    the pseudobulk AnnData object two modes for aggregating the counts can be used: `sum` or `mean`. Additionally,
+    pseudo-replicates can be generated if specified.
+
+    :param adata: Annotated data matrix.
+    :param batch_key: Metadata column in `obs` with batch groups.
+    :param cluster_key: Metadata column in `obs` with cluster groups.
+    :param keep_metadata: Metadata in `obs` to keep. If more than one value is available for a group the first one is taken.
+    :param min_cells: Minimum number of cells in a cluster for each sample in order to generate a pseudobulk.
+                      If the cluster has less it will be excluded.
+    :param pseudobulk_approach: Mode of aggregations.
+    :param technical_replicates: Number of technical replicates to generate.
+    :param min_counts: Minimum number of counts for a gene to be included.
+    :param layer: Layer to use.
+    :param workers: Number of theads to use to parallelize the pseudo-bulking
+    :return: AnnData with pseudobulk counts for each cluster.
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> pdata = do.get.pseudobulk(adata, batch_key="batch", cluster_key="annotation")
+    Pseudo-bulked groups: 100%|██████████| 10/10 [00:08<00:00,  1.19it/s]
+    OMP: Info #276: omp_set_nested routine deprecated, please use omp_set_max_active_levels instead.
+    2025-08-01 16:41:13,927 - Removed 796 genes for having less than 10 total counts
+    >>> pdata
+    AnnData object with n_obs × n_vars = 7 × 1055
+        obs: 'annotation', 'batch', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'pct_counts_in_top_50_genes', 'pct_counts_in_top_100_genes', 'pct_counts_in_top_200_genes', 'pct_counts_in_top_500_genes'
+        var: 'n_cells_by_counts', 'mean_counts', 'log1p_mean_counts', 'pct_dropout_by_counts', 'total_counts', 'log1p_total_counts'
+
+    """
+    import polars as pl
+    from joblib import Parallel, delayed
+    import scipy.sparse as sp
+    import gc
+    import scanpy as sc
+
+    keep_metadata = [] if keep_metadata is None else keep_metadata
+    keep_metadata = [keep_metadata] if isinstance(keep_metadata, str) else keep_metadata
+    keep_metadata = keep_metadata + [cluster_key, batch_key]
+
+    # Define the groups to pseudo-bulk
+    groups = adata.obs[[cluster_key, batch_key]]
+    groups = groups.groupby([cluster_key, batch_key])
+    groups = groups.groups
+
+    # Create dictionary to specify how to pseudobulk
+    aggregate_info = dict.fromkeys(adata.var_names, pseudobulk_approach)
+    aggregate_info.update(dict.fromkeys(keep_metadata, "first"))
+    del aggregate_info[batch_key]
+    agg_exprs = [getattr(pl.col(col), func)().alias(col) for col, func in aggregate_info.items()]
+
+    def _process_group(
+        cluster: str,
+        batch: str,
+        bcs: list
+    ) -> pl.DataFrame | None:
+        sdata = adata[adata.obs_names.isin(bcs), :]
+
+        if sdata.n_obs < min_cells:
+            logger.info(f"Excluding {cluster} in {batch} for having less than {min_cells}")
+            return None
+
+        if technical_replicates == 1:
+            mtx = sdata.to_df(layer=layer)
+            mtx[keep_metadata] = sdata.obs[keep_metadata].values
+            mtx_pl = pl.from_pandas(mtx).group_by(batch_key).agg(agg_exprs)
+        else:
+            # Generate technical replicates
+            random.shuffle(bcs)
+            idx = np.array_split(np.array(bcs), technical_replicates)
+            mtx_pl = None
+            for i, replicate in enumerate(idx):
+                batch_replicate = sdata[replicate, :]
+                mtx = batch_replicate.to_df(layer=layer)
+                mtx[keep_metadata] = batch_replicate.obs[keep_metadata].values
+
+                mtx_pl_tmp = pl.from_pandas(mtx)
+
+                # mtx_pl_tmp[batch_key] = mtx_pl_tmp[batch_key] + "_" + str(i)
+
+                mtx_pl_tmp = mtx_pl_tmp.with_columns(
+                    (pl.col(batch_key) + "_" + pl.lit(str(i))).alias(batch_key)).group_by(batch_key).agg(agg_exprs)
+                if mtx_pl is None:
+                    mtx_pl = mtx_pl_tmp
+                else:
+                    mtx_pl = pl.concat([mtx_pl, mtx_pl_tmp], how="vertical")
+                # mtx_pl = pl.concat([mtx_pl_tmp, mtx_pl], how="vertical")
+        gc.collect()
+        return mtx_pl
+
+    # Process groups in parallel
+    with Parallel(n_jobs=workers, backend="loky") as parallel:
+        results = parallel(
+            delayed(_process_group)(cluster, batch, list(bcs))
+            for (cluster, batch), bcs in tqdm(groups.items(), desc="Pseudo-bulked groups")
+        )
+
+    # Generate the pseudo-bulked AnnData
+    df_main = [res for res in results if res is not None]
+    df_main = pl.concat(df_main, how="vertical")
+    df_main = df_main.to_pandas()
+    df_main = df_main.fillna(0)  # Make sure we do not have NaNs
+
+    pdata = ad.AnnData(df_main[adata.var_names], obs=df_main[keep_metadata])
+    pdata.obs_names = ['psBC-' + str(idx) for idx in range(pdata.n_obs)]
+    pdata.var_names_make_unique()
+    pdata.X = np.nan_to_num(pdata.X, nan=0)
+    if not sp.isspmatrix_csr(pdata.X):
+        pdata.X = sp.csr_matrix(pdata.X)
+
+    # Remove genes that have low amount of counts
+    sc.pp.calculate_qc_metrics(pdata, inplace=True)
+    n_vars = pdata.n_vars
+    pdata = pdata[:, pdata.var.total_counts > min_counts].copy()
+    n_vars = n_vars - pdata.n_vars
+    logger.info(f"Removed {n_vars} genes for having less than {min_counts} total counts")
+    return pdata
+
+
+
+
+
+
+
+
