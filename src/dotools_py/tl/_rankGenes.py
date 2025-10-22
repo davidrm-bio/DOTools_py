@@ -833,7 +833,7 @@ def rank_genes_groups(
     See Also
     --------
         :func:`dotools_py.tl.grouped_ttest`: run DEA at pseudobulk level between condition for all genes
-        :func:`dotools_py.tl.MastTest`: run MAST test
+        :class:`dotools_py.tl.MastTest`: run MAST test
     """
     if mask_var is not None:
         mask_var = _check_mask(adata, mask_var, "var")
