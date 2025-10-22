@@ -3,7 +3,6 @@ import subprocess
 
 import anndata as ad
 import numpy as np
-import scanpy as sc
 
 from dotools_py import logger
 from dotools_py.utils import convert_path, get_paths_utils
@@ -86,6 +85,8 @@ def run_cellbender(
     >>> out_path = "/path/to/output"
     >>> do.pp.run_cellbender(in_path, out_path)
     """
+    import scanpy as sc
+
     # Check-Ups and Information
     samplenames = [samplenames] if isinstance(samplenames, str) else samplenames
     assert os.path.exists(cellranger_path), f"{cellranger_path} does not exist"

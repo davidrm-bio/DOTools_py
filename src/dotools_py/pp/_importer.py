@@ -7,11 +7,9 @@ from pathlib import Path
 from typing import Literal
 
 import anndata as ad
-import doubletdetection
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import polars
 import scanpy as sc
 import seaborn as sns
 
@@ -22,7 +20,7 @@ from dotools_py.utils import convert_path, get_paths_utils
 def _qc_vln(
     adata: ad.AnnData,
     title: str = "ViolinPlots - Quality Metrics",
-    path: [str, None] = None,
+    path: str | None = None,
     filename: str = "ViolinPlots.png",
     stats: list = ("total_counts", "n_genes_by_counts", "pct_counts_mt"),
     colors: str | list = "lightsteelblue",
@@ -98,6 +96,8 @@ def _run_scdblfinder(
     :param batch_key: `.obs` column name with batch information. Required if the anndata contain more than 1 sample.
     :return:
     """
+    import polars
+
     logger.info("Finding Neotypic doublets")
     rscript = get_paths_utils("_run_scDblFinder.R")
     tmpdir_path = Path("/tmp") / f"scDblFinder_{uuid.uuid4().hex}"
@@ -177,7 +177,7 @@ def _qc_scrna(
     :param min_counts: minimum number of counts per cell.
     :param max_counts: maximum number of counts per cell.
     :param min_genes: minimum number of genes per cell.
-    :param max_genes: maxinum number of genes per cell.
+    :param max_genes: maximum number of genes per cell.
     :param low_quantile: low quantile to filter genes and counts.
     :param high_quantile: upper quantile to filter genes and counts.
     :param include_rbs: calculate stats for ribosomal genes.
@@ -186,6 +186,8 @@ def _qc_scrna(
     :param metrics: whether to generate a metrics file or not.
     :return: annotated dt matrix
     """
+    import doubletdetection
+
     # Create a metrics file
     today = date.today().strftime("%y%m%d")
     metrics_filename = f"{today}_Metrics_{ids}.xlsx"
@@ -391,7 +393,7 @@ def importer_py(
     :param max_genes: maximum number of genes per cell.
     :param low_quantile: low quantile to filter cells based on counts.
     :param high_quantile: upper quantile to filter cells based on counts.
-    :return: Annotated data matrix of shape `n_obs` x `n_vars` with all the samples concatenated.
+    :return: Returns an Annotated data matrix of shape `n_obs` x `n_vars` with all the samples concatenated.
 
     Example
     -------
@@ -484,7 +486,7 @@ def importer_py(
     return adata_concat
 
 
-def sctransform_normalise(adata: ad.AnnData, batch_key: str = None, layer=None) -> None:
+def sctransform_normalise(adata: ad.AnnData, batch_key: str = None, layer: str = None) -> None:
     """Normalisation based on `SCTransform <https://github.com/satijalab/sctransform>`_.
 
     This function performs an alternative normalisation based on the SCTransform.
@@ -492,7 +494,7 @@ def sctransform_normalise(adata: ad.AnnData, batch_key: str = None, layer=None) 
     :param adata: AnnData object with counts in `X`.
     :param batch_key: obs metadata with batch information.
     :param layer: layer to use.
-    :return: The input AnnData object with have two new layers containing the SCT counts and SCT normalise data.
+    :return: Returns None. The input AnnData object will have two new layers containing the SCT counts and normalise data.
 
     Example
     ------
@@ -528,6 +530,7 @@ def sctransform_normalise(adata: ad.AnnData, batch_key: str = None, layer=None) 
     obsp: 'connectivities', 'distances'
     """
     from scipy import sparse
+    import polars
 
     rscript = get_paths_utils("_run_SCTransform.R")
     tmpdir_path = Path("/tmp") / f"SCTransform_{uuid.uuid4().hex}"
