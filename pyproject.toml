@@ -50,6 +50,7 @@ dependencies = [
   "tqdm",
   "scanpro",
   "numba",
+  "rpy2",
 ]
 
 # scanpro missing and failts if added here
@@ -108,7 +109,8 @@ optional-dependencies.test = [
   "scvi-tools",
   "seaborn",
   "tqdm",
-  "pyarrow"
+  "pyarrow",
+  "rpy2"
 ]
 # https://docs.pypi.org/project_metadata/#project-urls
 urls.Documentation = "https://DOTools_py.readthedocs.io/"
