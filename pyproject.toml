@@ -49,6 +49,7 @@ dependencies = [
   "session-info2",
   "tqdm",
   "scanpro",
+  "numba",
 ]
 
 # scanpro missing and failts if added here
@@ -90,6 +91,7 @@ optional-dependencies.doc = [
 optional-dependencies.test = [
   "adjusttext",
   "anndata",
+  "numba",
   "bbknn",
   "celltypist",
   "coverage",
@@ -185,6 +187,7 @@ addopts = [
 source = [ "dotools_py" ]
 omit = [
   "**/test_*.py",
+  "src/_exprimental/*"
 ]
 
 [tool.cruft]
