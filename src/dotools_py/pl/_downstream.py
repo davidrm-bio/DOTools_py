@@ -88,7 +88,7 @@ def expr_correlation(
 
     # Extract the Average Expression
     df = mean_expr(adata, group_by=group_by, features=list(adata.var_names))  # All Genes
-    df_pivot = df.pivot(index="gene", columns="group0", values="expr") # TODO Update
+    df_pivot = df.pivot(index="gene", columns=group_by, values="expr") # TODO Update
     df_corr = df_pivot.corr(method=method)
 
     # Define mask
