@@ -1,13 +1,9 @@
 from typing import Literal
-import operator
-from tqdm import tqdm
-import random
 
 import anndata as ad
 import pandas as pd
 import numpy as np
 from numba import njit
-import scipy as sp
 
 from dotools_py import logger
 from dotools_py.utility._general import free_memory
@@ -24,6 +20,8 @@ def _expm1_anndata(adata: ad.AnnData) -> None:
     :param adata: annotated data matrix
     :return: None, changes are inplace
     """
+    import scipy as sp
+
     if sp.sparse.issparse(adata.X):
         adata.X = adata.X.copy()
         adata.X.data = np.expm1(adata.X.data)
@@ -234,17 +232,28 @@ def dge_results(
     This function extract the results of the differential gene expression analysis results from the `uns`
     attribute of an AnnData object.
 
-    Parameters
-    ----------
-    adata
-        Annotated data matrix.
-    key
-        `uns` key with results.
+    :param adata: Annotated data matrix.
+    :param key: Key in `uns` with DGE results.
 
     Returns
     -------
     Returns a DataFrame with the results of the differential gene expression analysis generated from
     `rank_genes_groups`.
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> do.tl.rank_genes_groups(adata, groupby="condition")
+    >>> df = do.get.dge_results(adata)
+    >>> df.head(5)
+             group GeneName  wilcox_score  ...          padj  pts_group   pts_ref
+    0  disease   ZNF331     15.936105  ...  6.586861e-54   0.650000  0.096154
+    1  disease      EZR     15.871257  ...  9.274798e-54   0.866667  0.367308
+    2  disease     EIF1     14.823599  ...  6.361829e-47   0.994444  0.994231
+    3  disease     SRGN     14.721976  ...  2.155706e-46   0.922222  0.636538
+    4  disease     EGR1     12.330428  ...  1.916262e-32   0.316667  0.011538
+    [5 rows x 8 columns]
 
     """
     import scanpy as sc
@@ -304,7 +313,7 @@ def subset(adata: ad.AnnData,
     -------
     >>> import dotools_py as do
     >>> adata = do.dt.example_10x_processed()
-    >>> tcells = subset(adata, obs_key="annotation", obs_groups="T_cells")
+    >>> tcells = do.get.subset(adata, obs_key="annotation", obs_groups="T_cells")
     >>> tcells
     View of AnnData object with n_obs × n_vars = 464 × 1851
         obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo', 'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster'
@@ -314,7 +323,7 @@ def subset(adata: ad.AnnData,
         varm: 'PCs'
         layers: 'counts', 'logcounts'
         obsp: 'connectivities', 'distances'
-    >>> adata_subset = subset(adata, obs_key="total_counts", obs_groups=1000, comparison=">=", copy=True)
+    >>> adata_subset = do.get.subset(adata, obs_key="total_counts", obs_groups=1000, comparison=">=", copy=True)
     >>> adata_subset
     AnnData object with n_obs × n_vars = 699 × 1851
         obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo', 'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster'
@@ -326,6 +335,7 @@ def subset(adata: ad.AnnData,
         obsp: 'connectivities', 'distances'
 
     """
+    import operator
 
     sanitize_anndata(adata)
     check_missing(adata, groups=obs_key, variables=var_key)
@@ -514,8 +524,11 @@ def pseudobulk(
     2025-08-01 16:41:13,927 - Removed 796 genes for having less than 10 total counts
     >>> pdata
     AnnData object with n_obs × n_vars = 7 × 1055
-        obs: 'annotation', 'batch', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'pct_counts_in_top_50_genes', 'pct_counts_in_top_100_genes', 'pct_counts_in_top_200_genes', 'pct_counts_in_top_500_genes'
-        var: 'n_cells_by_counts', 'mean_counts', 'log1p_mean_counts', 'pct_dropout_by_counts', 'total_counts', 'log1p_total_counts'
+        obs: 'annotation', 'batch', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts',
+             'log1p_total_counts', 'pct_counts_in_top_50_genes', 'pct_counts_in_top_100_genes',
+             'pct_counts_in_top_200_genes', 'pct_counts_in_top_500_genes'
+        var: 'n_cells_by_counts', 'mean_counts', 'log1p_mean_counts', 'pct_dropout_by_counts', 'total_counts',
+             'log1p_total_counts'
 
     """
     import polars as pl
@@ -523,6 +536,8 @@ def pseudobulk(
     import scipy.sparse as sp
     import gc
     import scanpy as sc
+    from tqdm import tqdm
+    import random
 
     keep_metadata = [] if keep_metadata is None else keep_metadata
     keep_metadata = [keep_metadata] if isinstance(keep_metadata, str) else keep_metadata
