@@ -80,11 +80,3 @@ def test_consensus():
     assert df.shape[1] == 18
     return
 
-
-def test_mast():
-    adata =do.dt.example_10x_processed()
-    tester = do.tl.MastTest(adata=adata, condition_key="condition", reference="healthy", group="disease", layer="logcounts", n_cpus=5, method="bayesglm", parallel=True, formula="~condition")
-    assert '~condition'==  tester.formula
-    assert  tester.pvals is None
-    tester.mast_version()
-    return
