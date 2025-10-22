@@ -1953,11 +1953,16 @@ def dotplot(
 
                         if len(table_filt) == 0:
                             logger.warn('No Significant group')
-                    except ZeroDivisionError as e:
+                    except Exception as e:
                         logger.warn(f'Error testing, {e}')
+                        table_filt = pd.DataFrame([], columns=['group', 'names', 'scores', 'logfoldchanges', 'pvals',
+                                                           'pvals_adj', 'pct_nz_group', 'pct_nz_reference'])
 
                 elif all(item in list(adata.obs.columns) for item in features):
                     raise Exception('Not Implemented')
+                else:
+                    raise Exception('Not a valid input')
+
             else:
                 if all(item in list(adata.var_names) for item in features):
                     table_filt = pd.DataFrame([])
@@ -1969,7 +1974,7 @@ def dotplot(
                             stable = sc.get.rank_genes_groups_df(
                                 sdata, group=None, pval_cutoff=pval_cutoff, log2fc_min=log2fc_cutoff
                             )
-                        except ZeroDivisionError as e:
+                        except Exception as e:
                             logger.warn(f'Error while testing: {e}')
                             # If there is only one condition in the group
                             stable = pd.DataFrame([], columns=['group', 'names', 'scores', 'logfoldchanges', 'pvals',
@@ -1982,9 +1987,10 @@ def dotplot(
                         logger.warn('No Significant group')
                 elif all(item in list(adata.obs.columns) for item in features):
                     raise Exception('Not Implemented')
+                else:
+                    raise Exception('Not a valid input')
 
             # Dataframe with gene x groups with the pvals
-            table_filt["group"] = table_filt["group"].str.replace("-", "_")  # Correction used in get_expr()
             if y_axis is not None:
                 table_filt["group2"] = table_filt["group2"].str.replace("-", "_")  # Correction used in get_expr()
 

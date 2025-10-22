@@ -19,7 +19,7 @@ def test_integrate():
         if key == "X_pca":
             continue
         del adata.obsm[key]
-    do.tl.integrate_data(adata, batch_key="batch", integration_method="bbknn")
+    do.tl.integrate_data(adata, batch_key="batch", integration_method="pca")
     assert "X_umap" in adata.obsm.keys()
 
     # scVI Integration
