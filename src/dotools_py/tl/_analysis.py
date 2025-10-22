@@ -8,6 +8,8 @@ import anndata as ad
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import scanpy as sc
+import scanpy.external as sce
 from tqdm import tqdm
 from scvi.model import SCVI
 
@@ -108,7 +110,7 @@ def _run_scvi(
     # Integration using only HVG
     hvg = adata[:, adata.var.highly_variable].copy()
 
-    # Set-up anndta and model
+    # Set-up anndata and model
     scvi.model.SCVI.setup_anndata(
         hvg,
         layer=layer_counts,
@@ -142,7 +144,8 @@ def integrate_data(
     adata,
     batch_key: str,
     hvg_batch: bool = True,
-    method: Literal["harmony", "scanorama", "bbknn", "cca4", "cca5", "scvi"] = "scvi",
+    integration_method: Literal["scanorama", "scvi", "cca4", "cca5", "harmony", "pca"] = "cca5",
+    bbknn: bool = False,
     resolution: float = 0.3,
     categorical_covariates: list = None,
     continuous_covariates: list = None,
@@ -167,7 +170,8 @@ def integrate_data(
     :param batch_key: Metadata column in `obs` with batch information.
     :param hvg_batch: If set to `True`, the highly variable genes shared across samples will be used for the
                      integration.
-    :param method: Integration method to use.
+    :param integration_method: Method to use for the integration.
+    :param bbknn: Use BBKNN to compute neighbors.
     :param resolution: Resolution for the leiden clustering.
     :param categorical_covariates: Categorical covariates for scVI.
     :param continuous_covariates: Continuous covariates for scVI.
@@ -224,35 +228,28 @@ def integrate_data(
     obsp: 'connectivities', 'distances'
 
     """
-    import bbknn as bkn
-    import scanpy as sc
-    import scanpy.external as sce
-
-    method = method.lower()
-    check_missing(adata, groups=batch_key)
-    hvg_batch = batch_key if hvg_batch else None
-
     logger.info("Computing HVGs")
+    hvg_batch = batch_key if hvg_batch else None
     sc.pp.highly_variable_genes(adata, batch_key=hvg_batch)
     hvg = adata[:, adata.var.highly_variable].copy()
     sc.pp.scale(hvg)
     sc.pp.pca(hvg)
 
-    dim_reduc, model = "X_pca", None
+    dim_reduc = "X_pca"
+    model = None
     neighbors_within_batch = 25 if adata.n_obs > 100_000 else 3  # Community recommendations
-    if method == "harmony":
+
+    if integration_method == "harmony":
         logger.info("Integration using Harmony")
         sce.pp.harmony_integrate(hvg, key=batch_key, max_iter_harmony=150)
         adata.obsm["X_harmony"] = hvg.obsm["X_pca_harmony"]
         dim_reduc = "X_harmony"
-    if method == "scanorama":
+    elif integration_method == "scanorama":
         logger.info("Integration using Scanorama")
         sce.pp.scanorama_integrate(hvg, key=batch_key)
         adata.obsm["X_scanorama"] = hvg.obsm["X_scanorama"]
         dim_reduc = "X_scanorama"
-    if method == "bbknn":
-        logger.info("Integration using BBKNN")
-    if method == "scvi":
+    elif  integration_method == "scvi":
         logger.info("Integration using scVI")
         model = _run_scvi(adata, batch_key=batch_key,
                           categorical_covariates=categorical_covariates,
@@ -261,20 +258,29 @@ def integrate_data(
                           **kwargs,
                           )
         dim_reduc = "X_scVI"
-    if method == "cca4":
+    elif  integration_method == "cca4":
         logger.info("Integration using CCA (Seurat v4 approach)")
         adata.obsm["X_CCA"] = _run_cca(hvg, batch_key, version="v4")
         logger.info("Using CCA matrix for PCA")
         hvg.X = adata.obsm["X_CCA"].copy()
         sc.pp.pca(hvg)
         adata.obsm["X_pca"] = hvg.obsm["X_pca"]
-    if method == "cca5":
+    elif  integration_method == "cca5":
         logger.info("Integration using CCA (Seurat v5 approach)")
         adata.obsm["X_CCA"] = _run_cca(hvg, batch_key, version="v5")
         dim_reduc = "X_CCA"
+    elif integration_method == "pca":
+        pass
+    else:
+        raise NotImplementedError("Not a valid method")
 
     logger.info("Finding neighbors")
-    bkn.bbknn(adata, batch_key=batch_key, neighbors_within_batch=neighbors_within_batch, use_rep=dim_reduc)
+
+    if bbknn:
+        logger.info("Computing neighbors with BBKNN")
+        sce.pp.bbknn(adata, use_rep=dim_reduc, neighbors_within_batch=neighbors_within_batch, batch_key=batch_key)
+    else:
+        sc.pp.neighbors(adata, use_rep=dim_reduc, random_state=42)
 
     logger.info("Run UMAP")
     sc.tl.umap(adata)
@@ -438,8 +444,9 @@ def reclustering(
     adata: ad.AnnData,
     cluster_key: str,
     batch_key: str,
-    recluster_apporach: Literal["cca4", "cca5", "harmony", "scanorama", "pca", "scvi", "bbknn"],
+    recluster_apporach: Literal["cca4", "cca5", "harmony", "scanorama", "pca", "scvi", "pca"],
     use_clusters: str | list | None = None,
+    bbknn: bool  =False,
     hvg_batch: bool = False,
     use_rep: str = None,
     resolution: float = 0.3,
@@ -475,6 +482,7 @@ def reclustering(
                          the re-clustering will be performed subsetting for all the clusters specified.
     :param hvg_batch: If set to `True`. The  highly variable genes that are shared across samples will be used.
     :param recluster_apporach: Reclustering approach to use.
+    :param bbknn: Use BBKNN to compute neighbors.
     :param use_rep: Name in `obsm` with the representation. Required for SCVI, CCA and Scanorama approach.
     :param resolution: Resolution for the leiden clustering.
     :param neighbors_batch: To compute the nearest neighbors distance matrix and a neighborhood graph of observations a
@@ -581,7 +589,7 @@ def reclustering(
         representation = "X_pca_harmony"
         adata_subset.obsm[representation] = adata_tmp.obsm[representation]
     # If bbknn was used, redo PCA
-    elif recluster_apporach.lower() == "bbknn":
+    elif recluster_apporach.lower() == "pca":
         logger.info("Reclustering using BBKNN approach")
         adata_tmp = adata_subset.copy()
         sc.pp.highly_variable_genes(adata_tmp, batch_key=hvg_key)
@@ -605,10 +613,10 @@ def reclustering(
         raise NotImplementedError(f"{recluster_apporach} not implemented, use: CCA4, CCA5, harmony, bbknn or scvi")
 
     # Calculate neighbors, UMAP and leiden
-    try:
+    if bbknn:
         sce.pp.bbknn(adata_subset, use_rep=representation, batch_key=batch_key, neighbors_within_batch=neighbors_batch)
-    except ValueError:  # If cluster is too small, bbknn might fail
-        sc.pp.neighbors(adata_subset, use_rep=representation)
+    else:
+        sc.pp.neighbors(adata_subset, use_rep=representation, random_state=42)
 
     sc.tl.umap(adata_subset)
     sc.tl.leiden(adata_subset, resolution=resolution, flavor="igraph", n_iterations=2, directed=False)
