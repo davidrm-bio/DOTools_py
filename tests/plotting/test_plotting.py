@@ -47,6 +47,10 @@ def test_downstream():
     axs = do.pl.expr_correlation(adata, 'batch', show=False)
     plt.close()
     assert isinstance(axs, plt.Axes)
+
+    axs = do.pl.expr_correlation(adata, 'batch', show=False, mask="lower")
+    plt.close()
+    assert isinstance(axs, plt.Axes)
     return
 
 
@@ -56,10 +60,13 @@ def test_embeddings():
     plt.close()
     assert isinstance(axs, plt.Axes)
 
-    axs = do.pl.umap(adata, "annotation", split_by="condition", show=False)
+    axs = do.pl.umap(adata, "annotation", split_by="condition", show=False, labels="annotation")
     plt.close()
     assert all(isinstance(ax, plt.Axes) for ax in np.ravel(axs))
 
+    axs = do.pl.umap(adata, ["annotation", "CD4"], show=False, labels="annotation", common_legend=True)
+    plt.close()
+    assert all(isinstance(ax, plt.Axes) for ax in np.ravel(axs))
 
     axs = do.pl.split_embeddding(adata, "annotation", show=False)
     plt.close()
@@ -112,8 +119,25 @@ def test_expression():
     assert "mainplot_ax" in ax
     assert "legend_ax" in ax
 
+    axs = do.pl.boxplot(adata, 'annotation', 'RPL11', hue='condition', ctrl_cond='healthy', groups_cond=['disease'],
+                  hue_order=['healthy', 'disease'], xtick_rotation=45, figsize=(6, 4), show=False)
+    plt.close()
+    assert isinstance(ax, dict)
+    assert "mainplot_ax" in ax
+    assert "legend_ax" in ax
 
 
+
+
+def test_heatmap():
+    adata = do.dt.example_10x_processed()
+
+    axs = do.pl.heatmap(adata, group_by="annotation", features="CD4", add_stats=True, show=False)
+    plt.close()
+    assert isinstance(axs, dict)
+    assert "mainplot_ax" in axs
+    assert "legend_ax" in axs
+    assert "signifiance_ax" in axs
 
 
 
