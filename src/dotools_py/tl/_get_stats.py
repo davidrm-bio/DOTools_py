@@ -126,7 +126,7 @@ def rank_genes_condition(
     :param layer: Layer of the AnnData to use.
     :param covariates: list with extra covariates to correct for in the MAST test.
     :param n_cpus: Number of threads to use for the MAST test.
-    :param mast_method: Method available in `MAST.zlm´.
+    :param mast_method: Method available in `MAST.zlm`.
     :param parallel: Parallelize the inference for MAST.
     :param formula: Formula for the MAST test.
     :param get_results: Return a dataframe with results.

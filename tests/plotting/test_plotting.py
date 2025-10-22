@@ -1,3 +1,5 @@
+import numpy as np
+
 import dotools_py as do
 import matplotlib.pyplot as plt
 
@@ -46,6 +48,69 @@ def test_downstream():
     plt.close()
     assert isinstance(axs, plt.Axes)
     return
+
+
+def test_embeddings():
+    adata = do.dt.example_10x_processed()
+    axs = do.pl.umap(adata, "annotation", show=False)
+    plt.close()
+    assert isinstance(axs, plt.Axes)
+
+    axs = do.pl.umap(adata, "annotation", split_by="condition", show=False)
+    plt.close()
+    assert isinstance(axs, plt.Axes)
+
+
+    axs = do.pl.split_embeddding(adata, "annotation", show=False)
+    plt.close()
+    assert isinstance(axs, np.ndarray)
+    return
+
+
+def test_experimental():
+    adata = do.dt.example_10x_processed()
+    axs = do.pl.lineplot(adata, "condition", "CD4", hue="annotation", show=False)
+    plt.close()
+    assert isinstance(axs, dict)
+    for key in ["mainplot_ax", "legend_ax"]:
+        assert key in axs
+
+
+
+def test_expression():
+    adata = do.dt.example_10x_processed()
+    nk = adata[adata.obs.annotation == "NK"]
+
+    ax = do.pl.violin(nk, feature="CD4", x_axis="condition", ctrl_cond="healthy", groups_cond="disease", figsize=(5, 6), show=False)
+    plt.close()
+    assert isinstance(ax, plt.Axes)
+
+    ax = do.pl.barplot(nk, feature="CD4", x_axis="condition", ctrl_cond="healthy", groups_cond="disease", figsize=(5, 6), show=False)
+    plt.close()
+    assert isinstance(ax, plt.Axes)
+
+    ax = do.pl.boxplot(nk, feature="CD4", x_axis="condition", ctrl_cond="healthy", groups_cond="disease", figsize=(5, 6), show=False)
+    plt.close()
+    assert isinstance(ax, plt.Axes)
+
+    ax = do.pl.violin(adata, "condition", feature="CD4", hue="annotation", show=False)
+    plt.close()
+    assert isinstance(ax, dict)
+    assert "mainplot_ax" in ax
+    assert "legend_ax" in ax
+
+    ax = do.pl.barplot(adata, "condition", feature="CD4", hue="annotation", show=False)
+    plt.close()
+    assert isinstance(ax, dict)
+    assert "mainplot_ax" in ax
+    assert "legend_ax" in ax
+
+    ax = do.pl.boxplot(adata, "condition", feature="CD4", hue="annotation", show=False)
+    plt.close()
+    assert isinstance(ax, dict)
+    assert "mainplot_ax" in ax
+    assert "legend_ax" in ax
+
 
 
 
