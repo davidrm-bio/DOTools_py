@@ -147,8 +147,8 @@ def barplot(
         raise ValueError(f"{feature} is not in adata.var_names or adata.obs")
 
     if hue is not None:
-        hue_order = list(adata.obs[hue].cat.categories) if hue_order is None else hue_order
-    order = list(adata.obs[x_axis].cat.categories) if order is None else order
+        hue_order = list(adata.obs[hue].unique()) if hue_order is None else hue_order
+    order = list(adata.obs[x_axis].unique()) if order is None else order
 
     # Create figure
     if ax is None:
@@ -398,8 +398,8 @@ def boxplot(
         raise ValueError(f"{feature} is not in adata.var_names or adata.obs")
 
     if hue is not None:
-        hue_order = list(adata.obs[hue].cat.categories) if hue_order is None else hue_order
-    order = list(adata.obs[x_axis].cat.categories) if order is None else order
+        hue_order = list(adata.obs[hue].unique()) if hue_order is None else hue_order
+    order = list(adata.obs[x_axis].unique()) if order is None else order
 
     # Create figure
     if ax is None:
@@ -414,7 +414,7 @@ def boxplot(
             fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     bx = sns.boxplot(df, x=x_axis, y="expr", showfliers=showfliers, ax=ax, palette=palette,
-                     order=order, hue=hue, hue_order=hue_order, legend=False, **kwargs)
+                 order=order, hue=hue, hue_order=hue_order, legend=False, **kwargs)
 
     if ctrl_cond is not None and groups_cond is not None:
         if groups_pvals is None:
@@ -472,7 +472,6 @@ def boxplot(
 
     if hue is not None:
         axs_legend = fig.add_subplot(gs[1])
-        handles = []
 
         if isinstance(palette, str):
             colors = dotools_py.utility.get_hex_colormaps(palette)
@@ -633,8 +632,8 @@ def violin(
         raise ValueError(f"{feature} is not in adata.var_names or adata.obs")
 
     if hue is not None:
-        hue_order = list(adata.obs[hue].cat.categories) if hue_order is None else hue_order
-    order = list(adata.obs[x_axis].cat.categories) if order is None else order
+        hue_order = list(adata.obs[hue].unique()) if hue_order is None else hue_order
+    order = list(adata.obs[x_axis].unique()) if order is None else order
 
     # Create figure
     if ax is None:
