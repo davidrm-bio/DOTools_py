@@ -12,6 +12,10 @@ def test_integrate():
     # Harmony Integration
     do.tl.integrate_data(adata, batch_key="batch", integration_method="harmony")
     assert "X_harmony" in adata.obsm.keys()
+    subset = do.tl.reclustering(adata,"annotation", "batch",  use_clusters=["NK"],
+                                recluster_apporach="harmony", use_rep="X_harmony", get_subset=True)
+    assert isinstance(subset, ad.AnnData)
+    assert subset.n_obs < adata.n_obs
 
     # BBKNN Integration
     keys = list(adata.obsm.keys())
@@ -21,14 +25,26 @@ def test_integrate():
         del adata.obsm[key]
     do.tl.integrate_data(adata, batch_key="batch", integration_method="pca")
     assert "X_umap" in adata.obsm.keys()
+    subset = do.tl.reclustering(adata, "annotation", "batch", use_clusters=["NK"],
+                                recluster_apporach="pca", get_subset=True)
+    assert isinstance(subset, ad.AnnData)
+    assert subset.n_obs < adata.n_obs
 
     # scVI Integration
     do.tl.integrate_data(adata, batch_key="batch", integration_method="scvi")
     assert "X_scVI" in adata.obsm.keys()
+    subset = do.tl.reclustering(adata, "annotation", "batch", use_clusters=["NK"],
+                                recluster_apporach="scvi", use_rep="X_scVI", get_subset=True)
+    assert isinstance(subset, ad.AnnData)
+    assert subset.n_obs < adata.n_obs
 
     adata = adata[adata.obs["batch"].argsort()].copy()
     do.tl.integrate_data(adata, batch_key="batch", integration_method="scanorama")
     assert "X_scanorama" in adata.obsm.keys()
+    subset = do.tl.reclustering(adata, "annotation", "batch", use_clusters=["NK"],
+                                recluster_apporach="scanorama", use_rep="X_scanorama", get_subset=True)
+    assert isinstance(subset, ad.AnnData)
+    assert subset.n_obs < adata.n_obs
 
     return None
 

@@ -235,11 +235,11 @@ def require_dependencies(required_packages):
                 print("The following packages are missing:")
                 for pkg in missing:
                     print(f" - {pkg}")
-                choice = input("Do you want to install them now? [y/N]: ").strip().lower()
-                if choice == "y":
-                    subprocess.check_call([sys.executable, "-m", "pip", "install", *missing])
-                else:
-                    raise ImportError("Missing required packages.")
+                #choice = input("Do you want to install them now? [y/N]: ").strip().lower()
+                #if choice == "y":
+                #    subprocess.check_call([sys.executable, "-m", "pip", "install", *missing])
+                #else:
+                raise ImportError("Missing required packages.")
 
             return func(*args, **kwargs)
 
