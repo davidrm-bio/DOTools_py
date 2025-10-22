@@ -31,3 +31,23 @@ def test_add_gene_metadata():
     assert cols.issubset(adata.var.columns)
     return None
 
+
+def test_spatial():
+    adata = do.dt.example_10x_processed()
+    sp = False
+    if sp:
+        do.utility.add_smooth_kernel(adata)
+        do.utility.select_slide(adata, "slide1")
+
+
+def test_r():
+    adata = do.dt.example_10x_processed()
+    r_code =False
+    if r_code:
+        from dotools_py.utility._language import RDSConverter
+        converter = RDSConverter(input_obj=adata)
+        converter.to_h5ad()
+        converter.to_rds()
+        do.utility.save_rds(adata=adata, path_rds="/tmp", filename_rds="adata.rds")
+        do.utility.read_rds(path_rds="/tmp/adata.rds")
+
