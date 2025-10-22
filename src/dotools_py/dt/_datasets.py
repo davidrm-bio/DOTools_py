@@ -16,14 +16,19 @@ def example_10x(path: str | Path = "/tmp/dotools_datasets/") -> None:
     will be saved following the structure output from CellRanger (e.g., `healhty/outs/*.h5` or `disease/outs/*.h5`).
 
     :param path: Path where the data is downloaded. Two subfolders will be created.
-    :return: H5 files are saved under the provided path. For each condition a subfolder will be created in the provided
-            path.
+    :return: Returns `None`. H5 files are saved under the provided path. For each condition a subfolder will be created
+            in the provided path.
 
     Example
     -------
     >>> import dotools_py as do
     >>> import scanpy as sc
     >>> do.dt.example_10x("/tmp/dotools_datasets/")
+    2025-10-22 13:29:52,730 - Downloading data to /tmp/dotools_datasets/
+    Downloading healthy filtered: 100%|██████████| 20.8M/20.8M [00:00<00:00, 97.5MiB/s]
+    Downloading healthy raw: 100%|██████████| 147M/147M [00:01<00:00, 88.1MiB/s]
+    Downloading disease filtered: 100%|██████████| 18.7M/18.7M [00:00<00:00, 104MiB/s]
+    Downloading disease raw: 100%|██████████| 144M/144M [00:01<00:00, 85.1MiB/s]
     >>> adata = sc.read_10x_h5("/tmp/dotools_datasets/healthy/outs/filtered_feature_bc_matrix.h5")
     >>> adata
     AnnData object with n_obs × n_vars = 7865 × 33538
@@ -82,7 +87,7 @@ def example_10x_processed() -> ad.AnnData:
     Loads a reduced version of the example datasets from healthy and malignant B cells from 10x used in the
     tutorial of the package.
 
-    :return: AnnData object processed with 700 cells and 1851 genes.
+    :return: Returns an AnnData object processed with 700 cells and 1851 genes.
 
     Example
     -------
