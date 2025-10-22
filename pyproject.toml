@@ -187,7 +187,9 @@ addopts = [
 source = [ "dotools_py" ]
 omit = [
   "**/test_*.py",
-  "src/_exprimental/*"
+  "src/_exprimental/*",
+  "src/utility/_language.py",  # R code we dont consider
+  "src/utility/_spatial.py", # Spatial Code Exclude for current release
 ]
 
 [tool.cruft]

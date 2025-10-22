@@ -114,3 +114,4 @@ Alternatively you can write to my email: [rodriguezmorales@med.uni-frankfurt.de]
 [changelog]: https://DOTools_py.readthedocs.io/en/latest/changelog.html
 [api documentation]: https://DOTools_py.readthedocs.io/en/latest/api.html
 [pypi]: https://pypi.org/project/DOTools_py
+[codecoverage]: https://codecov.io/gh/davidrm-bio/DOTools_py
