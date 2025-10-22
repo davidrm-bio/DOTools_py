@@ -2,8 +2,6 @@ import os.path
 from pathlib import Path
 import platform
 from typing import Literal
-import gzip
-import pickle
 
 import anndata as ad
 import pandas as pd
@@ -236,6 +234,9 @@ def add_gene_metadata(
 
 
     """
+    import gzip
+    import pickle
+
     data_copy = data.copy()  # Changes will not be inplace
 
     assert species in ["mouse", "human"], "Not a valid species: use mouse or human"
