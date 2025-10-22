@@ -279,279 +279,278 @@ class MatrixDataGenerator:
         return None
 
 
-class MatrixPlotter:
-    DEFAULT_CMAP = "Reds"
-    DEFAULT_TITLE = "",
-    DEFAULT_XTICK_ROTATION = 90
-    DEFAULT_FIGSIZE = (5, 4)
-
-    def __init__(self,
-                 adata: ad.AnnData,
-                 x_axis: str,
-                 features: str | list,
-                 kind: Literal["dotplot", "heatmap"],
-                 z_score: bool = False,
-                 min_max: bool = False,
-                 cmap: str = None,
-                 vmax: float | None = None,
-                 vmin: float | None = None,
-                 vcenter: float | None = None,
-                 title: str | None = None,
-                 size_legend_title: str = "Fraction of cells\nin group (%)",
-                 color_legend_title: str = "LogMean(nUMI)\nin group",
-                 x_ticks_rotation: int = None,
-                 swap_axis: bool = True,
-                 axis: plt.Axes = None,
-                 figsize: tuple = None,
-                 path: str | Path = None,
-                 filename: str = "plot.pdf",
-                 show: bool = True,
-                 ):
-
-        self.adata = adata
-        self.x_axis = x_axis
-        self.y_axis = features
-        self.kind = kind
-        self.cmap = self.DEFAULT_CMAP if cmap is None else cmap
-        self.vmax = vmax
-        self.vmin = vmin
-        self.vcenter = vcenter
-        self.main_title = title
-        self.size_legend_title = size_legend_title
-        self.color_legend_title = color_legend_title
-        self.x_ticks_rotation = x_ticks_rotation
-        self.axis = axis
-        self.figsize = self.DEFAULT_FIGSIZE if figsize is None else figsize
-        self.width, self.height = self.figsize
-
-        # Saving Parameters
-        self.path = path
-        self.filename = filename
-        self.show = show
-        self.swap_axis = swap_axis
-
-    def make_figure(self):
-        legends_width_spacer = 0.7 / self.width
-        mainplot_width = self.width - (1.5 + 0)
-
-
-
-    def set_layout(self):
-        if self.z_score is not None:
-            if self.cmap == "Reds":
-                logger.warn(
-                    "Z-score set to True, but the cmap is Reds, setting to RdBu_r"
-                )  # Make sure to use divergent colormap
-            self.color_legend_title = "Z-score"
-            self.cmap = "RdBu_r"
-
-
-adata = do.dt.example_10x_processed()
+# class MatrixPlotter:
+#     DEFAULT_CMAP = "Reds"
+#     DEFAULT_TITLE = "",
+#     DEFAULT_XTICK_ROTATION = 90
+#     DEFAULT_FIGSIZE = (5, 4)
+#
+#     def __init__(self,
+#                  adata: ad.AnnData,
+#                  x_axis: str,
+#                  features: str | list,
+#                  kind: Literal["dotplot", "heatmap"],
+#                  z_score: bool = False,
+#                  min_max: bool = False,
+#                  cmap: str = None,
+#                  vmax: float | None = None,
+#                  vmin: float | None = None,
+#                  vcenter: float | None = None,
+#                  title: str | None = None,
+#                  size_legend_title: str = "Fraction of cells\nin group (%)",
+#                  color_legend_title: str = "LogMean(nUMI)\nin group",
+#                  x_ticks_rotation: int = None,
+#                  swap_axis: bool = True,
+#                  axis: plt.Axes = None,
+#                  figsize: tuple = None,
+#                  path: str | Path = None,
+#                  filename: str = "plot.pdf",
+#                  show: bool = True,
+#                  ):
+#
+#         self.adata = adata
+#         self.x_axis = x_axis
+#         self.y_axis = features
+#         self.kind = kind
+#         self.cmap = self.DEFAULT_CMAP if cmap is None else cmap
+#         self.vmax = vmax
+#         self.vmin = vmin
+#         self.vcenter = vcenter
+#         self.main_title = title
+#         self.size_legend_title = size_legend_title
+#         self.color_legend_title = color_legend_title
+#         self.x_ticks_rotation = x_ticks_rotation
+#         self.axis = axis
+#         self.figsize = self.DEFAULT_FIGSIZE if figsize is None else figsize
+#         self.width, self.height = self.figsize
+#
+#         # Saving Parameters
+#         self.path = path
+#         self.filename = filename
+#         self.show = show
+#         self.swap_axis = swap_axis
+#
+#     def make_figure(self):
+#         legends_width_spacer = 0.7 / self.width
+#         mainplot_width = self.width - (1.5 + 0)
+#
+#
+#
+#     def set_layout(self):
+#         if self.z_score is not None:
+#             if self.cmap == "Reds":
+#                 logger.warn(
+#                     "Z-score set to True, but the cmap is Reds, setting to RdBu_r"
+#                 )  # Make sure to use divergent colormap
+#             self.color_legend_title = "Z-score"
+#             self.cmap = "RdBu_r"
 
 
 
 
 
-##########################################
-def heatmap(
-    adata: ad.AnnData,
-    x_axis: str | list,
-    features: str | list,
-    groups_order: list = None,
-    z_score: Literal["x_axis", "y_axis"] = None,  # x_axis is the group_by
-    min_max: Literal["x_axis", "y_axis"] = None,
-    path: str = None,
-    filename: str = "Heatmap.svg",
-    layer: str = None,
-    swap_axes: bool = True,
-    cmap: str = "Reds",
-    title: str = None,
-    title_fontprop: dict = None,
-    clustering_method: str = "complete",
-    clustering_metric: str = "euclidean",
-    cluster_x_axis: bool = False,
-    cluster_y_axis: bool = False,
-    axs: plt.Axes  = None,
-    figsize: tuple = (5, 6),
-    linewidth: float = 0.1,
-    ticks_fontdict: dict = None,
-    xticks_rotation: int = None,
-    yticks_rotation: int = None,
-    vmin: float = 0.0,
-    vcenter: float = None,
-    vmax: float = None,
-    legend_title: str = "LogMean(nUMI)\nin group",
-    add_stats: bool = False,
-    df_pvals: pd.DataFrame = None,
-    stats_x_size: float = None,
-    square_x_size: dict = None,
-    test: Literal["wilcoxon", "t-test"] = "wilcoxon",
-    correction_method: Literal["benjamini-hochberg", "bonferroni"] = "benjamini-hochberg",
-    pval_cutoff: float = 0.05,
-    log2fc_cutoff: float = 0.0,
-    square: bool = True,
-    show: bool = True,
-    logcounts: bool = True,
-    **kargs,
-) -> dict | None:
-    """Heatmap of the mean expression of genes across a groups.
-
-    Generate a heatmap of showing the average nUMI for a set of genes in different groups. Differential gene
-    expression analysis between the different groups can be performed.
-
-    :param adata: annotated data matrix.
-    :param group_by: obs column name with categorical values.
-    :param features: continuous value in var_names or obs.
-    :param groups_order: order for the categories in group_by
-    :param z_score: apply z-score transformation.
-    :param path: path to save the plot
-    :param filename: name of the file.
-    :param layer: layer to use.
-    :param swap_axes: whether to swap the axes or not.
-    :param cmap: colormap.
-    :param title: title for the main plot.
-    :param title_fontprop: font properties for the title (e.g., 'weight' and 'size').
-    :param clustering_method: clustering method to use when hierarchically clustering the x and y-axis.
-    :param clustering_metric: metric to use when hierarchically clustering the x and y-axis.
-    :param cluster_x_axis: hierarchically clustering the x-axis.
-    :param cluster_y_axis: hierarchically clustering the y-axis.
-    :param axs: matplotlib axis.
-    :param figsize: figure size.
-    :param linewidth: linewidth for the border of cells.
-    :param ticks_fontdict: font properties for the x and y ticks (e.g.,  'weight' and 'size').
-    :param xticks_rotation: rotation of the x-ticks.
-    :param yticks_rotation: rotations of the y-ticks.
-    :param vmin: minimum value.
-    :param vcenter: center value.
-    :param vmax: maximum value.
-    :param legend_title: title for the colorbar.
-    :param add_stats: add statistical annotation. Will add a square with an '*' in the center if the expression is significantly different in a group with respect to the others.
-    :param df_pvals: dataframe with the pvals. Should be gene x group or group x gene in case of swap_axes is False.
-    :param stats_x_size: scaling factor to control the size of the asterisk.
-    :param square_x_size: size and thickness of the square.
-    :param test: test to use for test for significance.
-    :param correction_method: multiple correction method to use.
-    :param pval_cutoff: cutoff for the p-value.
-    :param log2fc_cutoff: minimum cutoff for the log2FC.
-    :param square: whether to make the cell square or not.
-    :param show: if set to false return a dictionary with the axis.
-    :param logcounts: whether the input is logcounts or not.
-    :param kargs: additional arguments pass to `sns.heatmap() <https://seaborn.pydata.org/generated/seaborn.heatmap.html>`_.
-    :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
-
-    Example
-    -------
-
-    .. plot::
-        :context: close-figs
-
-        import dotools_py as do
-        adata = do.dt.example_10x_processed()
-        do.pl.heatmap(adata, 'annotation', ['CD4', 'CD79A'], add_stats=True)
-
-    """
 
 
-    x_axis = "annotation"
-    features = ["CD4", "CD79A"]
-    logcounts=True
-    layer = None
-    z_score = None
-    min_max = None
-    test = "wilcoxon"
-    correction_method = "benjamini-hochberg"
-    add_stats = True
-    pval_cutoff = 0.05
-    log2fc_cutoff = 0.25
-    x_groups_order = None
-
-    sanitize_anndata(adata)
-
-    data = MatrixDataGenerator(adata=adata,
-                               x_axis=x_axis,
-                               features=features,
-                               y_axis=None,  # TODO Allow
-                               logcounts=logcounts,
-                               layer=layer,
-                               estimator=None,  # Always Mean
-                               mean_express_only=False,
-                               expression_cutoff=None,
-                               z_score=z_score,
-                               minmax=min_max,
-                               test=test,
-                               correction_method=correction_method,
-                               add_stats="x_axis" if add_stats else None,
-                               df_pvals=None,
-                               pval_cutoff=pval_cutoff,
-                               lfc_cutoff=log2fc_cutoff,
-                               )
-
-    data.get_expr_df()  # Compute mean expression
-
-    if z_score is not None:
-        data.zscore_transform()
-        df_plot = data.df_zscore.copy()
-    elif min_max is not None:
-        data.minmax_transform()
-        df_plot = data.df_minmax.copy()
-    else:
-        df_plot = data.df_mean.copy()  # wide format
-
-    df_plot = (df_plot
-               .melt(id_vars=x_axis, var_name="genes", value_name="expr")
-               .pivot(index=x_axis, columns="genes", values="expr"))  # Convert to matrix format x_axis x features
-
-    # Get the Dataframe with pvals if we want significance
-    if add_stats:
-        data.test_significance()
-        df_pvals = data.df_pvals.copy()
-        df_pvals = df_pvals[["group", "names", "pvals_adj"]].pivot(
-            index="group", columns="names", values="pvals_adj"
-        ).fillna(0)
-    else:
-        df_pvals = pd.DataFrame(np.ones(df_plot.shape), index=df_plot.index, columns=df_plot.columns)
-
-
-    # Hierarchical clustering --> Set the order for the X and Y Axis
-    index_order = x_groups_order if x_groups_order is not None else list(adata.obs[x_axis].cat.categories)
-    new_index = (
-        df_plot.index[
-            dendrogram(linkage(df_plot.values, method=clustering_method, metric=clustering_metric), no_plot=True)["leaves"]
-        ]
-        if cluster_x_axis
-        else index_order  # Order from the object or user provided
-    )
-
-    new_columns = (
-        df_plot.columns[
-            dendrogram(linkage(df_plot.T.values, method=clustering_method, metric=clustering_metric), no_plot=True)["leaves"]
-        ]
-        if cluster_y_axis
-        else features # Keep the order from the input
-    )
-
-    df_plot = df_plot.reindex(index=new_index, columns=new_columns)
-    df_pvals = df_pvals.reindex(index=new_index, columns=new_columns)
-
-    if swap_axes:
-        df_plot = df_plot.T
-        df_pvals = df_pvals.T
-
-    annot_pvals = df_pvals.applymap(lambda x: "*" if x < pval_cutoff else "")
-
-
-    # Initialise Plotter Class
-
-
-
-
-
-    if cmap == "Reds":
-        logger.warn(
-            "Z-score set to True, but the cmap is Reds, setting to RdBu_r"
-        )  # Make sure to use divergent colormap
-        cmap = "RdBu_r"
-    if legend_title == "LogMean(nUMI)\nin group":
-        legend_title = "Z-score"
-    #vmin, vcenter, vmax = round(df.min().min() * 20) / 20, 0.0, None
-
+# ##########################################
+# def heatmap(
+#     adata: ad.AnnData,
+#     x_axis: str | list,
+#     features: str | list,
+#     groups_order: list = None,
+#     z_score: Literal["x_axis", "y_axis"] = None,  # x_axis is the group_by
+#     min_max: Literal["x_axis", "y_axis"] = None,
+#     path: str = None,
+#     filename: str = "Heatmap.svg",
+#     layer: str = None,
+#     swap_axes: bool = True,
+#     cmap: str = "Reds",
+#     title: str = None,
+#     title_fontprop: dict = None,
+#     clustering_method: str = "complete",
+#     clustering_metric: str = "euclidean",
+#     cluster_x_axis: bool = False,
+#     cluster_y_axis: bool = False,
+#     axs: plt.Axes  = None,
+#     figsize: tuple = (5, 6),
+#     linewidth: float = 0.1,
+#     ticks_fontdict: dict = None,
+#     xticks_rotation: int = None,
+#     yticks_rotation: int = None,
+#     vmin: float = 0.0,
+#     vcenter: float = None,
+#     vmax: float = None,
+#     legend_title: str = "LogMean(nUMI)\nin group",
+#     add_stats: bool = False,
+#     df_pvals: pd.DataFrame = None,
+#     stats_x_size: float = None,
+#     square_x_size: dict = None,
+#     test: Literal["wilcoxon", "t-test"] = "wilcoxon",
+#     correction_method: Literal["benjamini-hochberg", "bonferroni"] = "benjamini-hochberg",
+#     pval_cutoff: float = 0.05,
+#     log2fc_cutoff: float = 0.0,
+#     square: bool = True,
+#     show: bool = True,
+#     logcounts: bool = True,
+#     **kargs,
+# ) -> dict | None:
+#     """Heatmap of the mean expression of genes across a groups.
+#
+#     Generate a heatmap of showing the average nUMI for a set of genes in different groups. Differential gene
+#     expression analysis between the different groups can be performed.
+#
+#     :param adata: annotated data matrix.
+#     :param group_by: obs column name with categorical values.
+#     :param features: continuous value in var_names or obs.
+#     :param groups_order: order for the categories in group_by
+#     :param z_score: apply z-score transformation.
+#     :param path: path to save the plot
+#     :param filename: name of the file.
+#     :param layer: layer to use.
+#     :param swap_axes: whether to swap the axes or not.
+#     :param cmap: colormap.
+#     :param title: title for the main plot.
+#     :param title_fontprop: font properties for the title (e.g., 'weight' and 'size').
+#     :param clustering_method: clustering method to use when hierarchically clustering the x and y-axis.
+#     :param clustering_metric: metric to use when hierarchically clustering the x and y-axis.
+#     :param cluster_x_axis: hierarchically clustering the x-axis.
+#     :param cluster_y_axis: hierarchically clustering the y-axis.
+#     :param axs: matplotlib axis.
+#     :param figsize: figure size.
+#     :param linewidth: linewidth for the border of cells.
+#     :param ticks_fontdict: font properties for the x and y ticks (e.g.,  'weight' and 'size').
+#     :param xticks_rotation: rotation of the x-ticks.
+#     :param yticks_rotation: rotations of the y-ticks.
+#     :param vmin: minimum value.
+#     :param vcenter: center value.
+#     :param vmax: maximum value.
+#     :param legend_title: title for the colorbar.
+#     :param add_stats: add statistical annotation. Will add a square with an '*' in the center if the expression is significantly different in a group with respect to the others.
+#     :param df_pvals: dataframe with the pvals. Should be gene x group or group x gene in case of swap_axes is False.
+#     :param stats_x_size: scaling factor to control the size of the asterisk.
+#     :param square_x_size: size and thickness of the square.
+#     :param test: test to use for test for significance.
+#     :param correction_method: multiple correction method to use.
+#     :param pval_cutoff: cutoff for the p-value.
+#     :param log2fc_cutoff: minimum cutoff for the log2FC.
+#     :param square: whether to make the cell square or not.
+#     :param show: if set to false return a dictionary with the axis.
+#     :param logcounts: whether the input is logcounts or not.
+#     :param kargs: additional arguments pass to `sns.heatmap() <https://seaborn.pydata.org/generated/seaborn.heatmap.html>`_.
+#     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
+#
+#     Example
+#     -------
+#
+#     .. plot::
+#         :context: close-figs
+#
+#         import dotools_py as do
+#         adata = do.dt.example_10x_processed()
+#         do.pl.heatmap(adata, 'annotation', ['CD4', 'CD79A'], add_stats=True)
+#
+#     """
+#
+#
+#     x_axis = "annotation"
+#     features = ["CD4", "CD79A"]
+#     logcounts=True
+#     layer = None
+#     z_score = None
+#     min_max = None
+#     test = "wilcoxon"
+#     correction_method = "benjamini-hochberg"
+#     add_stats = True
+#     pval_cutoff = 0.05
+#     log2fc_cutoff = 0.25
+#     x_groups_order = None
+#
+#     sanitize_anndata(adata)
+#
+#     data = MatrixDataGenerator(adata=adata,
+#                                x_axis=x_axis,
+#                                features=features,
+#                                y_axis=None,  # TODO Allow
+#                                logcounts=logcounts,
+#                                layer=layer,
+#                                estimator=None,  # Always Mean
+#                                mean_express_only=False,
+#                                expression_cutoff=None,
+#                                z_score=z_score,
+#                                minmax=min_max,
+#                                test=test,
+#                                correction_method=correction_method,
+#                                add_stats="x_axis" if add_stats else None,
+#                                df_pvals=None,
+#                                pval_cutoff=pval_cutoff,
+#                                lfc_cutoff=log2fc_cutoff,
+#                                )
+#
+#     data.get_expr_df()  # Compute mean expression
+#
+#     if z_score is not None:
+#         data.zscore_transform()
+#         df_plot = data.df_zscore.copy()
+#     elif min_max is not None:
+#         data.minmax_transform()
+#         df_plot = data.df_minmax.copy()
+#     else:
+#         df_plot = data.df_mean.copy()  # wide format
+#
+#     df_plot = (df_plot
+#                .melt(id_vars=x_axis, var_name="genes", value_name="expr")
+#                .pivot(index=x_axis, columns="genes", values="expr"))  # Convert to matrix format x_axis x features
+#
+#     # Get the Dataframe with pvals if we want significance
+#     if add_stats:
+#         data.test_significance()
+#         df_pvals = data.df_pvals.copy()
+#         df_pvals = df_pvals[["group", "names", "pvals_adj"]].pivot(
+#             index="group", columns="names", values="pvals_adj"
+#         ).fillna(0)
+#     else:
+#         df_pvals = pd.DataFrame(np.ones(df_plot.shape), index=df_plot.index, columns=df_plot.columns)
+#
+#
+#     # Hierarchical clustering --> Set the order for the X and Y Axis
+#     index_order = x_groups_order if x_groups_order is not None else list(adata.obs[x_axis].cat.categories)
+#     new_index = (
+#         df_plot.index[
+#             dendrogram(linkage(df_plot.values, method=clustering_method, metric=clustering_metric), no_plot=True)["leaves"]
+#         ]
+#         if cluster_x_axis
+#         else index_order  # Order from the object or user provided
+#     )
+#
+#     new_columns = (
+#         df_plot.columns[
+#             dendrogram(linkage(df_plot.T.values, method=clustering_method, metric=clustering_metric), no_plot=True)["leaves"]
+#         ]
+#         if cluster_y_axis
+#         else features # Keep the order from the input
+#     )
+#
+#     df_plot = df_plot.reindex(index=new_index, columns=new_columns)
+#     df_pvals = df_pvals.reindex(index=new_index, columns=new_columns)
+#
+#     if swap_axes:
+#         df_plot = df_plot.T
+#         df_pvals = df_pvals.T
+#
+#     annot_pvals = df_pvals.applymap(lambda x: "*" if x < pval_cutoff else "")
+#
+#
+#     # Initialise Plotter Class
+#
+#
+#
+#
+#
+#     if cmap == "Reds":
+#         logger.warn(
+#             "Z-score set to True, but the cmap is Reds, setting to RdBu_r"
+#         )  # Make sure to use divergent colormap
+#         cmap = "RdBu_r"
+#     if legend_title == "LogMean(nUMI)\nin group":
+#         legend_title = "Z-score"
+#     #vmin, vcenter, vmax = round(df.min().min() * 20) / 20, 0.0, None
+#

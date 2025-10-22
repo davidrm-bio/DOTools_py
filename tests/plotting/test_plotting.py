@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 import dotools_py as do
 import matplotlib.pyplot as plt
@@ -7,16 +8,26 @@ import matplotlib.pyplot as plt
 
 def test_dotplot():
     adata = do.dt.example_10x_processed()
-    axs = do.pl.dotplot(adata, x_axis="condition", features="CD4", show=False)
+    axs = do.pl.dotplot(adata, x_axis="condition", features="CD4", show=False, add_stats="x_axis")
     plt.close()
     assert isinstance(axs, dict)
-    for key in ["mainplot_ax", "size_legend_ax", "color_legend_ax"]:
+    for key in ["mainplot_ax", "size_legend_ax", "color_legend_ax", "significance_legend_ax"]:
         assert key in axs
     axs = do.pl.dotplot(adata, x_axis="condition", features="CD4", y_axis="annotation", show=False)
     plt.close()
     assert isinstance(axs, dict)
     for key in ["mainplot_ax", "size_legend_ax", "color_legend_ax"]:
         assert key in axs
+
+    axs = do.pl.dotplot(adata, x_axis="condition", features={"genes":["CD4"]}, show=False, add_stats="x_axis")
+    assert isinstance(axs, dict)
+    assert "var_group_ax" in axs
+    axs = do.pl.dotplot(adata, x_axis="condition", features="CD4", show=False, standard_scale="group")
+    plt.close()
+    axs = do.pl.dotplot(adata, x_axis="condition", features="CD4", y_axis="annotation",  show=False, z_score="x_axis")
+    plt.close()
+
+
     return
 
 
@@ -138,6 +149,31 @@ def test_heatmap():
     assert "mainplot_ax" in axs
     assert "legend_ax" in axs
     assert "signifiance_ax" in axs
+
+
+
+def test_plotter():
+    adata = do.dt.example_10x_processed()
+
+    from dotools_py.pl._Plotter import MatrixDataGenerator
+
+    plotter = MatrixDataGenerator(adata=adata, x_axis="condition", features="CD4", y_axis="annotation")
+    plotter.get_expr_df()
+    assert isinstance(plotter.df_expr, pd.DataFrame)
+    plotter.get_pct_df()
+    assert isinstance(plotter.df_pct, pd.DataFrame)
+    plotter = MatrixDataGenerator(adata=adata, x_axis="condition", features="CD4",  z_score="x_axis")
+    plotter.get_expr_df()
+    plotter.zscore_transform()
+    assert isinstance(plotter.df_zscore, pd.DataFrame)
+    plotter = MatrixDataGenerator(adata=adata, x_axis="condition", features="CD4", minmax="x_axis")
+    plotter.get_expr_df()
+    plotter.minmax_transform()
+    assert isinstance(plotter.df_minmax, pd.DataFrame)
+    plotter = MatrixDataGenerator(adata=adata, x_axis="condition", features="CD4", add_stats="x_axis")
+    plotter.get_expr_df()
+    plotter.test_significance()
+    assert isinstance(plotter.df_pvals, pd.DataFrame)
 
 
 
