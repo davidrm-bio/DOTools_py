@@ -11,6 +11,15 @@ def test_rank_genes_condition():
     assert "rank_genes_condition" in adata.uns.keys()
     cols = {'GeneName', 'wilcox_score', 'log2fc', 'pvals', 'padj', 'pts_group', 'pts_ref', 'group', 'annotation'}
     assert cols.issubset(df.columns)
+
+    df = do.tl.rank_genes_condition(adata, groupby="condition", subset_by="annotation", reference="healthy", method="t-test")
+    assert isinstance(df, pd.DataFrame)
+
+    from dotools_py.tl._rankGenes import filter_rank_genes_groups
+    do.tl.rank_genes_groups(adata, groupby="condition")
+    filter_rank_genes_groups(adata, "rank_genes_groups")
+    assert "rank_genes_groups_filtered" in adata.uns.keys()
+
     return None
 
 
@@ -55,11 +64,21 @@ def test_rank_genes_groups():
     return  None
 
 
+def test_pseudobulk():
+    adata = do.dt.example_10x_processed()
+    df = do.tl.rank_genes_pseudobulk(adata, "healthy", "disease", "annotation", technical_replicates=3)
+    assert isinstance(df, pd.DataFrame)
+    cols = {'baseMean', 'log2FoldChange', 'lfcSE', 'stat', 'pvalue', 'padj','group'}
+    assert cols.issubset(df.columns)
+    return
 
-# The following tests:
-# test_rank_genes_consensus
-# test_rank_genes_pseudobulk
-# test_run_mast
-# require R, which is not set-up to be installed in the server, therefore we do not implement a test for
-# these functions
+
+def test_consensus():
+    adata = do.dt.example_10x_processed()
+    df = do.tl.rank_genes_consensus(adata, "healthy", "disease", "annotation", technical_replicates=3)
+    assert isinstance(df, pd.DataFrame)
+    assert df.shape[1] == 18
+    return
+
+
 

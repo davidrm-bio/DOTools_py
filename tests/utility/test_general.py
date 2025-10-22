@@ -24,5 +24,10 @@ def test_add_gene_metadata():
     adata = do.utility.add_gene_metadata(adata, "var_names", "human")
     cols = {'biotype', 'locations', 'gene_id'}
     assert cols.issubset(adata.var.columns)
+    df = adata.var.copy()
+    df.reset_index(inplace=True)
+    df = do.utility.add_gene_metadata(df, "index", "human")
+    cols = {'biotype', 'locations', 'gene_id'}
+    assert cols.issubset(adata.var.columns)
     return None
 
