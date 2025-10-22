@@ -5,3 +5,4 @@ from dotools_py.pl._expression import barplot, boxplot, violin
 from dotools_py.pl._heatmap import heatmap
 from dotools_py.pl._StatsPlotter import StatsPlotter, TestData
 from dotools_py.pl._visium import layers, slides
+from dotools_py.pl._experimental import lineplot

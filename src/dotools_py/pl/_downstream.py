@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-from typing import Literal, Union
+from typing import Literal
 
 import anndata as ad
 import matplotlib.lines as mlines
@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from adjustText import adjust_text
+
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import LinearSegmentedColormap, ListedColormap
 
@@ -26,10 +26,11 @@ def expr_correlation(
     square: bool = True,
     linewidths: float = 0.1,
     annot: bool = True,
+    annot_fontsize: int = 15,
     figsize: tuple = (3, 4),
     axs: plt.Axes | None = None,
     mode: Literal["colors", "letters"] = "letters",
-    cmap: Union["str", "list"] = "RdBu_r",
+    cmap: str | list = "RdBu_r",
     linecolor: str = "black",
     color_annot: str = "white",
     annot_kws: dict | None = None,
@@ -62,6 +63,7 @@ def expr_correlation(
     :param linecolor: color of the lines that will divide each cell.
     :param color_annot: color of the correlation values. Will use the cmap in letters mode.
     :param annot_kws: keyword arguments for `matplotlib.axes.Axes.text() <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.text.html>`_ when annot is True.
+    :param annot_fontsize: Size of the text when annot is `True`.
     :param ticks_size: size of the x and y ticks.
     :param path: path to save plot.
     :param filename: name of the file.
@@ -86,7 +88,7 @@ def expr_correlation(
 
     # Extract the Average Expression
     df = mean_expr(adata, group_by=group_by, features=list(adata.var_names))  # All Genes
-    df_pivot = df.pivot(index="gene", columns="group0", values="expr")
+    df_pivot = df.pivot(index="gene", columns="group0", values="expr") # TODO Update
     df_corr = df_pivot.corr(method=method)
 
     # Define mask
@@ -144,7 +146,7 @@ def expr_correlation(
                 value = df_corr.iloc[i, j]
                 color = palette(norm_palette(value)) if mode == "letters" else color_annot
                 hm.text(
-                    j + 0.5, i + 0.5, f"{value:.2f}", color=color, ha="center", va="center", fontsize=18, weight="bold"
+                    j + 0.5, i + 0.5, f"{value:.2f}", color=color, ha="center", va="center", fontsize=annot_fontsize, weight="bold"
                 )
     # Add Colorbar
     sm = ScalarMappable(norm=norm_palette, cmap=palette)
@@ -268,6 +270,7 @@ def cell_props(
     :param get_props: get a dataframe with the proportions and pvals.
     :param kwargs: additional arguments pass to `scanpro() <https://scanpro.readthedocs.io/en/latest/API.html#scanpro.scanpro.scanpro>`_.
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
+
     """
     ########################
     # Test for changes in cell population
@@ -541,6 +544,8 @@ def volcano_plot(
         do.pl.volcano_plot(table, 'log2fc', 'padj', 'GeneName')
 
     """
+    from adjustText import adjust_text
+
     dge = dge.copy()  # Do not Modify input
 
     # Data Preparation # # #

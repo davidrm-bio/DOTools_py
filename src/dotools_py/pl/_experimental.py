@@ -14,8 +14,7 @@ from dotools_py.utility._plotting import get_hex_colormaps
 from dotools_py.utils import make_grid_spec, logmean, logsem, save_plot, return_axis
 from adjustText import adjust_text
 
-# TODO --> Do stats like scanpro --> Anova/kruskal/Mannwhitney/ttest
-# TODO--> if it changes in any of the conditions significantly
+
 def lineplot(adata: ad.AnnData,
              x_axis: str,
              features: str | list,
@@ -32,7 +31,7 @@ def lineplot(adata: ad.AnnData,
              legend_title: str = None,
              legend_loc: Literal["right", "axis"] = "right",
              labels_repel: dict = None,
-             rotation: int | None = None,
+             xtick_rotation: int | None = None,
              show: bool = False,
              path: str = None,
              filename: str = "lineplot.svg",
@@ -58,7 +57,7 @@ def lineplot(adata: ad.AnnData,
     :param legend_title: Title of the legend.
     :param legend_loc: Location from the legend. If set to `axis` labels will be added in the plot.
     :param labels_repel:  additional arguments pass to adjust_text.
-    :param rotation: Rotation of the xticks.
+    :param xtick_rotation: Rotation of the xticks.
     :param show: if set to False, return the axis.
     :param path: Path to the folder where the plot will be saved.
     :param filename: Name of the file.
@@ -72,9 +71,9 @@ def lineplot(adata: ad.AnnData,
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        lineplot(adata, 'condition', 'CD4', hue = 'annotation')
+        do.pl.lineplot(adata, 'condition', 'CD4', hue = 'annotation')
         # Plot several Genes
-        lineplot(adata, 'condition', ['CD4', 'CD79A'], hue = 'features')
+        do.pl.lineplot(adata, 'condition', ['CD4', 'CD79A'], hue = 'features')
 
     """
     features = [features] if isinstance(features, str) else features
@@ -99,6 +98,8 @@ def lineplot(adata: ad.AnnData,
     if hue is None:
         hue = "tmp"
         df["tmp"] = "tmp"
+
+    # Test for significance - TODO indicate significance with a discontinued line
 
     # Generate the plot
     width, height = figsize
@@ -142,8 +143,8 @@ def lineplot(adata: ad.AnnData,
         adjust_text(text_list, ax=axs, expand_axes=True,  only_move= {"text": "y", "static": "y", "explode": "y", "pull": "y"}, **labels_repel)
 
     ticks_kwargs = {"fontweight": "bold", "fontsize": 12}
-    if rotation is not None:
-        ticks_kwargs.update({"rotation": rotation, "ha": "right", "va": "top"})
+    if xtick_rotation is not None:
+        ticks_kwargs.update({"rotation": xtick_rotation, "ha": "right", "va": "top"})
 
     axs.set_xticklabels(axs.get_xticklabels(), **ticks_kwargs)
 
@@ -172,7 +173,7 @@ def lineplot(adata: ad.AnnData,
         axis_dict = axs
 
     save_plot(path, filename)
-    return  return_axis(show, axis_dict, tight=True)
+    return return_axis(show, axis_dict, tight=True)
 
 
 
