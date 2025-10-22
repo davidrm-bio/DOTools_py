@@ -11,7 +11,6 @@ import pandas as pd
 import scanpy as sc
 import scanpy.external as sce
 from tqdm import tqdm
-from scvi.model import SCVI
 
 from dotools_py import logger
 from dotools_py.dt import standard_ct_labels_heart
@@ -79,7 +78,7 @@ def _run_scvi(
     gene_likelihood: Literal["zinb", "nb", "poisson", "normal"] = "zinb",
     get_model: bool = False,
     **kwargs,
-) -> None | SCVI:
+) -> None:
     """Run scVI.
 
     Run scVI to integrate sc/snRNA more information on
@@ -151,7 +150,7 @@ def integrate_data(
     continuous_covariates: list = None,
     get_model: bool = False,
     **kwargs,
-) -> None | SCVI:
+) -> None:
     """Integrate a concatenated AnnData.
 
     Integrate and perform batch correction for an AnnData with several samples. Different batch correction methods are

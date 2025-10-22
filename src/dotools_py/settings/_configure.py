@@ -46,19 +46,19 @@ def interactive_session(enable: bool = True) -> None:
     return None
 
 
-def vector_friendly(enable: bool = True) -> None:
-    """Plot scatter plots using png backend even when exporting as pdf or svg.
-
-    :param enable: Set to true to enable.
-    :return: Returns None
-    """
-    import scanpy as sc
-    # Keep settings from session_settings default
-    sc.set_figure_params(scanpy=False, dpi=90, dpi_save=300,
-                         frameon=True, vector_friendly=True,
-                         fontsize=13, figsize=None, color_map='Reds',
-                         format='pdf', facecolor='white', transparent=False)
-    return
+#def vector_friendly(enable: bool = True) -> None:
+#    """Plot scatter plots using png backend even when exporting as pdf or svg.
+#
+#    :param enable: Set to true to enable.
+#    :return: Returns None
+#    """
+#    import scanpy as sc
+#    # Keep settings from session_settings default
+#    sc.set_figure_params(scanpy=False, dpi=90, dpi_save=300,
+#                         frameon=True, vector_friendly=True,
+#                         fontsize=13, figsize=None, color_map='Reds',
+#                         format='pdf', facecolor='white', transparent=False)
+#    return
 
 
 def session_settings(
