@@ -1953,7 +1953,7 @@ def dotplot(
 
                         if len(table_filt) == 0:
                             logger.warn('No Significant group')
-                    except ValueError as e:
+                    except ZeroDivisionError as e:
                         logger.warn(f'Error testing, {e}')
 
                 elif all(item in list(adata.obs.columns) for item in features):
@@ -1969,7 +1969,7 @@ def dotplot(
                             stable = sc.get.rank_genes_groups_df(
                                 sdata, group=None, pval_cutoff=pval_cutoff, log2fc_min=log2fc_cutoff
                             )
-                        except ValueError as e:
+                        except ZeroDivisionError as e:
                             logger.warn(f'Error while testing: {e}')
                             # If there is only one condition in the group
                             stable = pd.DataFrame([], columns=['group', 'names', 'scores', 'logfoldchanges', 'pvals',
