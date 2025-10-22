@@ -3,6 +3,7 @@
 
 [![Tests][badge-tests]][tests]
 [![Documentation][badge-docs]][documentation]
+[![Coverage][badge-coverage]][codecoverage]
 [![Issues][badge-issues]][issue tracker]
 [![Stars][badge-stars]](https://github.com/davidrm-bio/DOTools_py/stargazers)
 
@@ -17,6 +18,7 @@
 [badge-docs]:  https://img.shields.io/readthedocs/DOTools_py
 [badge-issues]: https://img.shields.io/github/issues/davidrm-bio/DOTools_py
 [badge-stars]: https://img.shields.io/github/stars/davidrm-bio/DOTools_py?style=flat&logo=github&color=yellow
+[badge-coverage]: https://codecov.io/gh/davidrm-bio/DOTools_py/branch/main/graph/badge.svg
 
 <!---
 [badge-pypi]: https://img.shields.io/pypi/v/DOTools_py.svg
