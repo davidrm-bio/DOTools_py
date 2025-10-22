@@ -5,7 +5,7 @@
 ########################################################################################################################
 import sys
 from math import floor
-from typing import Literal, ParamSpec, TypeVar, cast, get_args, overload
+from typing import Literal, ParamSpec, TypeVar, cast, get_args, overload, Union
 
 import numba  # Speed Up Wilcoxon
 import numpy as np
@@ -723,7 +723,7 @@ def rank_genes_groups(
     *,
     mask_var: NDArray | str | None = None,
     use_raw: bool | None = None,
-    groups: Literal["all"] | Iterable[str] = "all",
+    groups: Union[Literal["all"], Iterable[str]] = "all",
     reference: str = "rest",
     n_genes: int | None = None,
     rankby_abs: bool = False,

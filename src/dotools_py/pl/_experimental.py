@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Union
 
 import anndata as ad
 import numpy as np
@@ -19,7 +19,7 @@ def lineplot(adata: ad.AnnData,
              x_axis: str,
              features: str | list,
              x_categories_order: list = None,
-             hue: str | Literal["features"] | None = None,
+             hue: Union[str, Literal["features"], None] = None,
              estimator: Literal["logmean", "mean"] = "logmean",
              figsize: tuple = (6, 5),
              ax: plt.Axes = None,
