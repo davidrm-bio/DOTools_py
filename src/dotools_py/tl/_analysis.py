@@ -5,14 +5,9 @@ from pathlib import Path
 from typing import Literal
 
 import anndata as ad
-import bbknn as bkn
-import celltypist
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import polars
-import scanpy as sc
-import scanpy.external as sce
 from tqdm import tqdm
 from scvi.model import SCVI
 
@@ -35,6 +30,8 @@ def _run_cca(
     :param version: version of Seurat to use.
     :return: integrated matrix.
     """
+    import polars
+
     rscript = get_paths_utils("_run_CCA.R")
 
     tmpdir_path = Path("/tmp") / f"CCA_{uuid.uuid4().hex}"
@@ -227,6 +224,10 @@ def integrate_data(
     obsp: 'connectivities', 'distances'
 
     """
+    import bbknn as bkn
+    import scanpy as sc
+    import scanpy.external as sce
+
     method = method.lower()
     check_missing(adata, groups=batch_key)
     hvg_batch = batch_key if hvg_batch else None
@@ -376,6 +377,8 @@ def auto_annot(
     ✅ Majority voting done!
 
     """
+    import celltypist
+
     check_missing(adata, groups=cluster_key)
 
     if update_models:
@@ -536,6 +539,9 @@ def reclustering(
     layers: 'counts', 'logcounts'
     obsp: 'connectivities', 'distances'
     """
+    import scanpy as sc
+    import scanpy.external as sce
+
     if key_added in adata.obs.columns:
         logger.warn(f"{key_added} will be overwritten")
 
