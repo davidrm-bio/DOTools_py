@@ -63,7 +63,8 @@ def test_embeddings():
 
     axs = do.pl.split_embeddding(adata, "annotation", show=False)
     plt.close()
-    assert isinstance(axs, np.ndarray)
+    assert all(isinstance(ax, plt.Axes) for ax in np.ravel(axs))
+
     return
 
 
