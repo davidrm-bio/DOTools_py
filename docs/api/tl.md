@@ -17,7 +17,6 @@ analysis and statistical methods.
     tl.reclustering
     tl.full_recluster
     tl.go_analysis
-    tl.pseudobulking
 ```
 
 
@@ -31,7 +30,6 @@ analysis and statistical methods.
     tl.rank_genes_pseudobulk
     tl.rank_genes_consensus
     tl.grouped_ttest
-    tl.run_mast
 ```
 
 
