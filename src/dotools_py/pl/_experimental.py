@@ -11,7 +11,7 @@ import matplotlib.patheffects as path_effects
 
 from dotools_py.get._generic import expr as get_expr
 from dotools_py.utility._plotting import get_hex_colormaps
-from dotools_py.utils import make_grid_spec, logmean, logsem, save_plot, return_axis
+from dotools_py.utils import make_grid_spec, logmean, logsem, save_plot, return_axis, sanitize_anndata
 from adjustText import adjust_text
 
 
@@ -76,6 +76,8 @@ def lineplot(adata: ad.AnnData,
         do.pl.lineplot(adata, 'condition', ['CD4', 'CD79A'], hue = 'features')
 
     """
+    sanitize_anndata(adata)
+
     features = [features] if isinstance(features, str) else features
     if len(features) > 1:
         assert hue == "features", "When multiple features are provided, use hue = 'features'"
@@ -92,7 +94,7 @@ def lineplot(adata: ad.AnnData,
 
     df = get_expr(adata, features=features, groups=[x_axis] + hue_arg)
     df_mean = df.groupby(groups).agg({"expr": estimator}).reset_index()
-    df_sem = df.groupby(groups).agg({"expr": sem_estimator}).reset_index().fillna(0)
+    df_sem = df.groupby(groups).agg({"expr": sem_estimator}).fillna(0).reset_index()
     df_sem.columns = groups + ["sem"]
     df = pd.merge(df_mean, df_sem, on=groups)
     if hue is None:
@@ -127,9 +129,9 @@ def lineplot(adata: ad.AnnData,
         axs.plot(sdf[x_axis], sdf["expr"],color=palette[h])
         axs.errorbar(sdf[x_axis], sdf["expr"], yerr=sdf["sem"], fmt=markers[idx], capsize=5, ecolor="k", color=palette[h],
                      markersize=markersize)
-
-        handles.append(mlines.Line2D([0], [0], marker=".", color=palette[h], lw=0, label=h, markerfacecolor=palette[h],
-                                     markeredgecolor=None, markersize=15))
+        if hue != "tmp":
+            handles.append(mlines.Line2D([0], [0], marker=".", color=palette[h], lw=0, label=h, markerfacecolor=palette[h],
+                                         markeredgecolor=None, markersize=15))
         if legend_loc == "axis":
             text = axs.text(len(sdf[x_axis]) -1 + 0.15, sdf["expr"].tail(1), h, color="black")
             text.set_path_effects([
@@ -157,9 +159,13 @@ def lineplot(adata: ad.AnnData,
 
     axs.set_ylabel(ylabel=ylabel)
     axs.set_xlabel("")
+
+    if len(features) == 1 and title is None:
+        title = features[0]
+
     axs.set_title(title)
 
-    if ncols == 2 and legend_loc == "right":
+    if ncols == 2 and legend_loc == "right" and len(handles) !=0:
         legend_axs = fig.add_subplot(gs[1])
         legend_axs.legend(handles=handles, frameon=False, loc="center left", ncols=1, title=legend_title)
         legend_axs.tick_params(axis="both", left=False, labelleft=False, labelright=False, bottom=False,
