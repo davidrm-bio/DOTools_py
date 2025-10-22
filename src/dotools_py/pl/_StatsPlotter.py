@@ -520,19 +520,31 @@ class TestData:
                     # Warning, we test for each hue
                     # but the adding to pvals is per condition
                     subset = self.data[self.data.obs[self.hue] == group]
-
-                    sc.tl.rank_genes_groups(
-                        subset,
-                        groupby=self.cond_key,
-                        method=self.test,
-                        tie_correct=True,
-                        reference=self.ctrl,
-                        groups=self.groups,
-                        corr_method=self.test_corr
-                    )
-                    df = sc.get.rank_genes_groups_df(subset, group=None)
-                    df = df[df["names"] == self.key]
-                    df['hue'] = group
+                    try:
+                        sc.tl.rank_genes_groups(
+                            subset,
+                            groupby=self.cond_key,
+                            method=self.test,
+                            tie_correct=True,
+                            reference=self.ctrl,
+                            groups=self.groups,
+                            corr_method=self.test_corr
+                        )
+                        df = sc.get.rank_genes_groups_df(subset, group=None)
+                        df = df[df["names"] == self.key]
+                        df['hue'] = group
+                    except ValueError:
+                        g = self.groups.copy()
+                        n = [self.key] * len(g)
+                        scores = [0] * len(g)
+                        lo2fcs = [0] * len(g)
+                        p_values = [1] * len(g)
+                        p_adjusted = [1] * len(g)
+                        hue_col =  [group]
+                        if len(self.groups) > 1:
+                            df = pd.DataFrame([n,  scores, lo2fcs, p_values, p_adjusted, hue_col], index=['names', 'scores', 'logfoldchanges', 'pvals', 'pvals_adj', 'hue']).T
+                        else:
+                            df = pd.DataFrame([g, n,  scores, lo2fcs, p_values, p_adjusted, hue_col], index=['group', 'names', 'scores', 'logfoldchanges', 'pvals', 'pvals_adj', 'hue']).T
                     sdf = pd.concat([sdf, df])
 
                 self.pvals_catgs_order = []
