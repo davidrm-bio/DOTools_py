@@ -306,7 +306,7 @@ class StatsPlotter:
                         offset_added += 0.05
                         new_pos = val + val * offset_added
                         cont += 1
-            pairs_offset[key] = new_pos
+                pairs_offset[key] = new_pos
         self.heights_offset = list(pairs_offset.values())
         return
 
