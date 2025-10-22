@@ -10,7 +10,7 @@ def test_integrate():
     adata = do.dt.example_10x_processed()
 
     # Harmony Integration
-    do.tl.integrate_data(adata, batch_key="batch", method="harmony")
+    do.tl.integrate_data(adata, batch_key="batch", integration_method="harmony")
     assert "X_harmony" in adata.obsm.keys()
 
     # BBKNN Integration
@@ -19,15 +19,15 @@ def test_integrate():
         if key == "X_pca":
             continue
         del adata.obsm[key]
-    do.tl.integrate_data(adata, batch_key="batch", method="bbknn")
+    do.tl.integrate_data(adata, batch_key="batch", integration_method="bbknn")
     assert "X_umap" in adata.obsm.keys()
 
     # scVI Integration
-    do.tl.integrate_data(adata, batch_key="batch", method="scvi")
+    do.tl.integrate_data(adata, batch_key="batch", integration_method="scvi")
     assert "X_scVI" in adata.obsm.keys()
 
     adata = adata[adata.obs["batch"].argsort()].copy()
-    do.tl.integrate_data(adata, batch_key="batch", method="scanorama")
+    do.tl.integrate_data(adata, batch_key="batch", integration_method="scanorama")
     assert "X_scanorama" in adata.obsm.keys()
 
     return None
