@@ -16,5 +16,6 @@ AnnData object.
     get.dge_results
     get.log2fc
     get.pcts_cells
+    get.pseudobulk
 ```
 

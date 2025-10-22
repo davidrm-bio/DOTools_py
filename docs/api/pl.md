@@ -19,6 +19,7 @@ functions for enhance visualisation of sc/snRNA-seq data.
     pl.barplot
     pl.violin
     pl.boxplot
+    pl.lineplot
     pl.cell_props
     pl.split_bar_gsea
     pl.expr_correlation
