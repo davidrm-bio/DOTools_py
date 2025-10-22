@@ -58,7 +58,7 @@ def test_embeddings():
 
     axs = do.pl.umap(adata, "annotation", split_by="condition", show=False)
     plt.close()
-    assert isinstance(axs, plt.Axes)
+    assert all(isinstance(ax, plt.Axes) for ax in np.ravel(axs))
 
 
     axs = do.pl.split_embeddding(adata, "annotation", show=False)
