@@ -7,11 +7,11 @@ coverage:
     project:
       default:
         # Require 1% coverage, i.e., always succeed
-        target: 1
-    patch: false
+        target: 50
+    #patch: false
     changes: false
 
 comment:
   layout: diff, flags, files
   behavior: once
-  require_base: no
+  require_base: false
