@@ -4,7 +4,7 @@ requires = [ "hatchling" ]
 
 [project]
 name = "DOTools_py"
-version = "0.0.1"
+version = "1.0.0"
 description = "Convenient functions to streamline sc/snRNAseq data analysis workflow"
 readme = "README.md"
 license = { file = "LICENSE" }
