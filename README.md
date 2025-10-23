@@ -7,31 +7,26 @@
 [![Issues][badge-issues]][issue tracker]
 [![Stars][badge-stars]](https://github.com/davidrm-bio/DOTools_py/stargazers)
 
-<!---
 [![PyPI][badge-pypi]][pypi]
-[![Downloads month][badge-mdown]][down]
-[![Downloads all][badge-adown]][down]
---->
+[![Downloads](https://static.pepy.tech/badge/DOTools_py)](https://pepy.tech/project/DOTools_py)
 
 
 [badge-tests]: https://img.shields.io/github/actions/workflow/status/davidrm-bio/DOTools_py/test.yaml?branch=main
-[badge-docs]:  https://img.shields.io/readthedocs/DOTools_py
+[badge-docs]:  https://img.shields.io/readthedocs/DOTools_py/stable
 [badge-issues]: https://img.shields.io/github/issues/davidrm-bio/DOTools_py
 [badge-stars]: https://img.shields.io/github/stars/davidrm-bio/DOTools_py?style=flat&logo=github&color=yellow
 [badge-coverage]: https://codecov.io/gh/davidrm-bio/DOTools_py/branch/main/graph/badge.svg
-
-<!---
 [badge-pypi]: https://img.shields.io/pypi/v/DOTools_py.svg
-[badge-mdown]: https://static.pepy.tech/badge/DOTools_py/month
-[badge-adown]: https://static.pepy.tech/badge/DOTools_py
---->
 
-Convenient functions for sc/snRNA-seq analysis and visualisation.
+
+Convenient and user-friendly package to streamline common workflows in single-cell RNA sequencing data analysis using
+the scverse ecosystem. It provides high-level wrappers and visualisation functions to help efficiently preprocess,
+analyze, and interpret single-cell data.
 
 ## Getting started
 
-Please refer to the [documentation](https://dotools-py.readthedocs.io/en/latest/index.html),
-in particular, the [API documentation](https://dotools-py.readthedocs.io/en/latest/api/index.html).
+Please refer to the [documentation](https://dotools-py.readthedocs.io/en/stable/index.html),
+in particular, the [API documentation](https://dotools-py.readthedocs.io/en/stable/api/index.html).
 
 ## Installation
 
@@ -45,9 +40,9 @@ conda activate do_py11
 
 There are several alternative options to install DOTools_py:
 
-1. Install the latest release of `DOTools_py` from [PyPI][]:
+1. Install the latest release of `DOTools_py` from [PyPI](https://pypi.org/project/DOTools-py/):
 ```bash
-pip install DOTools_py  # Not yet available
+pip install DOTools-py
 ```
 
 2. Install the latest development version:
@@ -110,8 +105,8 @@ Alternatively you can write to my email: [rodriguezmorales@med.uni-frankfurt.de]
 [scverse discourse]: https://discourse.scverse.org/
 [issue tracker]: https://github.com/davidrm-bio/DOTools_py/issues
 [tests]: https://github.com/davidrm-bio/DOTools_py/actions/workflows/test.yaml
-[documentation]: https://DOTools_py.readthedocs.io
-[changelog]: https://DOTools_py.readthedocs.io/en/latest/changelog.html
-[api documentation]: https://DOTools_py.readthedocs.io/en/latest/api.html
+[documentation]: https://dotools-py.readthedocs.io
+[changelog]: https://dotools-py.readthedocs.io/en/latest/changelog.html
+[api documentation]: https://dotools-py.readthedocs.io/en/latest/api.html
 [pypi]: https://pypi.org/project/DOTools_py
 [codecoverage]: https://codecov.io/gh/davidrm-bio/DOTools_py
