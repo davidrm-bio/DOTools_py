@@ -3,6 +3,10 @@ codecov:
   require_ci_to_pass: no
 
 coverage:
+  ignore:
+    - "src/dotools_py/utility/_language.py"  # R code
+    - "src/dotools_py/tl/_statistics.py"
+    -
   status:
     project:
       default:
