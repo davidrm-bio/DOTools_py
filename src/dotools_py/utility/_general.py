@@ -120,6 +120,7 @@ def read_rds(
                              get_anndata=True
                              )
     adata = converter.to_h5ad()
+    del converter
 
     if path_h5ad is not None:
         adata.write(Path(path_h5ad) / filename_h5ad)
@@ -188,6 +189,7 @@ def save_rds(
                              get_anndata=False
                              )
     converter.to_rds()
+    del converter
     return None
 
 
