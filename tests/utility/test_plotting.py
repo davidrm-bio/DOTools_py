@@ -30,4 +30,15 @@ def test_spine_format():
     top_visible = axs.spines['top'].get_visible()
     assert top_visible == False
     plt.close()
+
+
+    from dotools_py.utils import  spine_format
+
+    fig, axs = plt.subplots(1, 1)
+    axs.spines["top"].set_visible(True)
+    spine_format(axs)
+    top_visible = axs.spines['top'].get_visible()
+    assert top_visible == False
+    plt.close()
+
     return

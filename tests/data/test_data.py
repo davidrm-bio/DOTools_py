@@ -38,15 +38,21 @@ def test_processed10x():
 
 
 def test_heart_markers():
-    markers = do.dt.heart_markers()
-    cts = ['Art_EC', 'CapEC', 'VeinEC', 'LymphEC', 'EndoEC',
-           'SMC', 'PC', 'FB', 'FBa', 'Neurons', 'CM', 'B_cells',
-           'T_cells', 'Myeloid', 'MP_recruit', 'MP_resident',
-           'ImmuneCells', 'Epicardial', 'Adip', 'Mast']
+    for species in ["mouse", "human"]:
+        markers = do.dt.heart_markers(species)
+        cts = ['Art_EC', 'CapEC', 'VeinEC', 'LymphEC', 'EndoEC',
+               'SMC', 'PC', 'FB', 'FBa', 'Neurons', 'CM', 'B_cells',
+               'T_cells', 'Myeloid', 'MP_recruit', 'MP_resident',
+               'ImmuneCells', 'Epicardial', 'Adip', 'Mast']
 
-    assert  isinstance(markers, dict), "Markers are not a dictionary"
-    for ct in cts:
-        assert ct in markers.keys(), f"{ct} not in the marker list"
+        assert  isinstance(markers, dict), "Markers are not a dictionary"
+        for ct in cts:
+            assert ct in markers.keys(), f"{ct} not in the marker list"
+
+    try:
+        do.dt.heart_markers("unknown")
+    except Exception:
+        pass
     return
 
 

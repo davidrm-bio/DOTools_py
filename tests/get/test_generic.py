@@ -9,7 +9,7 @@ def test_expr():
     adata = do.dt.example_10x_processed()
 
     # Check the long format output
-    df = do.get.expr(adata, "CD4", "annotation")
+    df = do.get.expr(adata, "CD4", "annotation", layer="logcounts")
     assert isinstance(df, pd.DataFrame)
     cols = {"annotation", "genes", "expr"}
     assert cols.issubset(df.columns)
@@ -32,13 +32,13 @@ def test_mean_expr():
     adata = do.dt.example_10x_processed()
 
     # Check the long format
-    df = do.get.mean_expr(adata, "annotation")
+    df = do.get.mean_expr(adata, "annotation", layer="logcounts")
     assert isinstance(df, pd.DataFrame)
     cols = {"gene", "annotation", "expr"}
     assert cols.issubset(df.columns)
 
     # Check the wide format
-    df = do.get.mean_expr(adata, "annotation", out_format="wide")
+    df = do.get.mean_expr(adata, ["annotation", "condition"], out_format="wide")
     assert isinstance(df, pd.DataFrame)
     cols = set(adata.obs["annotation"].unique())
     assert cols.issubset(df.columns)
@@ -71,6 +71,15 @@ def test_subset():
     adata_subset = do.get.subset(adata, var_key="mean", var_groups=100,
                                  comparison=">")
     assert adata_subset.n_vars == 0
+
+    adata.var["tmp"] = ["groupA"]*1000 + ["groupB"]*851
+    adata_subset = do.get.subset(adata, var_key="tmp", var_groups="groupA",
+                                 comparison="exclude")
+    assert adata_subset.var["tmp"].unique()[0] == "groupB"
+
+    adata_subset = do.get.subset(adata, var_key="tmp", var_groups="groupA",
+                                 comparison="include")
+    assert adata_subset.var["tmp"].unique()[0] == "groupA"
 
     return  None
 
@@ -119,7 +128,7 @@ def test_get_dge_table():
 def test_pseudobulk():
     adata = do.dt.example_10x_processed()
 
-    pdata = do.get.pseudobulk(adata, "condition", "annotation", min_cells=0, min_counts=0)
+    pdata = do.get.pseudobulk(adata, "condition", "annotation", min_cells=0, min_counts=0, technical_replicates=2)
 
     assert isinstance(pdata, ad.AnnData)
     assert pdata.n_obs == 10

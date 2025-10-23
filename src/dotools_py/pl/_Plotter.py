@@ -1,19 +1,19 @@
 import anndata as ad
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import numpy as np
 from typing import Literal
 
 import pandas as pd
-from scipy.cluster.hierarchy import dendrogram, linkage
-from pathlib import Path
+#from scipy.cluster.hierarchy import dendrogram, linkage
+#from pathlib import Path
 
 from dotools_py.utils import iterase_input, check_missing, sanitize_anndata
 from dotools_py.get._generic import expr as get_expr
 from dotools_py import logger
-import matplotlib.pyplot as plt
-from scipy.stats import zscore
+#import matplotlib.pyplot as plt
+#from scipy.stats import zscore
 
-import dotools_py as do
+#import dotools_py as do
 from dotools_py.tl._get_stats import rank_genes_groups
 from scanpy.get.get import rank_genes_groups_df
 
@@ -117,9 +117,12 @@ class MatrixDataGenerator:
         :return: The df_pct attribute is initialise containing a dataframe in long format with the percentage
                 of cells expressing the features
         """
-        if self.df_expr is None:
+        try:
+            obs_bool = self.df_expr > self.expression_cutoff
+        except AttributeError as e:
             self.get_expr_df()
-        obs_bool = self.df_expr > self.expression_cutoff
+            obs_bool = self.df_expr > self.expression_cutoff
+
         df_pct = (
             obs_bool.groupby(level=self.group_by, observed=True).sum()
             / obs_bool.groupby(level=self.group_by, observed=True).count()
@@ -157,6 +160,14 @@ class MatrixDataGenerator:
                                                                   ddof=0))  # Scale for each gene over the alternative axis
                     .fillna(0)
                 )
+
+                to_drop = [
+                    i for i in range(len(df_mean.index.levels))
+                    if i > 0 and df_mean.index.get_level_values(i).equals(df_mean.index.get_level_values(i - 1))
+                ]
+                if to_drop:
+                    df_mean = df_mean.droplevel(to_drop)
+
             df_mean = df_mean.reset_index()
             self.df_zscore = df_mean
         else:

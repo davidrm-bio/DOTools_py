@@ -362,9 +362,9 @@ def subset(adata: ad.AnnData,
     # Subset by var
     if var_key is not None:
         if comparison == "exclude":
-            adata = adata[~adata.var[var_key].isin(var_groups)]
+            adata = adata[:, ~adata.var[var_key].isin(var_groups)]
         elif comparison == "include":
-            adata = adata[adata.var[var_key].isin(var_groups)]
+            adata = adata[:, adata.var[var_key].isin(var_groups)]
         else:
             mask = operations[comparison](adata.var[var_key], var_groups).values
             adata = adata[:, mask]

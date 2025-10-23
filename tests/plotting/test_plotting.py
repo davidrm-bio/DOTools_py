@@ -133,9 +133,25 @@ def test_expression():
     axs = do.pl.boxplot(adata, 'annotation', 'RPL11', hue='condition', ctrl_cond='healthy', groups_cond=['disease'],
                   hue_order=['healthy', 'disease'], xtick_rotation=45, figsize=(6, 4), show=False)
     plt.close()
-    assert isinstance(ax, dict)
-    assert "mainplot_ax" in ax
-    assert "legend_ax" in ax
+    assert isinstance(axs, dict)
+    assert "mainplot_ax" in axs
+    assert "legend_ax" in axs
+
+    axs = do.pl.boxplot(adata, 'condition', 'total_counts', ctrl_cond='healthy', groups_cond=['disease'],
+                        xtick_rotation=45, figsize=(6, 4), show=False)
+    plt.close()
+    assert isinstance(axs, plt.Axes)
+
+    df = do.get.expr(adata, "CD4", "annotation")
+    from dotools_py.pl import StatsPlotter, TestData
+    import seaborn as sns
+    ax = sns.barplot(df, x="annotation", y="expr")
+    tester = TestData(df, "expr", "annotation", "B_cells", "T_cells")
+    tester.run_test()
+    plotter = StatsPlotter(ax, "annotation", "expr", "B_cells", ["T_cells"], tester.pvals, kind="bar")
+    plotter.plot_stats()
+    plt.close()
+
 
 
 
@@ -174,8 +190,36 @@ def test_plotter():
     plotter.get_expr_df()
     plotter.test_significance()
     assert isinstance(plotter.df_pvals, pd.DataFrame)
+    plotter = MatrixDataGenerator(adata=adata, x_axis="condition", features="CD4", y_axis="annotation", add_stats="y_axis")
+    plotter.get_expr_df()
+    plotter.test_significance()
+    assert isinstance(plotter.df_pvals, pd.DataFrame)
+    plotter = MatrixDataGenerator(adata=adata, x_axis="condition", features="log1p_n_genes_by_counts", y_axis="annotation")
+    plotter.get_pct_df()
+    assert isinstance(plotter.df_expr, pd.DataFrame)
+    plotter = MatrixDataGenerator(adata=adata, x_axis="condition", features="CD4", z_score="y_axis")
+    plotter.get_expr_df()
+    plotter.zscore_transform()
+    assert isinstance(plotter.df_zscore, pd.DataFrame)
+    plotter = MatrixDataGenerator(adata=adata, x_axis="condition", features="CD4", y_axis="annotation", z_score="y_axis")
+    plotter.get_expr_df()
+    plotter.zscore_transform()
+    assert isinstance(plotter.df_zscore, pd.DataFrame)
 
 
+
+
+def test_spatial():
+    # TODO - Update when a test dataset is added
+    adata = do.dt.example_10x_processed()
+    adata.obsm["X_spatial"] = adata.obsm["X_umap"].copy()
+    do.pl.layers(adata, "CD4", layers=["counts", "logcounts"], show=False, library_id=None, spot_size=1)
+    plt.close()
+    try:
+        do.pl.slides(adata, "CD4")
+    except KeyError:
+        pass
+    plt.close()
 
 
 
