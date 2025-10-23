@@ -108,6 +108,7 @@ intersphinx_mapping = {
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
     "sklearn": ("https://scikit-learn.org/stable/", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
+    "scipy_mirror": ("https://scipy.github.io/devdocs/", None)
 }
 
 # List of patterns, relative to source directory, that match files and

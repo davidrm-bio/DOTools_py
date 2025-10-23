@@ -10,4 +10,4 @@ and this project adheres to [Semantic Versioning][].
 
 ## 1.0.0
 
-Initial release of the package.
+- Initial release of the package.

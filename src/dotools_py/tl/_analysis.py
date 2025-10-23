@@ -15,7 +15,6 @@ from tqdm import tqdm
 from dotools_py import logger
 from dotools_py.dt import standard_ct_labels_heart
 from dotools_py.utils import convert_path, get_paths_utils, transfer_labels, check_missing
-from scipy.sparse import csr_matrix
 
 DictUpdateCellLabels = standard_ct_labels_heart()
 
