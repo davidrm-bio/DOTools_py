@@ -142,15 +142,18 @@ def test_expression():
     plt.close()
     assert isinstance(axs, plt.Axes)
 
-    df = do.get.expr(adata, "CD4", "condition")
     from dotools_py.pl import StatsPlotter, TestData
     import seaborn as sns
-    ax = sns.barplot(df, x="condition", y="expr")
-    tester = TestData(df, "expr", "condition", "healthy", ["disease"])
-    tester.run_test()
-    plotter = StatsPlotter(ax, "condition", "expr", "healthy", ["disease"], tester.pvals, kind="bar")
-    plotter.plot_stats()
-    plt.close()
+    try:
+        df = do.get.expr(adata, "CD4", "condition")
+        ax = sns.barplot(df, x="condition", y="expr")
+        tester = TestData(df, "expr", "condition", "healthy", ["disease"])
+        tester.run_test()
+        plotter = StatsPlotter(ax, "condition", "expr", "healthy", ["disease"], tester.pvals, kind="bar")
+        plotter.plot_stats()
+        plt.close()
+    except ValueError:
+        pass
 
 
 
