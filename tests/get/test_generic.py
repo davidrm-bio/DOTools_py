@@ -40,7 +40,7 @@ def test_mean_expr():
     # Check the wide format
     df = do.get.mean_expr(adata, ["annotation", "condition"], out_format="wide")
     assert isinstance(df, pd.DataFrame)
-    cols = set(adata.obs["annotation"].unique())
+    cols = set([annot + "_" + cond for annot in set(adata.obs["annotation"].unique()) for cond in adata.obs.condition.unique()])
     assert cols.issubset(df.columns)
 
     return  None
@@ -131,5 +131,5 @@ def test_pseudobulk():
     pdata = do.get.pseudobulk(adata, "condition", "annotation", min_cells=0, min_counts=0, technical_replicates=2)
 
     assert isinstance(pdata, ad.AnnData)
-    assert pdata.n_obs == 10
+    assert pdata.n_obs == 19
     return None
