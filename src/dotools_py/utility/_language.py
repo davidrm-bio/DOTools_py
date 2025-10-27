@@ -6,6 +6,7 @@ import anndata as ad
 
 from dotools_py import logger
 from dotools_py.utils import convert_path
+from dotools_py.utility._general import free_memory
 
 class RDSConverter:
     """Class to convert between AnnData and Seurat/SCE.
@@ -85,6 +86,24 @@ class RDSConverter:
         tmp_folder.mkdir(parents=True, exist_ok=False)
         self.tmp_folder = tmp_folder
         return
+
+    def __enter__(self):
+        from rpy2 import robjects as ro
+        ro.r("invisible(gc())")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        from rpy2 import robjects as ro
+        import shutil
+
+        # Clean temporary folder if it still exists
+        if hasattr(self, "tmp_folder") and self.tmp_folder.exists():
+            shutil.rmtree(self.tmp_folder, ignore_errors=True)
+
+        ro.r("rm(list = ls())")
+        ro.r("invisible(gc())")
+
+        return False
 
     def _infer_input(self):
         """Infer the type of the input object.
@@ -226,6 +245,8 @@ class RDSConverter:
         if self.rds_obj is None:
             # We come from AnnData
             self.input.write(self.tmp_folder / "adata.h5ad")
+            self.input = None  # Clean Memory
+            free_memory()
             sce_obj = ZELLKONVERTER.readH5AD(str(self.tmp_folder / "adata.h5ad"))
             shutil.rmtree(str(self.tmp_folder))
 
@@ -234,6 +255,9 @@ class RDSConverter:
 
                 # Rename Assay to RNA
                 seu_obj = SEURAT_OBJ.as_Seurat(sce_obj)
+                del sce_obj
+                free_memory()
+
                 old_assay_name = list(SEURAT_OBJ.Assays(seu_obj))[0]  # Should only contain one assay
                 if old_assay_name != "RNA":
                     assay_obj = get_item(seu_obj, old_assay_name)
@@ -249,11 +273,12 @@ class RDSConverter:
 
                 # Add HVG
                 logger.info("Transferring HVGs")
-                hvg_r = StrVector(self.hvg)
-                rna_assay = self._set_slot(slot(seu_obj, "assays").rx2("RNA"), "var.features", hvg_r)
-                assays = slot(seu_obj, "assays")
-                assays[0] = rna_assay
-                seu_obj = self._set_slot(seu_obj, "assays", assays)
+                if self.hvg is not None:
+                    hvg_r = StrVector(self.hvg)
+                    rna_assay = self._set_slot(slot(seu_obj, "assays").rx2("RNA"), "var.features", hvg_r)
+                    assays = slot(seu_obj, "assays")
+                    assays[0] = rna_assay
+                    seu_obj = self._set_slot(seu_obj, "assays", assays)
 
                 # Rename reductions to remove X_ and make lowercase
                 reductions = slot(seu_obj, "reductions")
@@ -268,12 +293,15 @@ class RDSConverter:
 
                 # Add graphs
                 logger.info("Transferring Graphs")
-                snn_graph = self._csr_to_seurat_graph(self.snn, seu_obj, assay_used="RNA")
-                nn_graph = self._csr_to_seurat_graph(self.nn, seu_obj, assay_used="RNA")
-                graphs = slot(seu_obj, "graphs")
-                graphs = self._set_item(graphs, "RNA_snn", snn_graph)
-                graphs = self._set_item(graphs, "RNA_nn", nn_graph)
-                obj_to_save = self._set_slot(seu_obj, "graphs", graphs)
+                if self.snn is not None and self.nn is not None:
+                    snn_graph = self._csr_to_seurat_graph(self.snn, seu_obj, assay_used="RNA")
+                    nn_graph = self._csr_to_seurat_graph(self.nn, seu_obj, assay_used="RNA")
+                    graphs = slot(seu_obj, "graphs")
+                    graphs = self._set_item(graphs, "RNA_snn", snn_graph)
+                    graphs = self._set_item(graphs, "RNA_nn", nn_graph)
+                    obj_to_save = self._set_slot(seu_obj, "graphs", graphs)
+                else:
+                    obj_to_save = seu_obj
             elif self.out == "sce":
                 logger.info(f"Generating SCE from AnnData")
                 obj_to_save = sce_obj
@@ -287,6 +315,9 @@ class RDSConverter:
                 raise Exception("Input Object is already a Seurat Object")
 
         ro.r["saveRDS"](obj_to_save, str(self.path / self.filename))
+        del seu_obj
+        del obj_to_save
+        free_memory()
         return
 
     @staticmethod

@@ -111,16 +111,16 @@ def read_rds(
         obsp: 'connectivities', 'distances'
 
     """
-    converter = RDSConverter(input_obj=path_rds,
-                             out_obj="anndata",
-                             batch_key=batch_key,
-                             rds_batch_key=rds_batch_key,
-                             path=None,
-                             filename=None,
-                             get_anndata=True
-                             )
-    adata = converter.to_h5ad()
-    del converter
+    with RDSConverter(
+        input_obj=path_rds,
+        out_obj="anndata",
+        batch_key=batch_key,
+        rds_batch_key=rds_batch_key,
+        path=None,
+        filename=None,
+        get_anndata=True
+    ) as converter:
+        adata = converter.to_h5ad()
 
     if path_h5ad is not None:
         adata.write(Path(path_h5ad) / filename_h5ad)
@@ -180,16 +180,17 @@ def save_rds(
     if adata is None:
         adata = ad.read_h5ad(path_adata)
 
-    converter = RDSConverter(input_obj=adata,
-                             out_obj=out_type,
-                             batch_key=batch_key,
-                             rds_batch_key=rds_batch_key,
-                             path=path_rds,
-                             filename=filename_rds,
-                             get_anndata=False
-                             )
-    converter.to_rds()
-    del converter
+    with RDSConverter(
+        input_obj=adata,
+        out_obj=out_type,
+        batch_key=batch_key,
+        rds_batch_key=rds_batch_key,
+        path=path_rds,
+        filename=filename_rds,
+        get_anndata=False
+    ) as converter:
+       converter.to_rds()
+
     return None
 
 
