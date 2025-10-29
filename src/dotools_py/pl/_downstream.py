@@ -397,6 +397,7 @@ def cell_props(
         xticks_prop = {"rotation": xticks_rotation}
     axs.set_xticks(xtick, xtext, fontweight="bold", **xticks_prop)
     axs.set_title(title, fontsize=title_fontsize, fontweight="bold")
+    axs.set_ylabel("Proportions", fontweight="bold")
 
     # Legend Axis
     axs_legend = fig.add_subplot(gs[1])
