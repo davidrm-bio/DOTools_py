@@ -4,7 +4,6 @@ codecov:
 
 coverage:
   ignore:
-    - "src/dotools_py/utility/_language.py"  # R code
     - "src/dotools_py/tl/_statistics.py"
     - "src/dotools_py/utility/_spatial.py"  # No example currently
     - "src/dotools_py/pl/_visium.py" # No example currently
