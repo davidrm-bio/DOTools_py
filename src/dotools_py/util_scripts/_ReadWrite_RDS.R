@@ -68,58 +68,106 @@ TransformObjectType <- function(obj, type) {
 }
 
 
-if (opt$operation == 'read') {  # Convert RDS to AnnData
-    message("Convert RDS Object to AnnData Object")
+if (opt$operation == 'read') {  # Convert RDS (SCE/Seurat) to AnnData
+    message("Converting RDS Object to AnnData Object")
     input.obj <- readRDS(opt$input)
     output.obj <- TransformObjectType(input.obj, "SingleCellExperiment")
-    writeH5AD(output.obj, opt$out)
+    writeH5AD(output.obj, opt$out)  # SCE does not save HVGs and Graphs
 
-    # Transfer missing information
+    # Transfer missing information if we come from SeuratObject
     if (is(input.obj, "Seurat")) {
         tmp_folder <- strsplit(opt$input, "/")[[1]]
         tmp_folder <- tmp_folder[-length(tmp_folder)]
         tmp_folder <- paste(tmp_folder, collapse = "/")
 
-        # Get Variable Features
-        hvg <- VariableFeatures(input.obj)
-        if (length(hvg) >0) {
+        # Get all the available assays
+        assay_names <- names(input.obj@assays)
+        graph_names <- names(input.obj@graphs)
+
+        # Initialise vectors to save HVGs and Graphs
+        hvg <- c()
+        snn <- c()
+        nn <- c()
+        for (current_assay in assay_names) {
+            DefaultAssay(input.obj) <- current_assay
+
+            # Get HVGs
+            if (length(hvg) == 0) { hvg <- VariableFeatures(input.obj) }
+
+            # Get Graphs
+            for (assay in graph_names) {
+                if (length(snn) == 0) {
+                    if (grepl("_snn", assay)) {
+                        snn <- as.matrix(input.obj@graphs[[assay]])
+                    }
+                }
+                if (length(nn) == 0) {
+                    if (grepl("_nn", assay)) {
+                        nn <- as.matrix(input.obj@graphs[[assay]])
+                    }
+                }
+            }
+        }
+
+        if (length(hvg) == 0) {
+            message("No HVGs found in the object")
+        } else {
             write.csv(as.data.frame(hvg), paste0(tmp_folder, "/VariableFeatures.csv"))
         }
 
-        # Get SNN
-        assay_name <- names(input.obj@assays)
-        graph_names <- names(input.obj@graphs)
-        for (assay in graph_names) {
-            if (grepl("_snn", assay)) {
-                snn <- as.matrix(input.obj@graphs[[assay]])
-                data.table::fwrite(snn, paste0(tmp_folder, "/Connectivities.csv")) # Save SNN
-            }
-            else if  (grepl("_nn", assay)) {
-                nn <- as.matrix(input.obj@graphs[[assay]])
-                data.table::fwrite(nn, paste0(tmp_folder, "/Distances.csv"))  # Save NN
-            }
+        if (length(snn) == 0) {
+            message("No SNN Graph found in the object")
+        } else {
+            data.table::fwrite(snn, paste0(tmp_folder, "/Connectivities.csv"))
+        }
+
+        if (length(nn) == 0) {
+            message("No NN Graph found in the object")
+        } else {
+            data.table::fwrite(nn, paste0(tmp_folder, "/Distances.csv"))
         }
     }
 
-
 } else if (opt$operation == 'write') {  # Convert AnnData to RDS
-    message("Convert AnnData Object to RDS Object")
+    message("Converting AnnData Object to RDS Object")
     input.obj <- readH5AD(opt$input)
     output.obj <- TransformObjectType(input.obj, opt$type)
 
-    # Transfer missing information
+    # Transfer missing information for SeuratObject
     if (opt$type == "SeuratObject") {
 
         # Rename Assay to RNA
         message("Generating RNA assay")
-        assay_name <- names(output.obj@assays)
+        assay_name <- names(output.obj@assays)  # Should contain originalexp only
+        if (length(assay_name) > 1) {
+            if (grepl("originalexp", assay_name)) {
+                assay_name <- "originalexp"
+            }
+        }
         output.obj[["RNA"]] <- output.obj[[assay_name]]
         DefaultAssay(output.obj) <- "RNA"
         output.obj[[assay_name]] <- NULL
 
         # Replace orig.ident with batch_key
         message("Saving batch information")
-        output.obj$orig.ident <- output.obj@meta.data[opt$batch_key]
+        output.obj <- tryCatch({
+            output.obj$orig.ident <- output.obj@meta.data[opt$batch_key]
+        }, error = function(e) {
+            message("Error while renaming batch_key: ", e$message)
+            return(output.obj) }
+        )
+
+        #output.obj$orig.ident <- output.obj@meta.data[opt$batch_key]
+
+        # Remove nCount_originalexp, nFeature_originalexp
+        output.obj$nCount_originalexp <- NULL
+        output.obj$nFeature_originalexp <- NULL
+        if ("total_counts" %in% colnames(output.obj@meta.data)) {
+            output.obj$nCount_RNA <- output.obj$total_counts
+        }
+        if ("n_genes" %in% colnames(output.obj@meta.data)) {
+            output.obj$nFeature_RNA <- output.obj$n_genes
+        }
 
         # Transfer other missing elements
         tmp_folder <- strsplit(opt$input, "/")[[1]]
@@ -151,12 +199,14 @@ if (opt$operation == 'read') {  # Convert RDS to AnnData
 
         # Connectivities -> snn
         message("Getting SNN Graph")
-        snn <- tryCatch({
+        snn <- tryCatch(
+        {
+            # Try to read the file
             connectivities <- data.table::fread(paste0(tmp_folder, "/Connectivities.csv"),
                                                 check.names = FALSE, stringsAsFactors = FALSE)
             connectivities <- as.matrix(connectivities)
 
-           if ("V1" %in% colnames(connectivities)){
+            if ("V1" %in% colnames(connectivities)) {
                 connectivities$V1 <- NULL
             }
             rownames(connectivities) <- colnames(connectivities)
@@ -164,11 +214,37 @@ if (opt$operation == 'read') {  # Convert RDS to AnnData
             snn <- as.Graph(x = connectivities_sparse)
             slot(snn, name = "assay.used") <- "RNA"
 
-           snn
+            snn
 
         }, error = function(e) {
-            message("Error while transfering SNN Graph: ", e$message)
-            return(NULL) })
+                # It can fail due to memory limit
+                msg <- conditionMessage(e)
+                if (grepl("vector memory limit of ", msg)) {  # Try increase memory limit
+                    options(mem.maxVSize = 128e9)  # 128 GB
+                    tryCatch({
+                        connectivities <- data.table::fread(paste0(tmp_folder, "/Connectivities.csv"),
+                                                            check.names = FALSE, stringsAsFactors = FALSE)
+                        connectivities <- as.matrix(connectivities)
+
+                        if ("V1" %in% colnames(connectivities)) {
+                            connectivities$V1 <- NULL
+                        }
+                        rownames(connectivities) <- colnames(connectivities)
+                        connectivities_sparse <- as(connectivities, "dgCMatrix")
+                        snn <- as.Graph(x = connectivities_sparse)
+                        slot(snn, name = "assay.used") <- "RNA"
+                        snn
+                    },
+                        error = function(e2) {  # If the second time does not work return NULL
+                            message("Error while transfering SNN Graph: ", e$message)
+                            return(NULL)
+                        })
+                } else {  # If it is another type of error return
+                    message("Error while transfering SNN Graph: ", e$message)
+                    return(NULL)
+                }
+            }
+        )
 
         if (!is.null(snn)) {
             output.obj@graphs$RNA_snn <- snn
@@ -179,7 +255,7 @@ if (opt$operation == 'read') {  # Convert RDS to AnnData
         nn <- tryCatch({
             distances <- data.table::fread(paste0(tmp_folder, "/Distances.csv"), check.names = FALSE,
                                            stringsAsFactors = FALSE)
-            if ("V1" %in% colnames(distances)){
+            if ("V1" %in% colnames(distances)) {
                 distances$V1 <- NULL
             }
             distances <- as.matrix(distances)
@@ -188,7 +264,7 @@ if (opt$operation == 'read') {  # Convert RDS to AnnData
             nn <- as.Graph(x = distances_sparse)
             slot(nn, name = "assay.used") <- "RNA"
             nn
-        }, error = function(e) {
+        }, error = function(e) {  # We already increase the size limit
             message("Error while transfering NN Graph: ", e$message)
             return(NULL) })
 

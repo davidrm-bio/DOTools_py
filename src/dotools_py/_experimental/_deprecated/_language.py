@@ -6,7 +6,6 @@ import anndata as ad
 
 from dotools_py import logger
 from dotools_py.utils import convert_path
-from dotools_py.utility._general import free_memory
 
 class RDSConverter:
     """Class to convert between AnnData and Seurat/SCE.
@@ -95,6 +94,7 @@ class RDSConverter:
     def __exit__(self, exc_type, exc_val, exc_tb):
         from rpy2 import robjects as ro
         import shutil
+        import gc
 
         # Clean temporary folder if it still exists
         if hasattr(self, "tmp_folder") and self.tmp_folder.exists():
@@ -102,6 +102,8 @@ class RDSConverter:
 
         ro.r("rm(list = ls())")
         ro.r("invisible(gc())")
+        gc.collect()
+
 
         return False
 
@@ -246,7 +248,6 @@ class RDSConverter:
             # We come from AnnData
             self.input.write(self.tmp_folder / "adata.h5ad")
             self.input = None  # Clean Memory
-            free_memory()
             sce_obj = ZELLKONVERTER.readH5AD(str(self.tmp_folder / "adata.h5ad"))
             shutil.rmtree(str(self.tmp_folder))
 
@@ -256,7 +257,6 @@ class RDSConverter:
                 # Rename Assay to RNA
                 seu_obj = SEURAT_OBJ.as_Seurat(sce_obj)
                 del sce_obj
-                free_memory()
 
                 old_assay_name = list(SEURAT_OBJ.Assays(seu_obj))[0]  # Should only contain one assay
                 if old_assay_name != "RNA":
@@ -317,7 +317,6 @@ class RDSConverter:
         ro.r["saveRDS"](obj_to_save, str(self.path / self.filename))
         del seu_obj
         del obj_to_save
-        free_memory()
         return
 
     @staticmethod
