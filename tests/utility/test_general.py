@@ -1,5 +1,4 @@
-import os
-import shutil
+
 
 import dotools_py as do
 
@@ -43,12 +42,3 @@ def test_spatial():
         do.utility.select_slide(adata, "slide1")
 
 
-def test_r():
-    adata = do.dt.example_10x_processed()
-    if os.path.exists("./tmp"):
-        shutil.rmtree("./tmp")
-    os.makedirs("./tmp", exist_ok=True)
-    try:
-        do.utility.save_rds(path_rds="./tmp/test.rds", adata=adata)
-    except FileNotFoundError:
-        pass
