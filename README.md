@@ -6,10 +6,8 @@
 [![Coverage][badge-coverage]][codecoverage]
 [![Issues][badge-issues]][issue tracker]
 [![Stars][badge-stars]](https://github.com/davidrm-bio/DOTools_py/stargazers)
-
 [![PyPI][badge-pypi]][pypi]
-[![Downloads](https://static.pepy.tech/badge/DOTools_py)](https://pepy.tech/project/DOTools_py)
-
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/dotools-py?period=monthly&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/dotools-py)
 
 [badge-tests]: https://img.shields.io/github/actions/workflow/status/davidrm-bio/DOTools_py/test.yaml?branch=main
 [badge-docs]:  https://img.shields.io/readthedocs/DOTools_py/stable
@@ -42,7 +40,7 @@ There are several alternative options to install DOTools_py:
 
 1. Install the latest release of `DOTools_py` from [PyPI](https://pypi.org/project/DOTools-py/):
 ```bash
-pip install DOTools-py
+pip install dotools-py
 ```
 
 2. Install the latest development version:
@@ -105,8 +103,9 @@ Alternatively you can write to my email: [rodriguezmorales@med.uni-frankfurt.de]
 [scverse discourse]: https://discourse.scverse.org/
 [issue tracker]: https://github.com/davidrm-bio/DOTools_py/issues
 [tests]: https://github.com/davidrm-bio/DOTools_py/actions/workflows/test.yaml
-[documentation]: https://dotools-py.readthedocs.io
+[documentation]: https://dotools-py.readthedocs.io/en/stable/
 [changelog]: https://dotools-py.readthedocs.io/en/latest/changelog.html
 [api documentation]: https://dotools-py.readthedocs.io/en/latest/api.html
-[pypi]: https://pypi.org/project/DOTools_py
+[pypi]: https://pypi.org/project/DOTools-py/
 [codecoverage]: https://codecov.io/gh/davidrm-bio/DOTools_py
+[down]: https://pepy.tech/project/dotools-py
