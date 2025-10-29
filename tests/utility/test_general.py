@@ -1,3 +1,5 @@
+import os
+
 import dotools_py as do
 
 def test_gc():
@@ -42,12 +44,6 @@ def test_spatial():
 
 def test_r():
     adata = do.dt.example_10x_processed()
-    r_code =False
-    if r_code:
-        from dotools_py.utility._language import RDSConverter
-        converter = RDSConverter(input_obj=adata)
-        converter.to_h5ad()
-        converter.to_rds()
-        do.utility.save_rds(adata=adata, path_rds="/tmp", filename_rds="adata.rds")
-        do.utility.read_rds(path_rds="/tmp/adata.rds")
+    os.makedirs("./tmp", exist_ok=True)
+    do.utility.save_rds(path_rds="./tmp/test.rds", adata=adata)
 
