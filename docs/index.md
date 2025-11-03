@@ -11,4 +11,5 @@ api/index
 notebooks/index
 changelog
 references
+funding
 ```
