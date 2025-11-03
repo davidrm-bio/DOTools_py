@@ -67,6 +67,8 @@ sce <- zellkonverter::readH5AD(opt$input)
 # Re-organise to set reference as first level
 condition <- factor(x = SummarizedExperiment::colData(sce)[[opt$key]])
 condition <- relevel(x = condition, ref = opt$ref)
+print_ref <- levels(condition)
+message("Reference condition has been set: ", print_ref[[1]])
 sce$condition <- condition
 latent.vars <- c('condition', opt$covariates)
 
@@ -92,24 +94,24 @@ genes <- as.data.frame(summaryDt[summaryDt[["component"]] == "H", 1])
 p_val[['padj']] <- p.adjust(p_val$pvals, method = 'fdr')
 
 
-log1pdata.mean.fxn <- function(x) {return(log(x = (rowSums(x = expm1(x = x)) + 1)/NCOL(x), base = 2))}
-counts_mat <- as.matrix(counts(sce))  # convert to dense matrix if sparse
-logcounts_mat <- as.matrix(logcounts(sce))
-idx1 <- which(condition == opt$ref)
-idx2 <- which(condition == opt$disease)
-mean1 <- log1pdata.mean.fxn(logcounts_mat[,idx1])
-mean2 <-  log1pdata.mean.fxn(logcounts_mat[,idx2])
-log2fc <- as.data.frame(mean2 - mean1)
-pct1 <- rowMeans(counts_mat[, idx1, drop=FALSE] > 0)
-pct2 <- rowMeans(counts_mat[, idx2, drop=FALSE] > 0)
+#log1pdata.mean.fxn <- function(x) {return(log(x = (rowSums(x = expm1(x = x)) + 1)/NCOL(x), base = 2))}
+#counts_mat <- as.matrix(counts(sce))  # convert to dense matrix if sparse
+#logcounts_mat <- as.matrix(logcounts(sce))
+#idx1 <- which(condition == opt$ref)
+#idx2 <- which(condition == opt$disease)
+#mean1 <- log1pdata.mean.fxn(logcounts_mat[,idx1])
+#mean2 <-  log1pdata.mean.fxn(logcounts_mat[,idx2])
+#log2fc <- as.data.frame(mean2 - mean1)
+#pct1 <- rowMeans(counts_mat[, idx1, drop=FALSE] > 0)
+#pct2 <- rowMeans(counts_mat[, idx2, drop=FALSE] > 0)
 
 df <-data.frame(
     names = genes,
     pvals = p_val$pvals,
-    log2c = log2fc,
-    padj = p_val$padj,
-    pts_ref = pct1,
-    pts_group = pct2
+    #log2c = log2fc,
+    padj = p_val$padj
+    #pts_ref = pct1,
+    #pts_group = pct2
   )
 
 message('Saving DGE Table')

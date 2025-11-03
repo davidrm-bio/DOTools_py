@@ -14,6 +14,8 @@ from dotools_py import logger
 from dotools_py.tl._rankGenes import rank_genes_groups
 from dotools_py.utils import convert_path, get_paths_utils, sanitize_anndata, iterase_input
 from dotools_py.get import mean_expr, dge_results
+from dotools_py.get import log2fc as get_log2fc
+from dotools_py.get import pcts_cells as get_pct_cells
 from dotools_py.get import pseudobulk as pseudobulking
 
 # DGE Analysis
@@ -96,17 +98,34 @@ def run_mast(
         cmd += ["--covariates=" + covariates] if covariates is not None else []
         subprocess.call(cmd)
         dge = pd.read_csv(os.path.join(tmpdir_path, "dge_mast.csv"))
+
+        # Pcts
+        pct = get_pct_cells(adata, group_by=cond_key, features=dge["primerid"])
+        pct.columns = ["pts_" + col if col != "genes" else "GeneName" for col in pct.columns]
+        lfcs = get_log2fc(adata, group_by=cond_key, reference=reference, groups=alternative)
+        lfcs.rename(columns={"genes": "GeneName"}, inplace=True)
+
         dge["groups"] = alternative
+
+        if "Unnamed: 0" in dge.columns:
+            del dge["Unnamed: 0"]
+
+        dge.rename(columns={"primerid":"GeneName"}, inplace=True)
+        dge = pd.merge(dge, lfcs, on="GeneName")
+        dge = pd.merge(dge, pct, on="GeneName")
+
+        dge.rename(
+            columns={
+                "pts_" + reference: "pts_ref",
+                "pts_" + alternative: "pts_group",
+                "log2fc_" + alternative: "log2fc"
+
+            },
+            inplace=True
+        )
+
         dge_main = pd.concat([dge_main, dge])
 
-    dge_main.rename(
-        columns={
-            "primerid": "GeneName",
-            "mean2...mean1": "log2fc",
-        },
-        inplace=True,
-    )
-    del dge_main["Unnamed: 0"]
     shutil.rmtree(tmpdir_path)
 
     return dge_main
