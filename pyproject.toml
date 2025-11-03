@@ -17,6 +17,12 @@ authors = [
   { name = "David John", orcid = "0000-0003-3217-5449"},
 ]
 
+funding = [
+  {name = "Deutsche Forschungsgemeinschaft" , identifier =  "SFB 1366 (B04)", url= "https://www.sfb1366.de/"},
+  {name = "Deutsche Forschungsgemeinschaft" , identifier =  "SFB 1531 (456687919)", url= "https://sfb1531.de/"},
+  # TODO Add David RM
+]
+
 requires-python = ">=3.10"
 classifiers = [
   "Programming Language :: Python :: 3 :: Only",
