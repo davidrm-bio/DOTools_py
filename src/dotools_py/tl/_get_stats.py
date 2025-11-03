@@ -1,5 +1,6 @@
 import itertools
 import os
+import shutil
 import subprocess
 import uuid
 from pathlib import Path
@@ -11,12 +12,106 @@ import pandas as pd
 
 from dotools_py import logger
 from dotools_py.tl._rankGenes import rank_genes_groups
-from dotools_py.tl._statistics import MastTest
 from dotools_py.utils import convert_path, get_paths_utils, sanitize_anndata, iterase_input
 from dotools_py.get import mean_expr, dge_results
 from dotools_py.get import pseudobulk as pseudobulking
 
 # DGE Analysis
+def run_mast(
+    adata: ad.AnnData,
+    cond_key: str,
+    reference: str,
+    disease: str | list,
+    covariates: str | list | None = None
+) -> pd.DataFrame:
+    """Run MAST Test for sc/snRNAseq.
+
+    :param adata: Annotated Data matrix.
+    :param cond_key: Metadata column in `obs`  with condition groups.
+    :param reference: Reference condition.
+    :param disease: Disease conditions.
+    :param covariates: Extra covariates to account for.
+    :return: Returns a `DataFrame`. The following fields are included:
+
+             `GeneName`
+                Name of the genes
+             `pvals` and  `padj`
+                The adjusted p-value uses Benjamini-Hochberg correction method.
+             `log2fc`
+                Log2FoldChamge
+             `pts_ref` and `pts_group`
+                Percentage of cells in the reference in the disease group expressing the gene
+             `groups`
+                Column containing the group tested
+
+    See Also
+    --------
+        :func:`dotools_py.tl.rank_genes_groups`: run DEA at single-cell level
+        :func:`dotools_py.tl.grouped_ttest`: run DEA at pseudobulk level
+
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> df = do.tl.run_mast(adata, "condition", "healthy", "disease")
+    >>> df.head(5)
+          GeneName     pvals    log2fc      padj   pts_ref  pts_group   groups
+    0   A4GALT  0.001722 -1.018231  0.015546  0.003846   0.000000  disease
+    1     AAK1  0.019197  0.517996  0.105754  0.457692   0.516667  disease
+    2     ABAT  0.551787  1.530515  0.842536  0.000000   0.000000  disease
+    3    ABCB4  0.581264 -1.968762  0.842536  0.176923   0.050000  disease
+    4    ABCB9  0.458918 -1.468043  0.808238  0.121154   0.044444  disease
+
+    """
+    rscript = get_paths_utils("_Run_MAST.R")
+
+    tmpdir_path = Path("/tmp") / f"MAST_Test_{uuid.uuid4().hex}"
+    tmpdir_path.mkdir(parents=True, exist_ok=False)
+
+    if "logcounts" not in adata.layers.keys():
+        logger.warn("Layer 'logcounts' not available setting X to logcounts")
+        adata.layers["logcounts"] = adata.X.copy()
+
+    del adata.uns, adata.raw
+    adata.write(tmpdir_path / "adata.h5ad")
+
+    in_path = os.path.join(tmpdir_path, "adata.h5ad")
+
+    disease = [disease] if isinstance(disease, str) else disease
+
+    dge_main = pd.DataFrame()
+    for alternative in disease:
+        logger.info(f"Running test for {alternative}")
+
+        cmd = [
+            "Rscript",
+            rscript,
+            "--input=" + in_path,
+            "--out=" + str(tmpdir_path) + "/dge_mast.csv",
+            "--key=" + cond_key,
+            "--ref=" + reference,
+            "--disease=" + alternative,
+        ]
+        cmd += ["--covariates=" + covariates] if covariates is not None else []
+        subprocess.call(cmd)
+        dge = pd.read_csv(os.path.join(tmpdir_path, "dge_mast.csv"))
+        dge["groups"] = alternative
+        dge_main = pd.concat([dge_main, dge])
+
+    dge_main.rename(
+        columns={
+            "primerid": "GeneName",
+            "mean2...mean1": "log2fc",
+        },
+        inplace=True,
+    )
+    del dge_main["Unnamed: 0"]
+    shutil.rmtree(tmpdir_path)
+
+    return dge_main
+
+
 def _run_test(
     adata: ad.AnnData,
     method: str,
@@ -24,10 +119,6 @@ def _run_test(
     reference: str,
     groups: list,
     covariates: list = None,
-    n_cpus: int = 20,
-    mast_method: Literal["glm", "glmer", "bayesglm"] = "bayesglm",
-    parallel: bool = True,
-    formula: str = "~condition"
 ) -> pd.DataFrame:
     """Run DGE test.
 
@@ -44,25 +135,7 @@ def _run_test(
     if method.lower() == "mast":
         logger.info("Running MAST test")
         assert reference != "rest", "Specify a reference when using MAST test"
-
-        dge = pd.DataFrame([])
-        for group in groups:
-            tester = MastTest(adata=adata,
-                              condition_key=groupby,
-                              reference=reference,
-                              group=group,
-                              covariates=covariates,
-                              n_cpus=n_cpus,
-                              method=mast_method,
-                              ebayes=True,
-                              parallel=parallel,
-                              silent=True,
-                              formula=formula,
-                              )
-            tester.fit()
-            table = tester.dge_table.copy()
-            table["group"] = group
-            dge = pd.concat([dge, table])
+        dge = run_mast(adata, cond_key=groupby, reference=reference, disease=groups, covariates=covariates)
 
     elif method in ["wilcoxon", "logreg", "t-test", "t-test_overestim_var"]:
         logger.info(f"Running {method} test.")
@@ -94,10 +167,6 @@ def rank_genes_condition(
     filename: str = "DGE.xlsx",
     layer: str = None,
     covariates: list = None,
-    n_cpus: int = 20,
-    mast_method: Literal["glm", "glmer", "bayesglm"] = "bayesglm",
-    parallel: bool = True,
-    formula: str = "~condition",
     get_results: bool = True,
     key_added: str = "rank_genes_condition",
 ) -> None | pd.DataFrame:
@@ -125,10 +194,6 @@ def rank_genes_condition(
     :param filename: Name of the ExcelSheet.
     :param layer: Layer of the AnnData to use.
     :param covariates: list with extra covariates to correct for in the MAST test.
-    :param n_cpus: Number of threads to use for the MAST test.
-    :param mast_method: Method available in `MAST.zlm`.
-    :param parallel: Parallelize the inference for MAST.
-    :param formula: Formula for the MAST test.
     :param get_results: Return a dataframe with results.
     :param key_added: Key to use in uns.
     :return: Returns a `DataFrame` if `get_results` is set to `True` with the results from the differential expression
@@ -173,7 +238,6 @@ def rank_genes_condition(
             sdata = adata_copy[adata_copy.obs[subset_by] == catg]
             dge_s = _run_test(
                 sdata, method=method, groupby=groupby, reference=reference, groups=groups, covariates=covariates,
-                n_cpus = n_cpus, mast_method = mast_method, parallel = parallel, formula = formula
             )
             if dge_s is None:
                 continue
@@ -183,7 +247,6 @@ def rank_genes_condition(
         logger.info("Running DGEs.")
         dge = _run_test(
             adata_copy, method=method, groupby=groupby, reference=reference, groups=groups, covariates=covariates,
-            n_cpus=n_cpus, mast_method=mast_method, parallel=parallel, formula=formula
         )
 
     adata.uns[key_added] = dge  # Save inplace

@@ -30,13 +30,7 @@ analysis and statistical methods.
     tl.rank_genes_pseudobulk
     tl.rank_genes_consensus
     tl.grouped_ttest
+    tl.run_mast
 ```
 
 
-## Classes
-```{eval-rst}
-.. autosummary::
-    :toctree: generated
-
-    tl.MastTest
-```

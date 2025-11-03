@@ -49,7 +49,7 @@ class MastTest:
 
     >>> import dotools_py as do
     >>> adata = do.dt.example_10x_processed()
-    >>> tester = MastTest(adata=adata, condition_key="condition", reference="healthy", group="disease", layer="logcounts", n_cpus=5, method="bayesglm", parallel=True, formula="~condition")
+    >>> tester = do.tl.MastTest(adata=adata, condition_key="condition", reference="healthy", group="disease", layer="logcounts", n_cpus=5, method="bayesglm", parallel=True, formula="~condition")
     >>> tester.fit()
     2025-09-24 13:27:56,435 - Reference level is set to healthy
     [2025-09-24 13:27:56] `fData` has no primerid.  I'll make something up.
@@ -136,6 +136,8 @@ class MastTest:
         """
         # Import rpy2
         try:
+            import os
+            os.environ["R_MAX_VSIZE"] = "128GB"
             from rpy2 import robjects as ro
             from rpy2.robjects import numpy2ri, pandas2ri, r, DataFrame, StrVector, FloatVector
             from rpy2.robjects.conversion import get_conversion, localconverter
@@ -162,8 +164,12 @@ class MastTest:
             X = X.T.toarray() if issparse(X) else X.T
 
         # Transfer obs and vars to R
-        with localconverter(get_conversion() + pandas2ri.converter) as cv:
-            X_r = cv.py2rpy(pd.DataFrame(X, index=self.adata.var_names, columns=self.adata.obs_names))
+        if self.adata.var.shape[1] == 0:
+            self.adata.var["genes"] = self.adata.var_names
+
+        with localconverter(get_conversion() + pandas2ri.converter + numpy2ri.converter) as cv:
+            # X_r = cv.py2rpy(pd.DataFrame(X, index=self.adata.var_names, columns=self.adata.obs_names))
+            X_r = cv.py2rpy(X)
             obs_r = cv.py2rpy(self.adata.obs)
             var_r = cv.py2rpy(self.adata.var)
 
@@ -171,7 +177,9 @@ class MastTest:
         logger.warn(f"Reference level is set to {levels[0]}")
 
         # Generate SingleCellAssay
+        logger.info("Generating MAST Object")
         sca = MAST.FromMatrix(base.as_matrix(X_r), obs_r, var_r)
+
 
         # Re-organise to set reference as first level
         col_data = SummarizedExperiment.colData(sca)
@@ -187,10 +195,12 @@ class MastTest:
                 # Pass "condition" plus all elements in covariates as separate arguments
                 latent_variables = base.c(self.condition_key, *self.covariates)
             formula = stats.as_formula(object=base.paste0(" ~ ", base.paste(latent_variables, collapse="+")))
+            logger.info(f"formula is None, setting to {formula}")
         else:
             formula = stats.as_formula(str(self._formula))
 
-        ro.r(f'options(mc.cores = {self.n_cpus})')  # Allow parallelisation
+        logger.info("Running Inference")
+        #ro.r(f'options(mc.cores = {self.n_cpus})')  # Allow parallelisation
         zlmCond = MAST.zlm(formula=formula,
                            sca=sca,
                            method=self.method,
@@ -202,8 +212,8 @@ class MastTest:
                            onlyCoef=False,
                            silent=self.silent,
                            )
-
-        ro.r('options(mc.cores = 1)')  # Set to one thread again
+        logger.info("Done")
+        #ro.r('options(mc.cores = 1)')  # Set to one thread again
         summary = r['summary']
         zlm_summary = summary(zlmCond, doLRT=base.paste0(self.condition_key, self.group))
 
@@ -382,3 +392,12 @@ class MastTest:
             raise ImportError("MASTTest requires MAST to be installed") from e
         logger.info("MAST v" + MAST.__version__)
 
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        from rpy2 import robjects as ro
+        import gc
+
+        ro.r("rm(list = ls())")
+        ro.r("invisible(gc())")
+        gc.collect()
+
+        return False
