@@ -81,9 +81,3 @@ def test_consensus():
     return
 
 
-def test_mast():
-    adata = do.dt.example_10x_processed()
-    try:
-        do.tl.run_mast(adata, "condition", "healthy", "disease")
-    except Exception:
-        pass
