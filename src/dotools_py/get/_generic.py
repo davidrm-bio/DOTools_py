@@ -477,7 +477,7 @@ def pcts_cells(adata,
     ).T
     if len(group_by) > 1:
         df_pct.columns = ["_".join(col) for col in list(df_pct.columns)]
-    df_pct = df_pct.round(2)
+    df_pct = df_pct.round(4)
     df_pct.reset_index(inplace=True)
     df_pct.rename(columns={"index":"genes"}, inplace=True)
     return df_pct
