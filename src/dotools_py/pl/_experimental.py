@@ -11,7 +11,7 @@ import matplotlib.patheffects as path_effects
 
 from dotools_py.get._generic import expr as get_expr
 from dotools_py.utility._plotting import get_hex_colormaps
-from dotools_py.utils import make_grid_spec, logmean, logsem, save_plot, return_axis, sanitize_anndata
+from dotools_py.utils import make_grid_spec, logmean, logsem, save_plot, return_axis, sanitize_anndata, iterase_input, check_missing
 from adjustText import adjust_text
 
 
@@ -78,7 +78,8 @@ def lineplot(adata: ad.AnnData,
     """
     sanitize_anndata(adata)
 
-    features = [features] if isinstance(features, str) else features
+    features = iterase_input(features)
+    check_missing(adata, features=features, groups=x_axis)
     if len(features) > 1:
         assert hue == "features", "When multiple features are provided, use hue = 'features'"
 
@@ -101,7 +102,6 @@ def lineplot(adata: ad.AnnData,
         hue = "tmp"
         df["tmp"] = "tmp"
 
-    # Test for significance - TODO indicate significance with a discontinued line
 
     # Generate the plot
     width, height = figsize
@@ -165,6 +165,7 @@ def lineplot(adata: ad.AnnData,
 
     axs.set_title(title)
 
+    legend_axs = None
     if ncols == 2 and legend_loc == "right" and len(handles) !=0:
         legend_axs = fig.add_subplot(gs[1])
         legend_axs.legend(handles=handles, frameon=False, loc="center left", ncols=1, title=legend_title)
@@ -173,9 +174,9 @@ def lineplot(adata: ad.AnnData,
         legend_axs.spines[["right", "left", "top", "bottom"]].set_visible(False)
         legend_axs.grid(visible=False)
 
-    try:
+    if legend_axs is not None:
         axis_dict = {"mainplot_ax": axs, "legend_ax": legend_axs}
-    except NameError:
+    else:
         axis_dict = axs
 
     save_plot(path, filename)
