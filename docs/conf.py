@@ -29,6 +29,8 @@ version = info["Version"]
 urls = dict(pu.split(", ") for pu in info.get_all("Project-URL"))
 repository_url = urls["Source"]
 
+github_repo = "pertpy"
+
 # The full version, including alpha/beta/rc tags
 release = info["Version"]
 

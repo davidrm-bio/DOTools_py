@@ -10,13 +10,13 @@ conda activate do_py11
 
 There are several alternative options to install DOTools_py:
 
-1. Install the latest release of `DOTools_py` from [PyPI][]:
+1. Install the latest release of `DOTools_py` from [PyPI](https://pypi.org/project/DOTools-py/):
 ```bash
-pip install DOTools_py  # Not yet available
+pip install dotools-py
 ```
 
 2. Install the latest development version:
- ```bash
+```bash
 pip install git+https://github.com/davidrm-bio/DOTools_py.git@main
 ```
 
