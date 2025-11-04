@@ -12,9 +12,6 @@ from dotools_py.utils import get_paths_utils
 from dotools_py import logger
 
 
-
-
-
 def read_rds(
     path_rds: str | Path,
     path_h5ad: str | Path = None,
