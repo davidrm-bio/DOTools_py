@@ -118,7 +118,12 @@ def _run_scdblfinder(
     return
 
 
-def _normalise(adata: ad.AnnData, n_reads: int = 10_000, max_val: float | None = None, scale: bool = True) -> None:
+def _normalise(
+    adata: ad.AnnData,
+    n_reads: int = 10_000,
+    max_val: float | None = None,
+    scale: bool = True
+) -> None:
     """Normalise raw counts.
 
     The input is an unnormalise anndata object. The dt in X will be log-normalise to 10,000 reads per cell.
@@ -289,7 +294,7 @@ def _qc_scrna(
 
     # Save Metrics File
     if metrics:
-        from dotools_py.utils import  make_grid_spec
+        from dotools_py.utils import make_grid_spec
         from dotools_py.utility import get_hex_colormaps
         import matplotlib.lines as mlines
         df_plot = df.iloc[:, :-1].melt(id_vars="QC_Step")  # Exclude comments
@@ -306,10 +311,10 @@ def _qc_scrna(
 
         for container in bp.containers:
             bp.bar_label(container, fmt='{:,.0f}')
-        bp.set_title("Summary Quality Control", fontdict={"weight":"bold"})
+        bp.set_title("Summary Quality Control", fontdict={"weight": "bold"})
         bp.set_ylabel("", fontsize=18)
         bp.set_xlabel("Counts", fontsize=18)
-        bp.set_yticklabels(bp.get_yticklabels(), rotation=90, va="center", fontdict={"weight":"bold"})
+        bp.set_yticklabels(bp.get_yticklabels(), rotation=90, va="center", fontdict={"weight": "bold"})
 
         axs_legend = fig.add_subplot(gs[1])
         colors_dict = dict(zip(list(df["QC_Step"]), get_hex_colormaps("tab10"), strict=False))
