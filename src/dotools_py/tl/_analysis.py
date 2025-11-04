@@ -11,7 +11,7 @@ import pandas as pd
 import scanpy as sc
 import scanpy.external as sce
 from tqdm import tqdm
-from scvi.model import SCVI
+from scvi.model._scvi import SCVI
 
 from dotools_py import logger
 from dotools_py.dt import standard_ct_labels_heart

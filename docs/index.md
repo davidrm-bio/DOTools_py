@@ -16,7 +16,7 @@ preprocess, analyze, and interpret single-cell data.
 
 ```{eval-rst}
 .. card:: API reference :octicon:`book;1em;`
-    :link: api
+    :link: api/index
     :link-type: doc
 
     The API reference contains a detailed description for each function.
@@ -55,7 +55,7 @@ notebooks/index
 :hidden: true
 :maxdepth: 1
 
-about/cite
+cite
 GitHub <https://github.com/davidrm-bio/DOTools_py>
 ```
 
