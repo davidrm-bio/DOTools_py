@@ -535,6 +535,8 @@ def violin(
     ctrl_cond: str = None,
     groups_cond: str | list = None,
     groups_pvals: list = None,
+    scatter: bool = False,
+    scatter_size: int = 2,
     title: str = None,
     path: str = None,
     filename: str = None,
@@ -575,6 +577,8 @@ def violin(
     :param groups_cond: list of the name of the groups to test in the xticks
     :param groups_pvals: if provided, these values will be plotted. If not set, provide a list of the groups in the
                       xticks to test.
+    :param scatter: Plot non-zero values as scatterplot on top of the violin plots.
+    :param scatter_size: Size of the scatterplot dots.
     :param title: title of the plot.
     :param path: path to save the figure.
     :param filename: name of the file.
@@ -605,7 +609,7 @@ def violin(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.violin(adata,  'annotation', 'CD4', ctrl_cond = 'pDC', groups_cond=['B_cells'], xtick_rotation=45)
+        do.pl.violin(adata,  'annotation', 'CD4', ctrl_cond = 'pDC', groups_cond=['B_cells'], xtick_rotation=45, scatter=True)
         # Take only lymphoid cells
         lymphoid = adata[adata.obs['annotation'].isin(['T_cells', 'NK', 'B_cells'])].copy()
         # When hue is set we test for each annotation healthy Vs disease
@@ -649,6 +653,9 @@ def violin(
 
     vln = sns.violinplot(df, x=x_axis, y="expr", ax=ax, palette=palette, cut=cut,
                          order=order, hue=hue, hue_order=hue_order, legend=False, **kwargs)
+    if scatter:
+        sns.stripplot(df[df.expr != 0], x=x_axis,  y="expr", ax=vln, color="k", order=order, hue=hue, hue_order=hue_order, legend=False,
+                      size=scatter_size, dodge=True, )
 
     if ctrl_cond is not None and groups_cond is not None:
         if groups_pvals is None:
