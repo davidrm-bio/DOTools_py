@@ -310,7 +310,11 @@ def heatmap(
         else:
             raise Exception(f'{z_score} not a valid key for z_score, use "var" or "group"')
 
-        df = df.apply(zscore, axis=axis, result_type="expand")  # z_score over the genes
+        if axis == 1:
+            df = df.apply(lambda row: pd.Series(zscore(row), index=df.columns), axis = axis)  # z_score over the genes
+        else:
+            df = df.apply(zscore, axis=axis, result_type="expand")  # z_score over the genes
+
         if cmap == "Reds":
             logger.warn(
                 "Z-score set to True, but the cmap is Reds, setting to RdBu_r"
