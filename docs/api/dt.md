@@ -1,6 +1,6 @@
 # Data: `dt`
 The data module contains functions to use with sc/snRNA from the
-heart and an example dataset from PBMC from 10x.
+heart and the dataset from PBMC from 10x used in the tutorial.
 
 ## Example datasets
 ```{eval-rst}

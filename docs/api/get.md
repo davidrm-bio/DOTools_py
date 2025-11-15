@@ -1,4 +1,4 @@
-# Get `get`
+# Get: `get`
 The get module contains functions to extract information from the
 AnnData object.
 

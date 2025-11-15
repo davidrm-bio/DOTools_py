@@ -1,7 +1,7 @@
 # Plotting: `pl`
 
 The plotting module {mod}`dotools_py.pl` contains a collection of
-functions for enhance visualisation of sc/snRNA-seq data.
+functions for enhance visualization of sc/snRNA-seq data.
 
 ## sc/snRNA
 ```{eval-rst}
@@ -38,7 +38,7 @@ data.
 ```
 
 ## Classes
-These classes allow to calculate and add statistical information of bar-,
+These classes allow to calculate and add statistical information to bar-,
 box- and violin-plots.
 ```{eval-rst}
 .. autosummary::
