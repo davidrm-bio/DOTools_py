@@ -1,7 +1,5 @@
 import functools
 import importlib
-import subprocess
-import sys
 from pathlib import Path
 from collections.abc import Iterable
 
@@ -281,23 +279,6 @@ def deprecated_fxn(message=None):
         return wrapper
     return decorator
 
-def timer(func):
-    """Decorator to measure how much time a function took to run.
-
-    :param func: function
-    :return:
-    """
-    import time
-
-    def _timer(*args, **kwargs):
-        start_time = time.time()
-        try:
-            return func(*args, **kwargs)
-        finally:
-            time_taken = time.time() - start_time
-            print(f"----Run {func.__name__} in {time_taken:0.2f} s ----\n")
-
-    return _timer
 
 
 def draw_bracket(x_start, x_end, y_bottom=0, y_top=1, stem_length=0.2):
@@ -314,7 +295,7 @@ def draw_bracket(x_start, x_end, y_bottom=0, y_top=1, stem_length=0.2):
     return matplotlib.path.Path(verts, codes)
 
 
-def iterase_input(data: str | Iterable) -> list:
+def iterase_input(data: str | float | int | Iterable | None) -> list:
     """Convert input to list.
 
     :param data: string or iterable (list, tuple, index, etc.)
@@ -323,6 +304,10 @@ def iterase_input(data: str | Iterable) -> list:
     if data is None:
         return []
     elif isinstance(data, str):
+        return [data]
+    elif isinstance(data, float):
+        return [data]
+    elif isinstance(data, int):
         return [data]
     elif isinstance(data, list):
         return data
@@ -367,7 +352,6 @@ def check_missing(adata: ad.AnnData, features: str | list = None, groups: str | 
         assert len(missing) == 0, f"{missing} missing in the AnnData Object"
 
     return None
-
 
 
 def logmean(x):
