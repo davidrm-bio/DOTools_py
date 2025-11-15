@@ -204,7 +204,7 @@ def correlation(
 
 
 @require_dependencies([{"name": "scanpro"}])
-def cell_props(
+def cell_composition(
     # Data
     adata: ad.AnnData,
     annot_key: str,
@@ -286,7 +286,7 @@ def cell_props(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.cell_props(adata, "annotation", "condition", "batch", cond_order=["healthy", "disease"], transform="arcsin")
+        do.pl.cell_composition(adata, "annotation", "condition", "batch", condition_order=["healthy", "disease"], transform="arcsin")
 
     """
     ########################
