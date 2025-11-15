@@ -119,7 +119,7 @@ def test_get_dge_table():
     table = do.get.dge_results(adata)
 
     assert isinstance(table, pd.DataFrame)
-    cols = {'group', 'GeneName', 'wilcox_score', 'log2fc', 'pvals', 'padj', 'pts_group', 'pts_ref'}
+    cols = {'group', 'GeneName', 'statistic', 'log2fc', 'pvals', 'padj', 'pts_group', 'pts_ref'}
     assert cols.issubset(table.columns)
 
     return None
