@@ -25,6 +25,8 @@ layer:
     valid layer name, then the layer is plotted.
 figsize:
     Figure size, the format is (width, height).
+ax:
+    Matplotlib axes to use for plotting. If not set, a new figure will be generated.
 palette:
     String denoting matplotlib colormap. A dictionary with the categories available in `adata.obs[x_axis]` or
     `adata.obs[hue]` if hue is not None can also be provided. The format is {category:color}.
@@ -39,13 +41,13 @@ xticks_rotation:
     Rotation of the X-axis ticks.
 ylabel:
     Label for the Y-axis.
+legend_title:
+    Title for the legend.
 legend_fontproperties:
     Dictionary which should contain 'size' and 'weight' to define the fontsize and fontweight of the title of the
     legend.
 legend_ncols:
     Number of columns for the legend.
-legend_title:
-    Title for the legend.
 legend_loc:
     Location of the legend.
 path:
@@ -54,8 +56,6 @@ filename:
     Name of file to use when saving the figure.
 show:
     If set to `False`, returns a dictionary with the matplotlib axes.
-ax:
-    Matplotlib axes to use for plotting. If not set, a new figure will be generated.
 reference:
     Reference condition to use when testing for significance. When `hue` is set, the reference condition correspond
     to the categories in `hue`. For each `x_axis` category the different hue categories will be tested.
