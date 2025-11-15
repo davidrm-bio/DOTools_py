@@ -1,69 +1,82 @@
-import os
+from pathlib import Path
+from typing import Literal, Dict
 
 import anndata as ad
-import matplotlib.patheffects as path_effects
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import scanpy as sc
+
 from adjustText import adjust_text
+import matplotlib.patheffects as path_effects
+import matplotlib.pyplot as plt
 
 from dotools_py.get._generic import expr as get_expr
-from dotools_py.utility import spine_format
-from dotools_py.utils import convert_path, get_centroids, get_subplot_shape, remove_extra, sanitize_anndata
+from dotools_py.utils import (get_centroids, get_subplot_shape, remove_extra, sanitize_anndata,
+                              return_axis, save_plot, spine_format)
 
 
 def embedding(
+    # Data
     adata: ad.AnnData,
     color: str | list,
     split_by: str | None = None,
-    order_catgs: list = None,
-    ncols: int = 4,
-    title_font: dict = None,
+    catgs_order: list = None,
+
+    # Figure Parameters
     figsize: tuple = (6, 5),
-    common_legend: bool = False,
+    ax: plt.Axes = None,
+    ncols: int = 4,
+
     title: str = None,
-    vmax: float | None = None,
+    title_fontproperties: Dict[Literal["size", "weight"], str | int] = None,
+    share_legend: bool = False,
+
+    vmax: float | str | None  = None,
     spacing: tuple = (0.3, 0.2),
-    path: str | None = None,
+
+    # IO
+    path: str | Path | None = None,
     filename: str = "Umap.svg",
     show: bool = True,
+
+    # Fx Specific
     labels: str = None,
-    labels_fontproporties: dict = None,
+    labels_fontproporties:  Dict[Literal["size", "weight"], str | int] = None,
     labels_repel: dict = None,
     basis: str = "X_umap",
-    ax: plt.Axes = None,
     **kwargs,
 ) -> plt.Axes | None:
-    """Make Embedding Plot.
+    """Scatterplot for an embedding.
 
     This function builds on `sc.pl.embedding() <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.embedding.html>`_
-    and add extra functionalities like splitting by a categorical column in obs.
+    and add extra functionalities.
 
-    :param adata: annotated data matrix.
-    :param color: `.obs` column or `.var_names` value.
-    :param split_by: categorical `.obs` column.
-    :param order_catgs: order of the categories when splitting by a categorical column.
-    :param ncols: number of columns per row.
-    :param figsize: figure size (width, heigh) in inches.
-    :param common_legend: set a common legend when plotting multiple values, it will automatically scale if plotting continuous values like
-                          gene expression if vmax is not specified.
-    :param title: title of the plot. Only used when 1 value is plotted. If 1 value is plotted splitting by categories, the title
-                  will be the categories. If several values are plotted the title will be each value.
-    :param title_font: font properties of the title for each subplot.
-    :param vmax: maximum value for continuos data.
-    :param spacing: spacing between subplots (height, width) padding between plots.
-    :param show: when set to False the matplotlib axes will be returned.
-    :param labels: `.obs` column name with categorical values to add to the plot.
-    :param labels_fontproporties: font-properties for the labels.
-    :param labels_repel: additional arguments pass to adjust_text.
-    :param basis: embedding to use, default UMAP.
-    :param ax: matplotlib axis.
-    :param path: path to save plot.
-    :param filename: filename of the plot.
-    :param kwargs: additional parameters pass to `sc.pl.embedding() <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.embedding.html>`_.
+    :param adata: Annotated data matrix.
+    :param color: Keys for annotations of observations/cells or variables/genes.
+    :param split_by: Categorical column in `adata.obs` to split by.
+    :param catgs_order: Order of the categories when splitting by a categorical column.
+    :param figsize: Figure size, the format is (width, height).
+    :param ax: Matplotlib axes to use for plotting. If not set, a new figure will be generated.
+    :param ncols: Number of columns per row.
+    :param title: Title for the figure.
+    :param title_fontproperties: Dictionary which should contain 'size' and 'weight' to define the fontsize and
+                                 fontweight of the title of the figure.
+    :param share_legend: Set a common legend when plotting multiple values, it will automatically scale if plotting
+                        continuous values like gene expression if `vmax` is not specified.
+    :param vmax: The value representing the upper limit of the color scale.
+    :param spacing: Spacing between subplots (height, width) padding between plots.
+    :param path: Path to the folder to save the figure.
+    :param filename: Name of file to use when saving the figure.
+    :param show: If set to `False`, returns a dictionary with the matplotlib axes.
+    :param labels: Column in `adata.obs` with categorical values to add to the plot.
+    :param labels_fontproporties: Dictionary which should contain 'size' and 'weight' to define the fontsize and
+                                 fontweight of the labels.
+    :param labels_repel: Additional arguments pass to `adjust_text <https://adjusttext.readthedocs.io/en/latest/>_`.
+    :param basis: Embedding to use, default UMAP.
+    :param kwargs: Additional parameters pass to `sc.pl.embedding() <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.embedding.html>`_.
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
+
     """
+    import scanpy as sc
     sanitize_anndata(adata)
 
     def _plot_labels_embedding(
@@ -115,10 +128,13 @@ def embedding(
                 del adata.uns[c + '_colors']
 
     # font-properties for the title
-    if title_font is None:
-        title_font = {}
+    title_fontproperties = {} if title_fontproperties is None else title_fontproperties
 
-    title_font.update({"size": title_font.get("size", 18), "weight": title_font.get("weight", "bold")})
+    title_fontproperties.update(
+        {"size": title_fontproperties.get("size", 18),
+         "weight": title_fontproperties.get("weight", "bold")
+         }
+    )
 
     # When plotting only one thing, we can define the title
     if title is None and len(color) == 1:
@@ -139,11 +155,11 @@ def embedding(
         assert adata.obs[split_by].dtype == "category", "split_by is not a categorical column"
         ncatgs = len(adata.obs[split_by].unique())
 
-        if order_catgs is not None:
-            assert len(adata.obs[split_by].unique()) == len(order_catgs), (
+        if catgs_order is not None:
+            assert len(adata.obs[split_by].unique()) == len(catgs_order), (
                 f"Number of categories provided != ccategories in {split_by}"
             )
-            catgs = order_catgs
+            catgs = catgs_order
         else:
             catgs = adata.obs[split_by].unique()
         nrows, ncols, nExtra = get_subplot_shape(ncatgs, ncols)
@@ -152,7 +168,7 @@ def embedding(
 
     # Scale vmax when setting a common legend
     vmax_genes = vmax
-    if vmax is None and common_legend is True:
+    if vmax is None and share_legend is True:
         # We could be plotting different genes
         if len(color) > 1:
             genes = [val for val in color if val in adata.var_names]
@@ -187,8 +203,8 @@ def embedding(
             color = color[0]  # Color is always a list
             sc.pl.embedding(
                 adata, basis=basis, color=color, ax=axs, vmax=vmax, show=False, **kwargs
-            )  # Use embedding to generalise
-            axs.set_title(title, fontdict=title_font)
+            )  # Use embedding to generalize
+            axs.set_title(title, fontdict=title_fontproperties)
             spine_format(axs, txt_basis)
             if labels is not None:
                 texts = _plot_labels_embedding(
@@ -200,7 +216,7 @@ def embedding(
         else:
             axs = axs.flatten()
             for idx, val in enumerate(color):
-                if common_legend:
+                if share_legend:
                     # Remove the legend from all subplots except the last one per row
                     if (
                         cont != ncols - 1 and idx != len(color) - 1
@@ -221,7 +237,7 @@ def embedding(
                     adata, color=val, ax=axs[idx], colorbar_loc=cb_loc, basis=basis, vmax=vmax, show=False, **kwargs
                 )  # use embedding to generalise
                 spine_format(axs[idx], txt_basis)
-                axs[idx].set_title(val, fontdict=title_font)
+                axs[idx].set_title(val, fontdict=title_fontproperties)
                 remove_extra(nExtra, nrows, ncols, axs)
                 if labels is not None:
                     texts = _plot_labels_embedding(
@@ -243,7 +259,7 @@ def embedding(
         axs = axs.flatten()
         for idx in range(ncatgs):
             adata_subset = adata[adata.obs[split_by] == catgs[idx]]
-            if common_legend:
+            if share_legend:
                 # Remove the legend from all subplots except the last one per row
                 if cont != ncols - 1 and idx != ncatgs - 1:
                     if color in adata.obs.columns:  # Is color in .obs?
@@ -260,19 +276,13 @@ def embedding(
             vmax = vmax_genes if color in adata.var_names else vmax
 
             sc.pl.embedding(
-                adata_subset,
-                basis=basis,
-                color=color,
-                ax=axs[idx],
-                colorbar_loc=cb_loc,
-                vmax=vmax,
-                show=False,
+                adata_subset, basis=basis, color=color, ax=axs[idx], colorbar_loc=cb_loc, vmax=vmax, show=False,
                 **kwargs,
             )  # embedding to generalise
             spine_format(axs[idx], txt_basis)
             remove_extra(nExtra, nrows, ncols, axs)
 
-            if common_legend and cat == "category":
+            if share_legend and cat == "category":
                 try:
                     axs[idx].get_legend().remove()  # Remove legend for categorical values except last column
                 except AttributeError:
@@ -284,69 +294,75 @@ def embedding(
                 adjust_text(texts, ax=axs[idx], **labels_repel)
 
             # Minimal Text when Splitting by categories
-            axs[idx].set_title(catgs[idx], fontdict=title_font)
+            axs[idx].set_title(catgs[idx], fontdict=title_fontproperties)
             fig.supylabel(color, fontsize=23, fontweight="bold")
 
-    if path is not None:
-        plt.savefig(os.path.join(path, filename), bbox_inches="tight")
-    if show:
-        return plt.show()
-    else:
-        return axs
+    save_plot(path, filename)
+    return  return_axis(show, axis=axs)
 
 
 def umap(
+    # Data
     adata: ad.AnnData,
-    color: str,
+    color: str | list,
     split_by: str | None = None,
-    order_catgs: list = None,
-    ncols: int = 4,
-    title_font: dict = None,
+    catgs_order: list = None,
+
+    # Figure Parameters
     figsize: tuple = (6, 5),
-    common_legend=False,
+    ax: plt.Axes = None,
+    ncols: int = 4,
+
     title: str = None,
-    vmax: float | None = None,
+    title_fontproperties: Dict[Literal["size", "weight"], str | int] = None,
+    share_legend: bool = False,
+
+    vmax: float | str | None = None,
     spacing: tuple = (0.3, 0.2),
-    path: str | None = None,
+
+    # IO
+    path: str | Path | None = None,
     filename: str = "Umap.svg",
     show: bool = True,
+
+    # Fx Specific
     labels: str = None,
-    labels_fontproporties: dict = None,
+    labels_fontproporties: Dict[Literal["size", "weight"], str | int] = None,
     labels_repel: dict = None,
-    ax: plt.Axes = None,
     **kwargs,
 ) -> None | plt.Axes:
-    """Make UMAP Plot.
+    """Scatter plot in UMAP basis.
 
-    This function builds on `sc.pl.embedding() <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.embedding.html>`_ and add extra functionalities like
-    splitting by a categorical column in `.obs`.
+    This function builds on `sc.pl.umap() <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.embedding.html>`_
+    and add extra functionalities like.
 
-    :param adata: annotated data matrix.
-    :param color: `.obs` column or `.var_names` value.
-    :param split_by: categorical `.obs` column.
-    :param order_catgs: order of the categories when splitting by a categorical column.
-    :param ncols: number of columns per row.
-    :param figsize: figure size (width, heigh) in Inches.
-    :param common_legend: set a common legend when plotting multiple values, it will automatically scale if plotting continuous values like
-                          gene expression if vmax is not specified.
-    :param title: title of the plot. Only used when 1 value is plotted. If 1 value is plotted splitting by categories, the title
-                  will be the categories. If several values are plotted the title will be each value.
-    :param title_font: font properties of the title for each subplot.
-    :param vmax: maximum value for continuos data.
-    :param spacing: spacing between subplots (height, width) padding between plots.
-    :param show: when set to False the matplotlib axes will be returned.
-    :param labels: `.obs` column name with categorical values to add to the plot.
-    :param labels_fontproporties: fontproperties for the labels.
-    :param labels_repel: additional arguments pass to adjust_text.
-    :param ax: matplotlib axis.
-    :param path: path to save plot.
-    :param filename: filename of the plot.
-    :param kwargs: additional parameters pass to `sc.pl.embedding() <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.embedding.html>`_
+    :param adata: Annotated data matrix.
+    :param color: Keys for annotations of observations/cells or variables/genes.
+    :param split_by: Categorical column in `adata.obs` to split by.
+    :param catgs_order: Order of the categories when splitting by a categorical column.
+    :param figsize: Figure size, the format is (width, height).
+    :param ax: Matplotlib axes to use for plotting. If not set, a new figure will be generated.
+    :param ncols: Number of columns per row.
+    :param title: Title for the figure.
+    :param title_fontproperties: Dictionary which should contain 'size' and 'weight' to define the fontsize and
+                                 fontweight of the title of the figure.
+    :param share_legend: Set a common legend when plotting multiple values, it will automatically scale if plotting
+                        continuous values like gene expression if `vmax` is not specified.
+    :param vmax: The value representing the upper limit of the color scale.
+    :param spacing: Spacing between subplots (height, width) padding between plots.
+    :param path: Path to the folder to save the figure.
+    :param filename: Name of file to use when saving the figure.
+    :param show: If set to `False`, returns a dictionary with the matplotlib axes.
+    :param labels: Column in `adata.obs` with categorical values to add to the plot.
+    :param labels_fontproporties: Dictionary which should contain 'size' and 'weight' to define the fontsize and
+                                 fontweight of the labels.
+    :param labels_repel: Additional arguments pass to `adjust_text <https://adjusttext.readthedocs.io/en/latest/>_`.
+    :param kwargs: Additional parameters pass to `sc.pl.umap() <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.embedding.html>`_.
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
 
     Example
     -------
-    Visualise a categorical column
+    Visualize a categorical column
 
     .. plot::
         :context: close-figs
@@ -363,67 +379,60 @@ def umap(
 
         do.pl.umap(adata, 'CD4', split_by='condition',  size=50, labels='annotation', cmap='Reds')
 
+
     """
     axis = embedding(
-        adata=adata,
-        color=color,
-        split_by=split_by,
-        order_catgs=order_catgs,
-        ncols=ncols,
-        title_font=title_font,
-        figsize=figsize,
-        common_legend=common_legend,
-        title=title,
-        vmax=vmax,
-        spacing=spacing,
-        path=path,
-        filename=filename,
-        show=show,
-        labels=labels,
-        labels_fontproporties=labels_fontproporties,
-        labels_repel=labels_repel,
-        basis="X_umap",
-        ax=ax,
+        adata=adata, color=color, split_by=split_by, catgs_order=catgs_order, ncols=ncols,
+        title_fontproperties=title_fontproperties, figsize=figsize, share_legend=share_legend, title=title,
+        vmax=vmax, spacing=spacing, path=path, filename=filename, show=show, labels=labels,
+        labels_fontproporties=labels_fontproporties, labels_repel=labels_repel, basis="X_umap", ax=ax,
         **kwargs,
     )
 
-    if show:
-        return plt.show()
-    else:
-        return axis
+    return return_axis(show, axis=axis)
+
 
 
 def split_embeddding(
+    # Data
     adata: ad.AnnData,
     split_by: str,
+
+    # Figure Parameters
+    figsize: tuple[int, int] = (6, 5),
+    title_fontproperties: Dict[Literal["size", "weight"], str | int] = None,
     ncols: int = 4,
-    title_font: dict = None,
+
+    # IO
     path: str = None,
     filename: str = "UMAP.svg",
-    figsize: tuple = (6, 5),
+    show: bool = True,
+
+    # Fx Specific
     basis: str = "X_umap",
     visium: bool = False,
     sp_size: float = 1.5,
-    show: bool = True,
     **kwargs,
 ) -> plt.Axes | None:
-    """Plot categorical data split in an embedding.
+    """Scatter plot splitting categorical data in an embedding.
 
-    This function takes an AnnData and a categorical column in obs and generate a plot of subplots  highlighting the
+    This function takes a categorical column in `adata.obs` and generate a plot of subplots highlighting the
     different categories of the obs column.
 
-    :param adata: annotated data matrix object.
-    :param split_by: obs column with categorical values.
-    :param ncols: number of subplots per row.
-    :param title_font: properties of the title font for each subplot.
-    :param path: path to save the plot.
-    :param filename: filename of the plot.
-    :param figsize: size of the figure.
-    :param basis: embedding to use.
-    :param visium: set to True if you anndata has visium data.
-    :param sp_size: spot size when plotting visium data.
-    :param show: if set to True returns axes.
-    :param kwargs: additional arguments for `sc.pl.embedding() <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.embedding.html>`_ or `sc.pl.spatial() <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.spatial.html>`_ if visium is True.
+    :param adata: Annotated data matrix.
+    :param split_by: Column in `adata.obs` to split by.
+    :param figsize: Figure size, the format is (width, height).
+    :param title_fontproperties: Dictionary which should contain 'size' and 'weight' to define the fontsize and
+                                fontweight of the title of the figure.
+    :param ncols: Number of subplots per row.
+    :param path: Path to the folder to save the figure.
+    :param filename: Name of file to use when saving the figure.
+    :param show: If set to `False`, returns a dictionary with the matplotlib axes.
+    :param basis: Embedding to use, default UMAP.
+    :param visium: Set to `True` if you anndata has visium data.
+    :param sp_size: Spot size when plotting visium data.
+    :param kwargs: Additional arguments for `sc.pl.embedding() <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.embedding.html>`_ or
+                  `sc.pl.spatial() <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.spatial.html>`_ if visium is True.
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
 
     Example
@@ -437,16 +446,19 @@ def split_embeddding(
         do.pl.split_embeddding(adata, 'annotation', ncols=3)
 
     """
+    import scanpy as sc
     assert adata.obs[split_by].dtypes == "category", "Not a categorical column"
     sanitize_anndata(adata)
 
-    if title_font is None:
-        title_font = {}
+    title_fontproperties = {} if title_fontproperties is None else title_fontproperties
 
-    title_font.update({"size": title_font.get("size", 18), "weight": title_font.get("weight", "bold")})
+    title_fontproperties.update({
+        "size": title_fontproperties.get("size", 18),
+        "weight": title_fontproperties.get("weight", "bold")
+    })
 
     # Set-Up
-    categories = adata.obs[split_by].cat.categories
+    categories = list(adata.obs[split_by].unique())
     nrows, ncols, nextra = get_subplot_shape(len(categories), ncols)
 
     # Plotting
@@ -459,13 +471,11 @@ def split_embeddding(
             sc.pl.embedding(
                 adata, basis=basis, color=split_by, groups=[cat], ax=axs[idx], title=str(cat), show=False, **kwargs
             )
-        axs[idx].set_title(cat, fontdict=title_font)
+        axs[idx].set_title(cat, fontdict=title_fontproperties)
         axs[idx].get_legend().remove()
         spine_format(axs[idx])
         remove_extra(nextra, nrows, ncols, axs)
-    if path is not None:
-        plt.savefig(convert_path(path) / filename, bbox_inches="tight")
-    if show:
-        return plt.show()
-    else:
-        return axs
+
+    save_plot(path, filename)
+    return  return_axis(show, axis=axs)
+
