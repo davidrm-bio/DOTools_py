@@ -267,6 +267,7 @@ class BaseSeaborn:
             df = get_expr(self.adata, self.feature, groups=keep, layer=self.layer)
         elif all(feature in list(self.adata.obs.columns) for feature in self.feature):
             df = self.adata.obs[keep + self.feature]
+            df["expr"] =df[self.feature]
         else:
             raise ValueError(f"{self.feature} needs to be in adata.var_names or adata.obs")
         return df
@@ -288,6 +289,7 @@ class BaseSeaborn:
             df_mean = self.adata.obs[self.feature + group_by]
             df_mean = df_mean.groupby(group_by).agg(np.mean).fillna(0).reset_index()
             df_mean["gene"] = self.feature[0]
+            df_mean["expr"] = df_mean[self.feature[0]]
         else:
             raise ValueError(f"{self.feature} is not in adata.var_names or adata.obs")
         return df_mean
