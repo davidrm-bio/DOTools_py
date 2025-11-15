@@ -72,9 +72,7 @@ def barplot(
 
     Parameters
     ----------
-
     {COMMON_ARGS}
-
     batch_key:
         Name of a categorical column in `adata.obs` that contains the sample names.
     logcounts:
@@ -110,7 +108,7 @@ def barplot(
 
     Setting the `hue` argument allow to test across conditions for several groups.
 
-     .. plot::
+    .. plot::
         :context: close-figs
 
         # Take only lymphoid cells
@@ -119,7 +117,7 @@ def barplot(
 
     Plot a continuous value in `adata.obs`.
 
-     .. plot::
+    .. plot::
         :context: close-figs
 
         do.pl.barplot(adata,'annotation','total_counts', figsize=(6, 4))
@@ -267,9 +265,7 @@ def boxplot(
 
     Parameters
     ----------
-
     {COMMON_ARGS}
-
     showfliers:
         Show the outliers beyond the caps.
     kwargs:
@@ -293,16 +289,16 @@ def boxplot(
 
     Setting the `hue` argument allow to test across conditions for several groups.
 
-     .. plot::
+    .. plot::
         :context: close-figs
 
         # Take only lymphoid cells
         lymphoid = adata[adata.obs['annotation'].isin(['T_cells', 'NK', 'B_cells'])].copy()
         do.pl.boxplot(lymphoid, 'annotation', 'RPL11', hue = 'condition', reference = 'healthy', groups=['disease'], hue_order=['healthy', 'disease'], xticks_rotation=45, figsize=(6, 4))
 
-     Plot a continuous value in `adata.obs`.
+    Plot a continuous value in `adata.obs`.
 
-     .. plot::
+    .. plot::
         :context: close-figs
 
         do.pl.boxplot(adata,'annotation','total_counts', figsize=(6, 4))
@@ -440,9 +436,7 @@ def violinplot(
 
     Parameters
     ----------
-
     {COMMON_ARGS}
-
     scatter:
          Plot non-zero values as dots on top of the violin plots.
     scatter_size:
@@ -478,7 +472,7 @@ def violinplot(
         lymphoid = adata[adata.obs['annotation'].isin(['T_cells', 'NK', 'B_cells'])].copy()
         do.pl.violinplot(lymphoid,'annotation','CD4',  hue = 'condition',   reference = 'healthy', groups=['disease'], hue_order=['healthy', 'disease'], xticks_rotation=45, figsize=(6, 4))
 
-     Plot a continuous value in `adata.obs`.
+    Plot a continuous value in `adata.obs`.
 
     .. plot::
         :context: close-figs

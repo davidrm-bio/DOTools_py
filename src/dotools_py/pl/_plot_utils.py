@@ -5,11 +5,7 @@ from matplotlib.axes import Axes
 from matplotlib import axes
 
 
-COMMON_EXPR_ARGS = """
-
-Parameters
-----------
-
+COMMON_EXPR_ARGS = """\
 adata:
     Annotated data matrix.
 x_axis:
@@ -73,7 +69,7 @@ line_offset:
 txt_size:
     Font size of the text indicating significance.
 txt:
-    Text to include before the p-value. If not set, only the p-value is shown.
+    Text to include before the p-value. If not set, only the p-value is shown.\
 """
 
 _leading_whitespace_re = re.compile("(^[ ]*)(?:[^ \n])", re.MULTILINE)
