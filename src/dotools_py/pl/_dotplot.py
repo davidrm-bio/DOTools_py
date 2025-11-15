@@ -1916,7 +1916,7 @@ def dotplot(
             # Apply path effects for outlining
             text.set_path_effects(
                 [
-                    path_effects.Stroke(linewidth=2.5, foreground="white"),  # Outline
+                    path_effects.Stroke(linewidth=2, foreground="white"),  # Outline
                     path_effects.Normal(),  # Inner text
                 ]
             )
