@@ -8,8 +8,9 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Colormap
 import seaborn as sns
 
+import logger
 from dotools_py.pl._StatsPlotter import TestData, StatsPlotter
-from dotools_py.utils import iterase_input
+from dotools_py.utils import iterase_input, logmean
 
 from dotools_py.pl._plot_utils import COMMON_EXPR_ARGS, _doc_params
 from dotools_py.pl._Classes import BaseSeaborn
@@ -62,7 +63,7 @@ def barplot(
     # Fx Specific
     capsize: float = 0.1,
     marker_size: int = 6,
-    estimator: Literal["LogMean", "mean", "median"] = "LogMean",
+    estimator: Literal["logmean", "mean", "median"] = "logmean",
     **kwargs
 ) -> plt.Axes | dict | None:
     """Barplot with statistical significance.
@@ -124,6 +125,13 @@ def barplot(
 
 
     """
+    import numpy as np
+
+    def log_estimator(values):
+        values = np.array(values, dtype=float)  # ensure numeric
+        if len(values) == 0:
+            return np.nan
+        return np.log1p(np.mean(np.expm1(values)))
 
     plotter = BaseSeaborn(
         adata=adata, x_axis=x_axis, feature=feature, batch_key=batch_key, xticks_order=xticks_order, hue=hue,
@@ -139,14 +147,24 @@ def barplot(
     # Create figure
     nrows, ncols = (1, 1) if hue is None else (1, 2)
     plotter.make_figure(nrows=nrows, ncols=ncols)
-    estimator = plotter.log_estimator if estimator == "LogMean" else estimator
-
     main_axis = plotter.fig.add_subplot(plotter.gs[0])
+    if all(feature in list(plotter.adata.obs.columns) for feature in plotter.feature):
+        estimator = "mean" if estimator == "logmean" else estimator
+        logger.warn("Feature in adata.obs but logcounts set to True, changing estimator to mean")
 
-    bp = sns.barplot(
-        df, x=plotter.x_axis, y="expr", estimator=estimator, capsize=capsize, ax=main_axis, palette=plotter.cmap,
-        hue=plotter.hue, order=plotter.xticks_order, hue_order=plotter.hue_order, legend=False, **kwargs
-         )
+    if estimator == "logmean":
+        bp = sns.barplot(
+            df, x=plotter.x_axis, y="expr", estimator=log_estimator,
+            capsize=capsize, ax=main_axis, palette=plotter.cmap,
+            hue=plotter.hue, order=plotter.xticks_order, hue_order=plotter.hue_order, legend=False, **kwargs
+             )
+    else:
+        bp = sns.barplot(
+            df, x=plotter.x_axis, y="expr", estimator=estimator,
+            capsize=capsize, ax=main_axis, palette=plotter.cmap,
+            hue=plotter.hue, order=plotter.xticks_order, hue_order=plotter.hue_order, legend=False, **kwargs
+        )
+
     sns.stripplot(
         df_batch, x=plotter.x_axis, y="expr", alpha=0.75, color="k", s=marker_size, ax=bp, hue=plotter.hue,
         hue_order=plotter.hue_order, order=plotter.xticks_order, dodge= True if hue else False, legend=False
