@@ -2,20 +2,20 @@ import os
 import subprocess
 import uuid
 from pathlib import Path
-from typing import Literal
 
 import anndata as ad
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import scanpy as sc
-import scanpy.external as sce
-from tqdm import tqdm
-from scvi.model._scvi import SCVI
 
 from dotools_py import logger
 from dotools_py.dt import standard_ct_labels_heart
 from dotools_py.utils import convert_path, get_paths_utils, transfer_labels, check_missing
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from scvi.model._scvi import SCVI
+    from typing import Literal
 
 DictUpdateCellLabels = standard_ct_labels_heart()
 
@@ -228,6 +228,8 @@ def integrate_data(
     obsp: 'connectivities', 'distances'
 
     """
+    import scanpy.external as sce
+    import scanpy as sc
     logger.info("Computing HVGs")
     hvg_batch = batch_key if hvg_batch else None
     sc.pp.highly_variable_genes(adata, batch_key=hvg_batch)
@@ -384,6 +386,7 @@ def auto_annot(
 
     """
     import celltypist
+    from tqdm import tqdm
 
     check_missing(adata, groups=cluster_key)
 

@@ -8,10 +8,8 @@ import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import scanpy as sc
 import seaborn as sns
 from matplotlib.cm import ScalarMappable
-from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.stats import zscore
 
 from dotools_py.logger import logger
@@ -218,6 +216,9 @@ def heatmap(
         do.pl.heatmap(adata, 'annotation', ['CD4', 'CD79A'], add_stats=True)
 
     """
+    import scanpy as sc
+    from scipy.cluster.hierarchy import dendrogram, linkage
+
     # Checks
     sanitize_anndata(adata)
     features = [features] if isinstance(features, str) else features

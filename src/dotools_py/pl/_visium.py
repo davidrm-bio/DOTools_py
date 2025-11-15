@@ -2,7 +2,6 @@ import anndata as ad
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import scanpy as sc
 from tqdm import tqdm
 
 from dotools_py.get import expr as get_expr
@@ -25,6 +24,7 @@ def layers(
     :param kwargs: additional arguments for `sc.pl.spatial <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.spatial.html>`_.
     :return:  None or plt.axes.
     """
+    import scanpy as sc
     adata = adata.copy()
     sanitize_anndata(adata)
     if normalise:
@@ -99,6 +99,7 @@ def slides(
     :param spacing: spacing between subplots (height, width) padding between plots
     :return: a matplotlib axes object
     """
+    import scanpy as sc
     # TODO Consider the case where we only have 1 sample
     sanitize_anndata(adata)
 

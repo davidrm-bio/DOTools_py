@@ -10,7 +10,6 @@ import anndata as ad
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import scanpy as sc
 import seaborn as sns
 
 from dotools_py import logger
@@ -139,6 +138,7 @@ def _normalise(
     :param scale: whether to scale or not the dt. (Default is **True**)
     :return: log-normalise anndata object
     """
+    import scanpy as sc
     adata.layers["counts"] = adata.X.copy()  # Save raw counts
     sc.pp.normalize_total(adata, target_sum=n_reads)
     sc.pp.log1p(adata)
@@ -192,6 +192,7 @@ def _qc_scrna(
     :return: annotated dt matrix
     """
     import doubletdetection
+    import scanpy as sc
 
     # Create a metrics file
     today = date.today().strftime("%y%m%d")
@@ -423,6 +424,8 @@ def importer_py(
     ...     min_counts=500,
     ... )
     """
+    import scanpy as sc
+
     # Checks
     assert isinstance(paths, list) and isinstance(ids, list), "Please provide a list of paths and ids"
     assert len(paths) == len(ids), f"Provided {len(paths)} paths and {len(ids)} ids"

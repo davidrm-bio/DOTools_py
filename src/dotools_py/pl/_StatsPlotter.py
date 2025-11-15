@@ -5,7 +5,6 @@ import anndata as ad
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import scanpy as sc
 from matplotlib.collections import PolyCollection
 from matplotlib.patches import PathPatch
 from scipy.stats import f_oneway, kruskal, mannwhitneyu, shapiro, ttest_ind
@@ -507,6 +506,7 @@ class TestData:
 
         :return: Self
         """
+        import scanpy as sc
 
         pvals = []
         if self.key in self.data.var_names:
