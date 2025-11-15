@@ -1,4 +1,5 @@
-from typing import Literal
+from typing import Literal, Dict
+from pathlib import Path
 
 import anndata as ad
 import matplotlib.colors
@@ -109,43 +110,54 @@ def small_squares(ax: plt.Axes, pos: list, color: list, size: float = 1, linewid
 
 
 def heatmap(
+    # Data
     adata: ad.AnnData,
     group_by: str | list,
     features: str | list,
     groups_order: list = None,
-    z_score: Literal["var", "group"] = None,  # x_axis is the group_by
-    path: str = None,
-    filename: str = "Heatmap.svg",
     layer: str = None,
-    swap_axes: bool = True,
-    cmap: str = "Reds",
-    title: str = None,
-    title_fontprop: dict = None,
-    clustering_method: str = "complete",
-    clustering_metric: str = "euclidean",
-    cluster_x_axis: bool = False,
-    cluster_y_axis: bool = False,
-    axs: plt.Axes | None = None,
+    logcounts: bool = True,
+
+    # Figure parameters
     figsize: tuple = (5, 6),
-    linewidth: float = 0.1,
-    ticks_fontdict: dict = None,
+    ax: plt.Axes | None = None,
+    swap_axes: bool = True,
+    title: str = None,
+    title_fontproperties: Dict[Literal["size", "weight"], str | int] = None,
+    palette: str = "Reds",
+    ticks_fontproperties: Dict[Literal["size", "weight"], str | int] = None,
+
     xticks_rotation: int = None,
     yticks_rotation: int = None,
-    vmin: float = 0.0,
-    vcenter: float = None,
-    vmax: float = None,
+    cluster_x_axis: bool = False,
+    cluster_y_axis: bool = False,
+
     legend_title: str = "LogMean(nUMI)\nin group",
+
+    # IO
+    path: str | Path = None,
+    filename: str = "Heatmap.svg",
+    show: bool = True,
+
+    # Statistics
     add_stats: bool = False,
+    test: Literal["wilcoxon", "t-test"] = "wilcoxon",
+    correction_method: Literal["benjamini-hochberg", "bonferroni"] = "benjamini-hochberg",
     df_pvals: pd.DataFrame = None,
     stats_x_size: float = None,
     square_x_size: dict = None,
-    test: Literal["wilcoxon", "t-test"] = "wilcoxon",
-    correction_method: Literal["benjamini-hochberg", "bonferroni"] = "benjamini-hochberg",
     pval_cutoff: float = 0.05,
     log2fc_cutoff: float = 0.0,
+
+    # Fx specific
+    z_score: Literal["var", "group"] = None,  # x_axis is the group_by
+    clustering_method: str = "complete",
+    clustering_metric: str = "euclidean",
+    linewidth: float = 0.1,
+    vmin: float = 0.0,
+    vcenter: float = None,
+    vmax: float = None,
     square: bool = True,
-    show: bool = True,
-    logcounts: bool = True,
     **kargs,
 ) -> dict | None:
     """Heatmap of the mean expression of genes across a groups.
@@ -153,44 +165,46 @@ def heatmap(
     Generate a heatmap of showing the average nUMI for a set of genes in different groups. Differential gene
     expression analysis between the different groups can be performed.
 
-    :param adata: annotated data matrix.
-    :param group_by: obs column name with categorical values.
-    :param features: continuous value in var_names or obs.
-    :param groups_order: order for the categories in group_by
-    :param z_score: apply z-score transformation.
-    :param path: path to save the plot
-    :param filename: name of the file.
-    :param layer: layer to use.
-    :param swap_axes: whether to swap the axes or not.
-    :param cmap: colormap.
-    :param title: title for the main plot.
-    :param title_fontprop: font properties for the title (e.g., 'weight' and 'size').
-    :param clustering_method: clustering method to use when hierarchically clustering the x and y-axis.
-    :param clustering_metric: metric to use when hierarchically clustering the x and y-axis.
-    :param cluster_x_axis: hierarchically clustering the x-axis.
-    :param cluster_y_axis: hierarchically clustering the y-axis.
-    :param axs: matplotlib axis.
-    :param figsize: figure size.
-    :param linewidth: linewidth for the border of cells.
-    :param ticks_fontdict: font properties for the x and y ticks (e.g.,  'weight' and 'size').
-    :param xticks_rotation: rotation of the x-ticks.
-    :param yticks_rotation: rotations of the y-ticks.
-    :param vmin: minimum value.
-    :param vcenter: center value.
-    :param vmax: maximum value.
-    :param legend_title: title for the colorbar.
-    :param add_stats: add statistical annotation. Will add a square with an '*' in the center if the expression is significantly different in a group with respect to the others.
-    :param df_pvals: dataframe with the pvals. Should be gene x group or group x gene in case of swap_axes is False.
-    :param stats_x_size: scaling factor to control the size of the asterisk.
-    :param square_x_size: size and thickness of the square.
-    :param test: test to use for test for significance.
-    :param correction_method: multiple correction method to use.
-    :param pval_cutoff: cutoff for the p-value.
-    :param log2fc_cutoff: minimum cutoff for the log2FC.
-    :param square: whether to make the cell square or not.
-    :param show: if set to false return a dictionary with the axis.
+    :param adata: Annotated data matrix.
+    :param group_by:  Name of a categorical column in `adata.obs` to groupby.
+    :param features: cA valid feature in `adata.var_names` or column in `adata.obs` with continuous values.
+    :param groups_order: Order for the categories in `adata.obs[group_by]`.
+    :param z_score: Apply z-score transformation.
+    :param path: Path to the folder to save the figure.
+    :param filename: Name of file to use when saving the figure.
+    :param layer: Name of the AnnData object layer that wants to be plotted. By default `adata.X` is plotted.
+                 If layer is set to a valid layer name, then the layer is plotted.
+    :param swap_axes: Whether to swap the axes or not.
+    :param palette: String denoting matplotlib colormap.
+    :param title: Title for the figure.
+    :param title_fontproperties: Dictionary which should contain 'size' and 'weight' to define the fontsize and
+                                fontweight of the title of the figure.
+    :param clustering_method: Linkage method to use for calculating clusters. See `scipy.cluster.hierarchy.linkage <https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html#scipy.cluster.hierarchy.linkage>`_.
+    :param clustering_metric: Distance metric to use for the data. See `scipy.spatial.distance.pdist <https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html#scipy.spatial.distance.pdist>`_.
+    :param cluster_x_axis: Hierarchically clustering the x-axis.
+    :param cluster_y_axis: Hierarchically clustering the y-axis.
+    :param ax: Matplotlib axes to use for plotting. If not set, a new figure will be generated.
+    :param figsize: Figure size, the format is (width, height).
+    :param linewidth: Linewidth for the border of cells.
+    :param ticks_fontproperties: Dictionary which should contain 'size' and 'weight' to define the fontsize and fontweight of the font of the x/y axis.
+    :param xticks_rotation: Rotation of the x-ticks.
+    :param yticks_rotation: Rotations of the y-ticks.
+    :param vmin: The value representing the lower limit of the color scale.
+    :param vcenter: The value representing the center of the color scale.
+    :param vmax: The value representing the upper limit of the color scale.
+    :param legend_title: Title for the colorbar.
+    :param add_stats: Add statistical annotation. Will add a square with an '*' in the center if the expression is significantly different in a group with respect to the others.
+    :param df_pvals: Dataframe with the pvals. Should be `gene x group` or `group x gene` in case of swap_axes is `False`.
+    :param stats_x_size: Scaling factor to control the size of the asterisk.
+    :param square_x_size: Size and thickness of the square.
+    :param test: Name of the method to test for significance.
+    :param correction_method: Correction method for multiple testing.
+    :param pval_cutoff: Cutoff for the p-value.
+    :param log2fc_cutoff: Minimum cutoff for the log2FC.
+    :param square: Whether to make the cell square or not.
+    :param show: If set to `False`, returns a dictionary with the matplotlib axes.
     :param logcounts: whether the input is logcounts or not.
-    :param kargs: additional arguments pass to `sns.heatmap() <https://seaborn.pydata.org/generated/seaborn.heatmap.html>`_.
+    :param kargs: Additional arguments pass to `sns.heatmap <https://seaborn.pydata.org/generated/seaborn.heatmap.html>`_.
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
 
     Example
@@ -315,11 +329,11 @@ def heatmap(
         else:
             df = df.apply(zscore, axis=axis, result_type="expand")  # z_score over the genes
 
-        if cmap == "Reds":
+        if palette == "Reds":
             logger.warn(
                 "Z-score set to True, but the cmap is Reds, setting to RdBu_r"
             )  # Make sure to use divergent colormap
-            cmap = "RdBu_r"
+            palette = "RdBu_r"
         if legend_title == "LogMean(nUMI)\nin group":
             legend_title = "Z-score"
         vmin, vcenter, vmax = round(df.min().min() * 20) / 20, 0.0, None
@@ -343,17 +357,17 @@ def heatmap(
         cbar_legend_height,
     ]
 
-    textprops = {} if ticks_fontdict is None else ticks_fontdict
-    textprops = {"weight": textprops.get("weight", "bold"), "size": textprops.get("size", 13)}
-    tick_weight = textprops["weight"]
-    tick_size = textprops["size"]
+    ticks_fontproperties = {} if ticks_fontproperties is None else ticks_fontproperties
+    ticks_fontproperties = {"weight": ticks_fontproperties.get("weight", "bold"), "size": ticks_fontproperties.get("size", 13)}
+    tick_weight = ticks_fontproperties["weight"]
+    tick_size = ticks_fontproperties["size"]
 
-    title_fontprop = {} if title_fontprop is None else title_fontprop
-    title_fontprop = {"weight": title_fontprop.get("weight", "bold"), "size": title_fontprop.get("size", 15)}
+    title_fontproperties = {} if title_fontproperties is None else title_fontproperties
+    title_fontprop = {"weight": title_fontproperties.get("weight", "bold"), "size": title_fontproperties.get("size", 15)}
     # Parameters for colorbar
     vmin = 0.0 if vmin is None else vmin
     vmax = round(df.max().max() * 20) / 20 if vmax is None else vmax  # Normalise to round to 5 or 0
-    colormap = plt.get_cmap(cmap)
+    colormap = plt.get_cmap(palette)
     normalize = check_colornorm(vmin=vmin, vmax=vmax, vcenter=vcenter)
     mappable = ScalarMappable(norm=normalize, cmap=colormap)
     mean_flat = df.T.values.flatten()
@@ -372,7 +386,7 @@ def heatmap(
 
     # Generate figure
     fig, gs = make_grid_spec(
-        axs or (width, height), nrows=1, ncols=2, wspace=legends_width_spacer, width_ratios=[mainplot_width + 0, 1.5]
+        ax or (width, height), nrows=1, ncols=2, wspace=legends_width_spacer, width_ratios=[mainplot_width + 0, 1.5]
     )
     main_ax = fig.add_subplot(gs[0])
     legend_ax = fig.add_subplot(gs[1])
@@ -385,7 +399,7 @@ def heatmap(
     # Add Main Plot
     hm = sns.heatmap(
         data=df,
-        cmap=cmap,
+        cmap=palette,
         ax=main_ax,
         linewidths=linewidth,
         cbar=False,
