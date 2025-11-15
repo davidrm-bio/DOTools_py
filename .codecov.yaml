@@ -11,6 +11,7 @@ coverage:
     - "src/dotools_py/utility/_spatial.py"  # No example currently
     - "src/dotools_py/pl/_visium.py" # No example currently
     - "src/dotools_py/_experimental/_deprecated/_expression.py"
+    - "src/dotools_py/tl/_Statistical.py"
   status:
     project:
       default:
