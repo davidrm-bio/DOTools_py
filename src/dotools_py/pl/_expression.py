@@ -462,7 +462,7 @@ def violinplot(
     Create a violin plot showing the expression of a given gene including the p-value to indicate if there is
     a significant statistical difference between groups.
 
-     .. plot::
+    .. plot::
         :context: close-figs
 
         import dotools_py as do
@@ -480,7 +480,7 @@ def violinplot(
 
      Plot a continuous value in `adata.obs`.
 
-     .. plot::
+    .. plot::
         :context: close-figs
 
         do.pl.violinplot(adata,'annotation','total_counts', figsize=(6, 4), scatter=True)
