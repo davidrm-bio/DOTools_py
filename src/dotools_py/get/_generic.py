@@ -205,7 +205,7 @@ def mean_expr(
         df_tmp["gene"] = adata[df.index].var_names  # Update with Gene names
         group_name = iterase_input(group_name)
         for idx, name in enumerate(group_name):
-            #df_tmp["group" + str(idx)] = str(name).replace("-", "_")  # Update with metadata
+            # df_tmp["group" + str(idx)] = str(name).replace("-", "_")  # Update with metadata
             df_tmp[group_by[idx]] = name
         main_df = pd.concat([main_df, df_tmp], axis=0)
     main_df["expr"] = pd.to_numeric(main_df["expr"])  # Convert to numeric values
@@ -260,7 +260,7 @@ def dge_results(
 
     update_columns = {
         "names": "GeneName",
-        "scores": "wilcox_score",
+        "scores": "statistic",
         # U1 from formula, higher absolute indicate lower p-value; High score indicate high expression
         "pvals": "pvals",
         "group": "group",
@@ -272,22 +272,24 @@ def dge_results(
 
     df_results = sc.get.rank_genes_groups_df(adata, group=None, key=key)
     df_results.columns = [update_columns[col] for col in df_results.columns]
-
-    if "pts_ref" not in df_results.columns:
-        result = adata.uns[key]
-        ref = result["params"]["reference"]
-        pts_ref = result["pts"][ref]
-        if "group" in df_results.columns and len(df_results.group.unique()) > 1:
-            df_results["pts_ref"] = df_results["GeneName"].map(pts_ref)
-        else:
-            df_results["pts_ref"] = pts_ref.reindex(index=df_results.GeneName).tolist()
+    try:
+        if "pts_ref" not in df_results.columns:
+            result = adata.uns[key]
+            ref = result["params"]["reference"]
+            pts_ref = result["pts"][ref]
+            if "group" in df_results.columns and len(df_results.group.unique()) > 1:
+                df_results["pts_ref"] = df_results["GeneName"].map(pts_ref)
+            else:
+                df_results["pts_ref"] = pts_ref.reindex(index=df_results.GeneName).tolist()
+    except KeyError as e:
+        logger.warn(f"Problem generating the DGE Table: {e}")
     return df_results
 
 
 def subset(adata: ad.AnnData,
            obs_key: str | None = None,
            obs_groups: str | list | float | bool | None = None,
-           var_key: str | None  = None,
+           var_key: str | None = None,
            var_groups: str | list | float | bool | None = None,
            comparison: Literal[">=", ">", "==", "<", "<=", "include", "exclude"] = "include",
            copy: bool = False) -> ad.AnnData:
@@ -374,18 +376,19 @@ def subset(adata: ad.AnnData,
         return adata
 
 
-@njit(parallel = True)
-def _get_log2fc(group: np.ndarray, ref: np.ndarray, psc = 1e-9):
+@njit(parallel=True)
+def _get_log2fc(group: np.ndarray, ref: np.ndarray, psc=1e-9):
     return np.log2((np.expm1(group) + psc) / (np.expm1(ref) + psc))
 
 
-def log2fc(adata: ad.AnnData,
-           group_by: str,
-           reference: str,
-           groups: str | list | None = None,
-           features: str | list | None = None,
-           layer: str | None = None,
-           ) -> pd.DataFrame:
+def log2fc(
+    adata: ad.AnnData,
+    group_by: str,
+    reference: str,
+    groups: str | list | None = None,
+    features: str | list | None = None,
+    layer: str | None = None,
+) -> pd.DataFrame:
     """Calculate the log2foldchanges for a set of groups.
 
     :param adata: Annotated data matrix.
@@ -421,7 +424,7 @@ def log2fc(adata: ad.AnnData,
     if reference in groups:
         groups.remove(reference)
 
-    df_mean = mean_expr(adata, group_by=group_by, features=features, out_format="wide",  layer=layer)
+    df_mean = mean_expr(adata, group_by=group_by, features=features, out_format="wide", layer=layer)
 
     logfoldchanges = pd.DataFrame([], index=features)
     for group in groups:
@@ -429,15 +432,16 @@ def log2fc(adata: ad.AnnData,
         foldchanges = _get_log2fc(group=df_mean[group].to_numpy(), ref=df_mean[reference].to_numpy())
         logfoldchanges["log2fc_" + group] = foldchanges
     logfoldchanges.reset_index(inplace=True)
-    logfoldchanges.rename(columns={"index":"genes"}, inplace=True)
+    logfoldchanges.rename(columns={"index": "genes"}, inplace=True)
     return logfoldchanges
 
 
-def pcts_cells(adata,
-               group_by: str | list,
-               features: str | list = None,
-               min_expr: float = 0.0,
-               ) -> pd.DataFrame:
+def pcts_cells(
+    adata,
+    group_by: str | list,
+    features: str | list = None,
+    min_expr: float = 0.0,
+) -> pd.DataFrame:
     """Calculate the percentage of cells that express a feature.
 
     :param adata: Annotated data matrix.
@@ -479,7 +483,7 @@ def pcts_cells(adata,
         df_pct.columns = ["_".join(col) for col in list(df_pct.columns)]
     df_pct = df_pct.round(4)
     df_pct.reset_index(inplace=True)
-    df_pct.rename(columns={"index":"genes"}, inplace=True)
+    df_pct.rename(columns={"index": "genes"}, inplace=True)
     return df_pct
 
 
@@ -620,11 +624,3 @@ def pseudobulk(
     n_vars = n_vars - pdata.n_vars
     logger.info(f"Removed {n_vars} genes for having less than {min_counts} total counts")
     return pdata
-
-
-
-
-
-
-
-
