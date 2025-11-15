@@ -1,5 +1,5 @@
 from dotools_py.pl._dotplot import dotplot
-from dotools_py.pl._downstream import cell_props, expr_correlation, split_bar_gsea, volcano_plot
+from dotools_py.pl._downstream import cell_props, correlation, split_bar_gsea, volcano_plot
 from dotools_py.pl._embeddings import embedding, split_embeddding, umap
 from dotools_py.pl._expression import barplot, boxplot, violin
 from dotools_py.pl._heatmap import heatmap

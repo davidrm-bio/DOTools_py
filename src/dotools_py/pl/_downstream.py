@@ -18,56 +18,66 @@ from dotools_py.utility import generate_cmap
 from dotools_py.utils import convert_path, format_terms_gsea, make_grid_spec, require_dependencies, sanitize_anndata, save_plot, return_axis
 
 
-def expr_correlation(
+def correlation(
+    # Data
     adata: ad.AnnData,
     group_by: str = "batch",
-    method: Literal["spearman", "pearson", "kendall"] = "pearson",
-    mask: Literal["upper", "lower"] = None,
-    square: bool = True,
-    linewidths: float = 0.1,
-    annot: bool = True,
-    annot_fontsize: int = 15,
+
+    # Figure parameters
     figsize: tuple = (3, 4),
-    axs: plt.Axes | None = None,
-    mode: Literal["colors", "letters"] = "letters",
-    cmap: str | list = "RdBu_r",
-    linecolor: str = "black",
-    color_annot: str = "white",
-    annot_kws: dict | None = None,
+    ax: plt.Axes | None = None,
+    palette: str | list | LinearSegmentedColormap = "RdBu_r",
     ticks_size: int = 12,
+
+    # IO
     path: str | None = None,
     filename: str = "Correlation.svg",
     show: bool = True,
+
+    # Statistics
+    method: Literal["spearman", "pearson", "kendall"] = "pearson",
+
+    # Fx specific
+    mode: Literal["colors", "letters"] = "letters",
+    mask: Literal["upper", "lower"] = None,
+    square: bool = True,
+    linewidths: float = 0.1,
+    linecolor: str = "black",
+    annot: bool = True,
+    annot_fontsize: int = 15,
+    annot_color: str = "white",
+    annot_kws: dict | None = None,
+
 ) -> plt.Axes | None:
     """Calculate correlation between samples.
 
     Calculates the pearson, spearman or kendall correlation between categorical metadata for
-    all the genes and makes a heatmap representation. There are two modes:
+    all the genes and plot it using a heatmap representation. There are two modes:
 
     * `letters`: the color of the squares will be white and the correlation values will be colored based on a gradient
-    * colors: the squares will be colored based on a gradient and the letters will be white.
+    * `colors`: the squares will be colored based on a gradient and the letters will be white.
 
-    The gradient is defined based on the provided colormap. The input is expected to be log-normalised data.
+    The gradient is defined based on the provided palette. The input is expected to be log-normalised data.
 
-    :param adata: annotated data matrix.
-    :param group_by: obs column with categorical information like sample or condition information.
-    :param method: method to use to calculate correlation: Pearson, Spearman or Kendall.
-    :param mask: set to lower or upper to hide the upper or lower triangle of the heatmap.
-    :param square: if True, set the Axes aspect to “equal” so each cell will be square-shaped.
-    :param linewidths: width of the lines that will divide each cell.
-    :param annot: add correlation values to the squares.
-    :param figsize: figure size.
-    :param axs: matplotlib axis.
-    :param mode: letters or color mode.
-    :param cmap: name of the colormap, list of colors to generate a colormap or a custom colormap.
-    :param linecolor: color of the lines that will divide each cell.
-    :param color_annot: color of the correlation values. Will use the cmap in letters mode.
-    :param annot_kws: keyword arguments for `matplotlib.axes.Axes.text() <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.text.html>`_ when annot is True.
-    :param annot_fontsize: Size of the text when annot is `True`.
-    :param ticks_size: size of the x and y ticks.
-    :param path: path to save plot.
-    :param filename: name of the file.
-    :param show: set  false to return the matplotlib axis.
+    :param adata: Annotated data matrix.
+    :param group_by: Name of a categorical column in `adata.obs` to groupby.
+    :param figsize:  Figure size, the format is (width, height).
+    :param ax: Matplotlib axes to use for plotting. If not set, a new figure will be generated.
+    :param palette: String denoting matplotlib colormap. If a list of colors is provided a colormap will be generated.
+    :param ticks_size: Size of the X and Y axis ticks.
+    :param path: Path to the folder to save the figure.
+    :param filename: Name of file to use when saving the figure.
+    :param show: If set to `False`, returns a dictionary with the matplotlib axes.
+    :param method: Method to use to calculate correlation: Pearson, Spearman or Kendall.
+    :param mode: Indicate how the correlation is represented.
+    :param mask: If set to `lower` or `upper` hide the upper or lower triangle of the heatmap, respectively.
+    :param square: If `True`, set the Axes aspect to “equal” so each cell will be square-shaped.
+    :param linewidths: Width of the lines that divide each cell.
+    :param linecolor: Color of the lines that divide each cell.
+    :param annot: Add text with correlation values to the squares.
+    :param annot_fontsize: Size of the font.
+    :param annot_color: Color of the font. Will be ignored when mode is `letters`.
+    :param annot_kws: Additional Keyword arguments for `matplotlib.axes.Axes.text() <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.text.html>`_
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
 
     Example
@@ -78,7 +88,8 @@ def expr_correlation(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.expr_correlation(adata, 'batch')
+        do.pl.correlation(adata, 'batch')
+
 
     """
     # Checks
@@ -88,7 +99,7 @@ def expr_correlation(
 
     # Extract the Average Expression
     df = mean_expr(adata, group_by=group_by, features=list(adata.var_names))  # All Genes
-    df_pivot = df.pivot(index="gene", columns=group_by, values="expr") # TODO Update
+    df_pivot = df.pivot(index="gene", columns=group_by, values="expr")
     df_corr = df_pivot.corr(method=method)
 
     # Define mask
@@ -99,16 +110,16 @@ def expr_correlation(
     elif mask is None:
         mask = None
     else:
-        raise Exception(f'"{mask}" is not a valid mask, specify "upper", "lower" or None ')
+        raise Exception(f"'{mask}' is not a valid mask, specify 'upper', 'lower' or None ")
 
     # Define the colormap
     norm_palette = plt.Normalize(df_corr.min().min(), df_corr.max().min())
-    if isinstance(cmap, str):  # Assume is a cmap in matplotlib
-        palette = plt.cm.get_cmap(cmap)
-    elif isinstance(cmap, list):
-        palette = generate_cmap(*cmap)
-    elif isinstance(cmap, LinearSegmentedColormap):
-        palette = cmap
+    if isinstance(palette, str):  # Assume is a cmap in matplotlib
+        palette = plt.cm.get_cmap(palette)
+    elif isinstance(palette, list):
+        palette = generate_cmap(*palette)
+    elif isinstance(palette, LinearSegmentedColormap):
+        palette = palette
     else:
         raise Exception("Provide the name of a colormap, a list of colors or a custom colormap")
 
@@ -116,18 +127,11 @@ def expr_correlation(
     palette_cbar = white_cmap if mode == "letters" else palette
 
     if axs is None:
-        fig, axs = plt.subplots(1, 1, figsize=figsize)
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     hm = sns.heatmap(
-        df_corr,
-        mask=mask,
-        cmap=palette_cbar,
-        square=square,
-        linewidths=linewidths,
-        annot=False,
-        ax=axs,
-        linecolor=linecolor,
-        cbar=False,
+        df_corr, mask=mask, cmap=palette_cbar, square=square, linewidths=linewidths, annot=False, ax=ax,
+        linecolor=linecolor, cbar=False,
     )
 
     # Remove the gridlines around masked data
@@ -144,17 +148,16 @@ def expr_correlation(
                     if mask[i, j]:
                         continue
                 value = df_corr.iloc[i, j]
-                color = palette(norm_palette(value)) if mode == "letters" else color_annot
+                color = palette(norm_palette(value)) if mode == "letters" else annot_color
                 hm.text(
-                    j + 0.5, i + 0.5, f"{value:.2f}", color=color, ha="center", va="center", fontsize=annot_fontsize, weight="bold"
+                    j + 0.5, i + 0.5, f"{value:.2f}", color=color, ha="center", va="center", fontsize=annot_fontsize,
+                    weight="bold"
                 )
     # Add Colorbar
     sm = ScalarMappable(norm=norm_palette, cmap=palette)
     sm.set_array([])  # Needed for colorbar to work
 
-    if annot_kws is None:
-        annot_kws = {}
-
+    annot_kws = {} if annot_kws is None else annot_kws
     annot_kws.update(
         {
             "orientation": annot_kws.get("orientation", "horizontal"),
@@ -194,12 +197,10 @@ def expr_correlation(
     hm.set_xticklabels(xtickslabels, fontweight="bold", fontsize=ticks_size)
     hm.set_yticks(yticks)
     hm.set_yticklabels(ytickslabels, fontweight="bold", fontsize=ticks_size)
-    if path is not None:
-        plt.savefig(convert_path(path) / filename, bbox_inches="tight")
-    if show:
-        return plt.show()
-    else:
-        return hm
+
+    save_plot(path, filename)
+    return return_axis(show, axis=hm)
+
 
 
 @require_dependencies([{"name": "scanpro"}])
