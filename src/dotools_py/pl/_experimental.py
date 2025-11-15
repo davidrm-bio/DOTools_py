@@ -1,4 +1,5 @@
 from typing import Literal, Union
+from pathlib import Path
 
 import anndata as ad
 import numpy as np
@@ -8,63 +9,78 @@ import scipy.stats
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 import matplotlib.patheffects as path_effects
+from adjustText import adjust_text
 
 from dotools_py.get._generic import expr as get_expr
 from dotools_py.utility._plotting import get_hex_colormaps
-from dotools_py.utils import make_grid_spec, logmean, logsem, save_plot, return_axis, sanitize_anndata, iterase_input, check_missing
-from adjustText import adjust_text
+from dotools_py.utils import make_grid_spec, logmean, logsem, save_plot, return_axis, sanitize_anndata, iterase_input, \
+    check_missing
 
 
-def lineplot(adata: ad.AnnData,
-             x_axis: str,
-             features: str | list,
-             x_categories_order: list = None,
-             hue: Union[str, Literal["features"]] = None,
-             estimator: Literal["logmean", "mean"] = "logmean",
-             figsize: tuple = (6, 5),
-             ax: plt.Axes = None,
-             palette: str | dict = "tab10",
-             markersize: int = 8,
-             ylim: tuple = None,
-             ylabel: str = "LogMean(nUMI)",
-             title: str = None,
-             legend_title: str = None,
-             legend_loc: Literal["right", "axis"] = "right",
-             labels_repel: dict = None,
-             xtick_rotation: int | None = None,
-             show: bool = False,
-             path: str = None,
-             filename: str = "lineplot.svg",
-             ):
-    """Lineplot for AnnData features.
+def lineplot(
+    # Data
+    adata: ad.AnnData,
+    x_axis: str,
+    features: str | list,
+    hue: Union[str, Literal["features"]] = None,
 
-    :param adata: AnnData object.
-    :param x_axis: Column in `obs` to group by.
-    :param features: Feature in `var_names`. If one feature is provided, the hue argument can be used to group-by an
-                    additional column in `obs`. If several features are provided, use 'features' in hue.
-    :param x_categories_order: Order for the categories.
-    :param hue: Additional column in `obs` to group-by when one feature is provided. Set to 'feature' when multiple features
-                are provided.
+    # Figure parameters
+    figsize: tuple = (6, 5),
+    ax: plt.Axes = None,
+    palette: str | dict = "tab10",
+    title: str = None,
+    xtick_rotation: int | None = None,
+    xticks_order: list = None,
+    ylim: tuple[int, int] = None,
+    ylabel: str = "LogMean(nUMI)",
+
+    # Legend Parameters
+    legend_title: str = None,
+    legend_loc: Literal["right", "axis"] = "right",
+    legend_repel: dict = None,
+
+    # IO
+    path: str | Path = None,
+    filename: str = "lineplot.svg",
+    show: bool = False,
+
+    # Statistics
+    estimator: Literal["logmean", "mean"] = "logmean",
+
+    # Fx specific
+    markersize: int = 8,
+) -> plt.Axes | dict | None:
+    """Lineplot for AnnData.
+
+    :param adata: Annotated data matrix
+    :param x_axis: Name of a categorical column in `adata.obs` to groupby.
+    :param features:  A valid feature in `adata.var_names` or column in `adata.obs` with continuous values.
+    :param hue: Name of a second categorical column in `adata.obs` to use additionally to groupby. If several `features`
+                are provided, set to `features`.
+    :param figsize: Figure size, the format is (width, height).
+    :param ax: Matplotlib axes to use for plotting. If not set, a new figure will be generated.
+    :param palette:  String denoting matplotlib colormap. A dictionary with the categories available in `adata.obs[x_axis]` or
+                    `adata.obs[hue]` if hue is not None can also be provided. The format is {category:color}.
+    :param title: Title for the figure.
+    :param xtick_rotation: Rotation of the X-axis ticks.
+    :param xticks_order: Order for the categories in `adata.obs[x_axis]`.
+    :param ylim: Set limit for Y-axis.
+    :param ylabel: Label for the Y-axis.
+    :param legend_title: Title for the legend.
+    :param legend_loc:  Location of the legend.
+    :param legend_repel: Additional arguments pass to `adjust_text <https://adjusttext.readthedocs.io/en/latest/>_`.
+    :param path: Path to the folder to save the figure.
+    :param filename: Name of file to use when saving the figure.
+    :param show: If set to `False`, returns a dictionary with the matplotlib axes.
     :param estimator: If set to `logmean`, the mean will be calculated after undoing the log. The returned mean expression
                      is also represented in log-space.
-    :param figsize: Figure width x height.
-    :param ax: Matplotlib axis
-    :param palette: Name of a palette or a dictionary with colors for each category.
-    :param markersize: Marker size.
-    :param ylim: Set limit for Y-axis.
-    :param ylabel: Name of the Y-axis.
-    :param title: Title of the plot.
-    :param legend_title: Title of the legend.
-    :param legend_loc: Location from the legend. If set to `axis` labels will be added in the plot.
-    :param labels_repel:  additional arguments pass to adjust_text.
-    :param xtick_rotation: Rotation of the xticks.
-    :param show: if set to False, return the axis.
-    :param path: Path to the folder where the plot will be saved.
-    :param filename: Name of the file.
+    :param markersize: Radius of the markers
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
 
     Example
     -------
+
+    Plot the expression for a gene across several groups.
 
     .. plot::
         :context: close-figs
@@ -72,7 +88,12 @@ def lineplot(adata: ad.AnnData,
         import dotools_py as do
         adata = do.dt.example_10x_processed()
         do.pl.lineplot(adata, 'condition', 'CD4', hue = 'annotation')
-        # Plot several Genes
+
+    Plot the distribution of several genes at the same time.
+
+    .. plot::
+        :context: close-figs
+
         do.pl.lineplot(adata, 'condition', ['CD4', 'CD79A'], hue = 'features')
 
     """
@@ -87,7 +108,7 @@ def lineplot(adata: ad.AnnData,
     estimator = logmean if estimator == "logmean" else estimator
     sem_estimator = logsem if estimator == "logmean" else scipy.stats.sem
     markers = ["o", "s", "v", "^", "P", "X", "D", "<", ">"]
-    markers = markers*5
+    markers = markers * 5
 
     hue_arg = [] if (hue is None) or (hue == "features") else [hue]
     hue = "genes" if hue == "features" else hue
@@ -102,12 +123,11 @@ def lineplot(adata: ad.AnnData,
         hue = "tmp"
         df["tmp"] = "tmp"
 
-
     # Generate the plot
     width, height = figsize
     ncols, fig_kwargs = 1, {}
     if hue is not None and legend_loc == "right":
-        fig_kwargs = {"wspace": 0.7 / width, "width_ratios":[width - (1.5 + 0) + 0, 1.5]}
+        fig_kwargs = {"wspace": 0.7 / width, "width_ratios": [width - (1.5 + 0) + 0, 1.5]}
         ncols = 2
 
     hue_groups = list(df[hue].unique())
@@ -123,26 +143,28 @@ def lineplot(adata: ad.AnnData,
     for idx, h in enumerate(hue_groups):
         sdf = df[df[hue] == h]
 
-        if x_categories_order is not None:
-            sdf[x_axis] = pd.Categorical(sdf[x_axis], categories=x_categories_order, ordered=True)
+        if xticks_order is not None:
+            sdf[x_axis] = pd.Categorical(sdf[x_axis], categories=xticks_order, ordered=True)
             sdf = sdf.sort_values(x_axis)
-        axs.plot(sdf[x_axis], sdf["expr"],color=palette[h])
-        axs.errorbar(sdf[x_axis], sdf["expr"], yerr=sdf["sem"], fmt=markers[idx], capsize=5, ecolor="k", color=palette[h],
+        axs.plot(sdf[x_axis], sdf["expr"], color=palette[h])
+        axs.errorbar(sdf[x_axis], sdf["expr"], yerr=sdf["sem"], fmt=markers[idx], capsize=5, ecolor="k",
+                     color=palette[h],
                      markersize=markersize)
         if hue != "tmp":
-            handles.append(mlines.Line2D([0], [0], marker=".", color=palette[h], lw=0, label=h, markerfacecolor=palette[h],
-                                         markeredgecolor=None, markersize=15))
+            handles.append(
+                mlines.Line2D([0], [0], marker=".", color=palette[h], lw=0, label=h, markerfacecolor=palette[h],
+                              markeredgecolor=None, markersize=15))
         if legend_loc == "axis":
-            text = axs.text(len(sdf[x_axis]) -1 + 0.15, sdf["expr"].tail(1), h, color="black")
+            text = axs.text(len(sdf[x_axis]) - 1 + 0.15, sdf["expr"].tail(1), h, color="black")
             text.set_path_effects([
                 path_effects.Stroke(linewidth=1, foreground=palette[h]),  # Edge color
                 path_effects.Normal()])
 
             text_list.append(text)
-    if len(text_list) !=0:
-        if labels_repel is None:
-            labels_repel = {}
-        adjust_text(text_list, ax=axs, expand_axes=True,  only_move= {"text": "y", "static": "y", "explode": "y", "pull": "y"}, **labels_repel)
+    if len(text_list) != 0:
+        legend_repel = {} if legend_repel is None else legend_repel
+        adjust_text(text_list, ax=axs, expand_axes=True,
+                    only_move={"text": "y", "static": "y", "explode": "y", "pull": "y"}, **legend_repel)
 
     ticks_kwargs = {"fontweight": "bold", "fontsize": 12}
     if xtick_rotation is not None:
@@ -151,7 +173,7 @@ def lineplot(adata: ad.AnnData,
     axs.set_xticklabels(axs.get_xticklabels(), **ticks_kwargs)
 
     xlims = np.round(axs.get_xlim(), 2)
-    ylims =  np.round(axs.get_ylim(), 2) if ylim is None else ylim
+    ylims = np.round(axs.get_ylim(), 2) if ylim is None else ylim
     axs.set_xlim(xlims[0] + np.sign(xlims[0]) * 0.25, xlims[1] + np.sign(xlims[1]) * 0.25)
     axs.set_ylim(0, ylims[1])
     if estimator == "mean" and ylabel == "LogMean(nUMI)":
@@ -166,7 +188,7 @@ def lineplot(adata: ad.AnnData,
     axs.set_title(title)
 
     legend_axs = None
-    if ncols == 2 and legend_loc == "right" and len(handles) !=0:
+    if ncols == 2 and legend_loc == "right" and len(handles) != 0:
         legend_axs = fig.add_subplot(gs[1])
         legend_axs.legend(handles=handles, frameon=False, loc="center left", ncols=1, title=legend_title)
         legend_axs.tick_params(axis="both", left=False, labelleft=False, labelright=False, bottom=False,
@@ -181,12 +203,3 @@ def lineplot(adata: ad.AnnData,
 
     save_plot(path, filename)
     return return_axis(show, axis_dict, tight=True)
-
-
-
-
-
-
-
-
-
