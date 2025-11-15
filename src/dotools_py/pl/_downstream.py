@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Dict
 
 import anndata as ad
 import matplotlib.lines as mlines
@@ -126,7 +126,7 @@ def correlation(
     white_cmap = ListedColormap(["white"])
     palette_cbar = white_cmap if mode == "letters" else palette
 
-    if axs is None:
+    if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     hm = sns.heatmap(
@@ -167,7 +167,7 @@ def correlation(
         }
     )
 
-    cbar = fig.colorbar(sm, ax=axs, **annot_kws)
+    cbar = fig.colorbar(sm, ax=ax, **annot_kws)
     cbar.ax.set_title(f"Correlation {method}", fontdict={"size": 12})
 
     # Layout
@@ -205,32 +205,41 @@ def correlation(
 
 @require_dependencies([{"name": "scanpro"}])
 def cell_props(
+    # Data
     adata: ad.AnnData,
     annot_key: str,
-    cond_key: str,
+    condition_key: str,
     batch_key: str,
     annot_order: list | None = None,
-    cond_order: list | None = None,
-    covariates: list | None = None,
+    condition_order: list | None = None,
     subset_cells: list | None = None,
-    pval_cutoff: float = 0.05,
+
+    # Figure Parameters
     figsize: tuple = (5, 6),
-    axis: plt.Axes | None = None,
-    path: Path | str = None,
-    filename: str = "Proportions.svg",
-    legend_cols: int = 1,
+    ax: plt.Axes | None = None,
+    title: str = "",
+    title_fontproperties: Dict[Literal["size", "weight"], str | int] = None,
+
     xticks_rotation: int = None,
+    legend_title: str = "",
+    legend_fontproperties: Dict[Literal["size", "weight"], str | int] = None,
+    legend_ncols: int = 1,
+
+    # IO
+    path: str | Path = None,
+    filename: str = "Proportions.svg",
+    show: bool = True,
+
+    # Statistics
+    covariates: list | None = None,
+    pval_cutoff: float = 0.05,
+    transform: str = "logit",
+
+    # Fx specific
     sep: float = 0.5,
     bar_width: float = 0.2,
-    title: str = "",
-    title_fontsize: int = 15,
-    legend_fontsize: int = 12,
-    legend_fontweight: float | str = None,
-    show: bool = True,
-    legend_title: str = "",
-    add_total_ncell: bool = True,
-    transform: str = "logit",
     linewidth: float = 0.9,
+    add_total_ncell: bool = True,
     get_props: bool = False,
     **kwargs,
 ) -> None | pd.DataFrame | plt.Axes:
@@ -240,37 +249,44 @@ def cell_props(
     in cell proportions between conditions will be tested with `scanpro <https://github.com/loosolab/scanpro>` and will be
     indicated by a discontinued line. The significant p-value/FDR will be indicated in the legend.
 
-    :param adata: annotated data matrix.
-    :param annot_key: `.obs` column name with cell type annotation.
-    :param cond_key: `.obs` column name with condition information.
-    :param batch_key: `.obs` column name with batch IDs.
-    :param annot_order: `.obs` column name with sample information. If None or the datasets has no replicates, then
-                        replicates will be simulated. Additional arguments can be provided to control simulations.
-    :param cond_order: order for the conditions.
-    :param covariates: additional covariates for the model.
-    :param subset_cells: only show a subset of the celltypes. The test is applied over all cell type populations.
-    :param pval_cutoff: p-val/FDR cutoff.
-    :param figsize: figure size.
-    :param axis: matplotlib axis.
-    :param path: path to save the figure.
-    :param filename: name of the file.
-    :param legend_cols: number of columns for the legend.
-    :param xticks_rotation: rotation for the xticks.
-    :param sep: separation between bars.
-    :param bar_width: bars width.
-    :param title: title of the plot.
-    :param title_fontsize: fontsize of the title.
-    :param legend_fontsize: fontsize of the legend.
-    :param legend_fontweight: font-weight of the legend.
-    :param show: whether to return or not the matplotlib axis. To return the axis, set to False.
-    :param legend_title: title for the legend.
-    :param add_total_ncell: add the total number of cells in the dataset.
-    :param transform: transformation applied to test for significant differences. Default logit, set to arcsin if simulations
-                      are performed for more accurate results.
-    :param linewidth: thickness of the lines connecting significant bars.
-    :param get_props: get a dataframe with the proportions and pvals.
-    :param kwargs: additional arguments pass to `scanpro() <https://scanpro.readthedocs.io/en/latest/API.html#scanpro.scanpro.scanpro>`_.
+    :param adata: Annotated data matrix.
+    :param annot_key: Name of a categorical column in `adata.obs` with the annotation to test for significant differences.
+    :param condition_key:  Name of a categorical column in `adata.obs` to group by.
+    :param batch_key:  Name of a categorical column in `adata.obs` with the batch information.
+    :param annot_order: Order for the categories in `adata.obs[annot_key]`
+    :param condition_order:  Order for the categories in `adata.obs[condition_key]`
+    :param subset_cells: Only show a subset of groups in `adata.obs[annot_key]`. The test is applied over all cells.
+    :param figsize: Figure size, the format is (width, height).
+    :param ax: Matplotlib axes to use for plotting. If not set, a new figure will be generated.
+    :param title: Title for the figure.
+    :param title_fontproperties: Dictionary which should contain 'size' and 'weight' to define the fontsize and fontweight of the title of the figure.
+    :param xticks_rotation: Order for the categories in `adata.obs[condition_key]`.
+    :param legend_title:  Title for the legend.
+    :param legend_fontproperties: Dictionary which should contain 'size' and 'weight' to define the fontsize and fontweight of the title of the legend.
+    :param legend_ncols: Number of columns for the legend.
+    :param path: Path to the folder to save the figure.
+    :param filename:  Name of file to use when saving the figure.
+    :param show: If set to `False`, returns a dictionary with the matplotlib axes.
+    :param covariates: Additional covariates for the model. See `scanpro <https://scanpro.readthedocs.io/en/latest/API.html>`_.
+    :param pval_cutoff: P-val/FDR cutoff.
+    :param transform: Method of transformation of proportions.
+    :param sep: Separation between bars.
+    :param bar_width: Bars width.
+    :param linewidth: Thickness of the lines connecting significant bars.
+    :param add_total_ncell: Add the total number of cells in the dataset.
+    :param get_props: If set to `True`, returns a dataframe with the cell proportions.
+    :param kwargs: Additional arguments pass to `scanpro() <https://scanpro.readthedocs.io/en/latest/API.html#scanpro.scanpro.scanpro>`_.
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
+
+    Example
+    -------
+
+     .. plot::
+        :context: close-figs
+
+        import dotools_py as do
+        adata = do.dt.example_10x_processed()
+        do.pl.cell_props(adata, "annotation", "condition", "batch", cond_order=["healthy", "disease"], transform="arcsin")
 
     """
     ########################
@@ -288,16 +304,16 @@ def cell_props(
         )
         adata.obs[annot_key] = pd.Categorical(adata.obs[annot_key], categories=annot_order, ordered=True)
 
-    if cond_order is not None:
-        assert all(x in cond_order for x in list(adata.obs[cond_key].cat.categories)), (
+    if condition_order is not None:
+        assert all(x in condition_order for x in list(adata.obs[condition_key].cat.categories)), (
             "condition order is missing categories"
         )
-        adata.obs[cond_key] = pd.Categorical(adata.obs[cond_key], categories=cond_order, ordered=True)
+        adata.obs[condition_key] = pd.Categorical(adata.obs[condition_key], categories=condition_order, ordered=True)
 
     out = scanpro(
         adata,
         clusters_col=annot_key,
-        conds_col=cond_key,
+        conds_col=condition_key,
         samples_col=batch_key,
         covariates=covariates,
         transform=transform,
@@ -325,7 +341,7 @@ def cell_props(
         colors_dict = dict(zip(adata.obs[annot_key].cat.categories, tab20_colors, strict=False))
     colors_list = [colors_dict[ct] for ct in df.index]
 
-    cond_keys = [f"mean_props_{cond}" for cond in adata.obs[cond_key].cat.categories]
+    cond_keys = [f"mean_props_{cond}" for cond in adata.obs[condition_key].cat.categories]
     data_dict = {"bar_bottom": {}, "bar_height": {}, "pvals": list(df[pval_col])}
 
     for cond in cond_keys:
@@ -340,7 +356,7 @@ def cell_props(
     ########################
     width, height = figsize  # Define figure layout
     fig, gs = make_grid_spec(
-        axis or (width, height), nrows=1, ncols=2, wspace=0.7 / width, width_ratios=[width - (1.5 + 0) + 0, 1.5]
+        ax or (width, height), nrows=1, ncols=2, wspace=0.7 / width, width_ratios=[width - (1.5 + 0) + 0, 1.5]
     )
 
     # Main Axis
@@ -397,7 +413,9 @@ def cell_props(
     else:
         xticks_prop = {"rotation": xticks_rotation}
     axs.set_xticks(xtick, xtext, fontweight="bold", **xticks_prop)
-    axs.set_title(title, fontsize=title_fontsize, fontweight="bold")
+
+    title_fontproperties = {} if title_fontproperties is None else title_fontproperties
+    axs.set_title(title, fontsize=title_fontproperties.get("size", 15), fontweight=title_fontproperties.get("weight", "bold"))
     axs.set_ylabel("Proportions", fontweight="bold")
 
     # Legend Axis
@@ -440,11 +458,15 @@ def cell_props(
             )
         )
 
+    legend_fontproperties = {} if legend_fontproperties is None else legend_fontproperties
+    legend_fontsize = legend_fontproperties.get("size", 12)
+    legend_fontweight = legend_fontproperties.get("weight", "bold")
+
     legend = axs_legend.legend(
         handles=handles,
         frameon=False,
         loc="center left",
-        ncols=legend_cols,
+        ncols=legend_ncols,
         title=legend_title,
         prop={"size": legend_fontsize, "weight": legend_fontweight},
     )
@@ -474,27 +496,38 @@ def cell_props(
 
 
 def volcano_plot(
-    dge: pd.DataFrame,
+    # Data
+    df: pd.DataFrame,
     lfc_col: str = "log2fc",
     pval_col: str = "padj",
     gene_col: str = "GeneName",
-    path: str | None = None,
-    filename: str = "Volcano.svg",
-    pval_lim: float = 2e-10,
-    lfc_lim: tuple = (-6, 6),
-    title: str = "",
+
+    # Figure Parameters
     figsize: tuple[int, int] = (7, 5),
     ax: plt.Axes = None,
+
+    title: str = "",
+
     legend_loc: Literal["top", "bottom", "right"] = "right",
-    legend_cols: int = 1,
-    mygenes: list | None = None,
+    legend_ncols: int = 1,
+
+    # IO
+    path: str | Path = None,
+    filename: str = "Volcano.svg",
+    show: bool = True,
+
+    # Statistics
+    pval_lim: float = 2e-10,
+    lfc_lim: tuple = (-6, 6),
     lfc_cut: float = 0.25,
     pval_cut: float = 0.05,
+
+    # Fx Specific
+    mygenes: list | None = None,
     clean: bool = True,
     dot_size: float = 3,
     topn: int = 10,
     textprops: dict = None,
-    show: bool = True,
     **kwargs,
 ) -> dict | None:
     """Generate a volcano plot.
@@ -509,7 +542,7 @@ def volcano_plot(
     If no genes are provided (`mygenes`) the top 10 genes with highest and lowest LFC that are
     significant will be indicated.
 
-    :param dge: pandas dataframe with DGE. Should have at least 3 columns (Genes, Pvalue, Logfoldchange).
+    :param df: pandas dataframe with DGE. Should have at least 3 columns (Genes, Pvalue, Logfoldchange).
     :param lfc_col: name of the column that has the logfoldchanges.
     :param pval_col: name of the column that has the Pvals.
     :param gene_col: name of the column that has the gene names.
@@ -521,7 +554,7 @@ def volcano_plot(
     :param figsize: size of the plot.
     :param ax: matplotlib axis.
     :param legend_loc: location of the legend.
-    :param legend_cols: number of columns for the legend.
+    :param legend_ncols: number of columns for the legend.
     :param lfc_cut: significance threshold for the LFC.
     :param pval_cut: significance threshold for the P-value.
     :param mygenes: list of genes to be annotated.
@@ -548,7 +581,7 @@ def volcano_plot(
     """
     from adjustText import adjust_text
 
-    dge = dge.copy()  # Do not Modify input
+    dge = df.copy()  # Do not Modify input
 
     # Data Preparation # # #
     ## Replace Pvals and LFCs greater than limit with the limit
@@ -579,7 +612,7 @@ def volcano_plot(
         height_ratios = [height - (1.5 + 0) + 0, 1] if legend_loc == "bottom" else [1, height - (1.5 + 0) + 0]
         fig_args = {"nrows": 2, "ncols": 1, "height_ratios": height_ratios, "hspace": 0.7 / height}
         legend_loc = "center" if legend_loc =="bottom" else "center"
-        legend_cols = 2 if legend_cols == 1 else legend_cols
+        legend_ncols = 2 if legend_ncols == 1 else legend_ncols
     else:
         raise  NotImplementedError(f"{legend_loc} is not a valid key for legend_loc")
 
@@ -639,7 +672,7 @@ def volcano_plot(
                    ("limegreen", "log2FC"), ("gainsboro", "NS")]:
         handles.append(mlines.Line2D([0], [0], marker=".",  color=c, lw=0, label=lab, markerfacecolor=c,
                                      markeredgecolor=None, markersize=18))
-    legend_axs.legend(handles=handles, frameon=False, loc=legend_loc, ncols=legend_cols, title="")
+    legend_axs.legend(handles=handles, frameon=False, loc=legend_loc, ncols=legend_ncols, title="")
     legend_axs.tick_params(axis="both", left=False, labelleft=False, labelright=False, bottom=False, labelbottom=False)
     legend_axs.spines[["right", "left", "top", "bottom"]].set_visible(False)
     legend_axs.grid(visible=False)
