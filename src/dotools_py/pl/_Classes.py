@@ -10,13 +10,11 @@ from matplotlib import gridspec
 from dotools_py.utils import sanitize_anndata, iterase_input, convert_path
 from dotools_py.pl._plot_utils import _AxesSubplot
 
-from typing import TYPE_CHECKING
+from matplotlib.colors import Colormap
+from collections.abc import Sequence
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
-if TYPE_CHECKING:
-    from collections.abc import Sequence
-    from matplotlib.axes import Axes
-    from matplotlib.figure import Figure
-    from matplotlib.colors import Colormap
 
 
 class BaseSeaborn:

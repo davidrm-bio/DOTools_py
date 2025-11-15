@@ -1,4 +1,5 @@
 import os
+from typing import Literal
 import subprocess
 import uuid
 from pathlib import Path
@@ -15,7 +16,6 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from scvi.model._scvi import SCVI
-    from typing import Literal
 
 DictUpdateCellLabels = standard_ct_labels_heart()
 
@@ -79,7 +79,7 @@ def _run_scvi(
     gene_likelihood: Literal["zinb", "nb", "poisson", "normal"] = "zinb",
     get_model: bool = False,
     **kwargs,
-) -> SCVI | None:
+) -> "SCVI | None":
     """Run scVI.
 
     Run scVI to integrate sc/snRNA more information on
@@ -151,7 +151,7 @@ def integrate_data(
     continuous_covariates: list = None,
     get_model: bool = False,
     **kwargs,
-) -> SCVI | None:
+) -> "SCVI | None":
     """Integrate a concatenated AnnData.
 
     Integrate and perform batch correction for an AnnData with several samples. Different batch correction methods are

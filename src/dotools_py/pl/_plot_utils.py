@@ -1,10 +1,9 @@
 import re
 from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from typing import TypeVar, Callable
-    from textwrap import indent
-    from matplotlib.axes import Axes
-    from matplotlib import axes
+from typing import TypeVar, Callable
+from textwrap import indent
+from matplotlib.axes import Axes
+from matplotlib import axes
 
 
 COMMON_EXPR_ARGS = """\
