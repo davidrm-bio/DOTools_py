@@ -55,13 +55,17 @@ def test_downstream():
         assert key in axs
 
     # Expr Correlation
-    axs = do.pl.expr_correlation(adata, 'batch', show=False)
+    axs = do.pl.correlation(adata, 'batch', show=False)
     plt.close()
     assert isinstance(axs, plt.Axes)
 
-    axs = do.pl.expr_correlation(adata, 'batch', show=False, mask="lower")
+    axs = do.pl.correlation(adata, 'batch', show=False, mask="lower")
     plt.close()
     assert isinstance(axs, plt.Axes)
+    axs = do.pl.cell_composition(adata, "annotation", "condition", "batch", condition_order=["healthy", "disease"], transform="arcsin", show=False)
+    plt.close()
+    assert isinstance(axs,dict)
+
     return
 
 
@@ -75,7 +79,7 @@ def test_embeddings():
     plt.close()
     assert all(isinstance(ax, plt.Axes) for ax in np.ravel(axs))
 
-    axs = do.pl.umap(adata, ["annotation", "CD4"], show=False, labels="annotation", common_legend=True)
+    axs = do.pl.umap(adata, ["annotation", "CD4"], show=False, labels="annotation", share_legend=True)
     plt.close()
     assert all(isinstance(ax, plt.Axes) for ax in np.ravel(axs))
 
@@ -100,19 +104,19 @@ def test_expression():
     adata = do.dt.example_10x_processed()
     nk = adata[adata.obs.annotation == "NK"]
 
-    ax = do.pl.violin(nk, feature="CD4", x_axis="condition", ctrl_cond="healthy", groups_cond="disease", figsize=(5, 6), show=False)
+    ax = do.pl.violinplot(nk, feature="CD4", x_axis="condition", reference="healthy", groups="disease", figsize=(5, 6), show=False)
     plt.close()
     assert isinstance(ax, plt.Axes)
 
-    ax = do.pl.barplot(nk, feature="CD4", x_axis="condition", ctrl_cond="healthy", groups_cond="disease", figsize=(5, 6), show=False)
+    ax = do.pl.barplot(nk, feature="CD4", x_axis="condition", reference="healthy", groups="disease", figsize=(5, 6), show=False)
     plt.close()
     assert isinstance(ax, plt.Axes)
 
-    ax = do.pl.boxplot(nk, feature="CD4", x_axis="condition", ctrl_cond="healthy", groups_cond="disease", figsize=(5, 6), show=False)
+    ax = do.pl.boxplot(nk, feature="CD4", x_axis="condition", reference="healthy", groups="disease", figsize=(5, 6), show=False)
     plt.close()
     assert isinstance(ax, plt.Axes)
 
-    ax = do.pl.violin(adata, "condition", feature="CD4", hue="annotation", show=False)
+    ax = do.pl.violinplot(adata, "condition", feature="CD4", hue="annotation", show=False)
     plt.close()
     assert isinstance(ax, dict)
     assert "mainplot_ax" in ax
@@ -130,15 +134,15 @@ def test_expression():
     assert "mainplot_ax" in ax
     assert "legend_ax" in ax
 
-    axs = do.pl.boxplot(adata, 'annotation', 'RPL11', hue='condition', ctrl_cond='healthy', groups_cond=['disease'],
-                  hue_order=['healthy', 'disease'], xtick_rotation=45, figsize=(6, 4), show=False)
+    axs = do.pl.boxplot(adata, 'annotation', 'RPL11', hue='condition', reference='healthy', groups=['disease'],
+                  hue_order=['healthy', 'disease'], xticks_rotation=45, figsize=(6, 4), show=False)
     plt.close()
     assert isinstance(axs, dict)
     assert "mainplot_ax" in axs
     assert "legend_ax" in axs
 
-    axs = do.pl.boxplot(adata, 'condition', 'total_counts', ctrl_cond='healthy', groups_cond=['disease'],
-                        xtick_rotation=45, figsize=(6, 4), show=False)
+    axs = do.pl.boxplot(adata, 'condition', 'total_counts', reference='healthy', groups=['disease'],
+                        xticks_rotation=45, figsize=(6, 4), show=False)
     plt.close()
     assert isinstance(axs, plt.Axes)
 
@@ -154,6 +158,8 @@ def test_expression():
         plt.close()
     except ValueError:
         pass
+
+
 
 
 
