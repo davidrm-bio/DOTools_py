@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Colormap
 import seaborn as sns
 
-import logger
+from dotools_py import logger
 from dotools_py.pl._StatsPlotter import TestData, StatsPlotter
 from dotools_py.utils import iterase_input, logmean
 
