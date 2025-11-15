@@ -29,7 +29,7 @@ def lineplot(
     ax: plt.Axes = None,
     palette: str | dict = "tab10",
     title: str = None,
-    xtick_rotation: int | None = None,
+    xticks_rotation: int | None = None,
     xticks_order: list = None,
     ylim: tuple[int, int] = None,
     ylabel: str = "LogMean(nUMI)",
@@ -62,7 +62,7 @@ def lineplot(
     :param palette:  String denoting matplotlib colormap. A dictionary with the categories available in `adata.obs[x_axis]` or
                     `adata.obs[hue]` if hue is not None can also be provided. The format is {category:color}.
     :param title: Title for the figure.
-    :param xtick_rotation: Rotation of the X-axis ticks.
+    :param xticks_rotation: Rotation of the X-axis ticks.
     :param xticks_order: Order for the categories in `adata.obs[x_axis]`.
     :param ylim: Set limit for Y-axis.
     :param ylabel: Label for the Y-axis.
@@ -167,8 +167,8 @@ def lineplot(
                     only_move={"text": "y", "static": "y", "explode": "y", "pull": "y"}, **legend_repel)
 
     ticks_kwargs = {"fontweight": "bold", "fontsize": 12}
-    if xtick_rotation is not None:
-        ticks_kwargs.update({"rotation": xtick_rotation, "ha": "right", "va": "top"})
+    if xticks_rotation is not None:
+        ticks_kwargs.update({"rotation": xticks_rotation, "ha": "right", "va": "top"})
 
     axs.set_xticklabels(axs.get_xticklabels(), **ticks_kwargs)
 
