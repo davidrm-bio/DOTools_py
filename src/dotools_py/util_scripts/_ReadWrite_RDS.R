@@ -195,6 +195,7 @@ if (opt$operation == 'read') {  # Convert RDS (SCE/Seurat) to AnnData
         for (i in 1:length(reductions_names)) {
             output.obj@reductions[reductions_names_clean[[i]]] <- output.obj@reductions[reductions_names[[i]]]
             output.obj@reductions[reductions_names[[i]]] <- NULL
+            output.obj@reductions[reductions_names[[i]]]@assay.used <- "RNA"
         }
 
         # Connectivities -> snn
@@ -248,6 +249,8 @@ if (opt$operation == 'read') {  # Convert RDS (SCE/Seurat) to AnnData
 
         if (!is.null(snn)) {
             output.obj@graphs$RNA_snn <- snn
+            output.obj@graphs$RNA_snn@assay.used <- "RNA"
+
         }
 
         # distances -> nn
@@ -270,7 +273,10 @@ if (opt$operation == 'read') {  # Convert RDS (SCE/Seurat) to AnnData
 
         if (!is.null(nn)) {
             output.obj@graphs$RNA_nn <- nn
+            output.obj@graphs$RNA_nn@assay.used <- "RNA"
         }
+
+
     }
 
     saveRDS(output.obj, opt$out)

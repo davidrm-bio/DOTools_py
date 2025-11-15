@@ -7,6 +7,8 @@ from typing import Literal
 
 import anndata as ad
 import pandas as pd
+import numpy as np
+from scipy.sparse import issparse
 
 from dotools_py.utils import get_paths_utils
 from dotools_py import logger
@@ -14,7 +16,7 @@ from dotools_py import logger
 
 def read_rds(
     path_rds: str | Path,
-    path_h5ad: str | Path = None,
+    path_h5ad: str | Path,
     batch_key: str = "batch",
 ) -> ad.AnnData | None:
     """Read Rds object with Seurat or SingleCellExperiment Object.
@@ -130,8 +132,12 @@ def read_rds(
         del adata.obs["orig.ident"]
 
     # Default is X with raw counts
-    if all(adata.X.data % 1 == 0):
-        adata.layers["counts"] = adata.X.copy()
+    if issparse(adata.X):
+        if all(np.array(adata.X.data) % 1 == 0):
+            adata.layers["counts"] = adata.X.copy()
+    else:
+        if all(adata.X.flatten() % 1 == 0):
+            adata.layers["counts"] = adata.X.copy()
 
     # Remove all intermediate files
     for f in ["Distances.csv", "Connectivities.csv", "VariableFeatures.csv"]:
