@@ -106,7 +106,7 @@ def barplot(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.barplot(adata,  'annotation', 'CD4', reference = 'pDC', groups=['B_cells'], xticks_rotation=45, scatter=True)
+        do.pl.barplot(adata,  'annotation', 'CD4', reference = 'pDC', groups=['B_cells'], xticks_rotation=45)
 
     Setting the `hue` argument allow to test across conditions for several groups.
 
