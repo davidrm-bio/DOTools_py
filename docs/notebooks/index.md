@@ -6,7 +6,7 @@ In these tutorials we show the complete workflow to perform quality control and
 downstream analysis using a public dataset from 10X.
 
 ```{toctree}
-:maxdepth: 2
+:maxdepth: 1
 
 Running_CellBender
 example_10X

@@ -267,7 +267,7 @@ class BaseSeaborn:
             df = get_expr(self.adata, self.feature, groups=keep, layer=self.layer)
         elif all(feature in list(self.adata.obs.columns) for feature in self.feature):
             df = self.adata.obs[keep + self.feature]
-            df["expr"] =df[self.feature]
+            df["expr"] = df[self.feature[0]]
         else:
             raise ValueError(f"{self.feature} needs to be in adata.var_names or adata.obs")
         return df
