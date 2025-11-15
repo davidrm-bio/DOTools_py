@@ -9,7 +9,7 @@ def test_rank_genes_condition():
 
     assert isinstance(df, pd.DataFrame)
     assert "rank_genes_condition" in adata.uns.keys()
-    cols = {'GeneName', 'wilcox_score', 'log2fc', 'pvals', 'padj', 'pts_group', 'pts_ref', 'group', 'annotation'}
+    cols = {'GeneName', 'statistic', 'log2fc', 'pvals', 'padj', 'pts_group', 'pts_ref', 'group', 'annotation'}
     assert cols.issubset(df.columns)
 
     df = do.tl.rank_genes_condition(adata, groupby="condition", subset_by="annotation", reference="healthy", method="t-test")
