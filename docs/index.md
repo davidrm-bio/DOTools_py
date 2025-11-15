@@ -38,7 +38,6 @@ preprocess, analyze, and interpret single-cell data.
 installation
 api/index
 changelog
-funding
 references
 ```
 
