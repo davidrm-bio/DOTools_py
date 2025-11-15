@@ -106,7 +106,7 @@ def barplot(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.violin(adata,  'annotation', 'CD4', reference = 'pDC', groups=['B_cells'], xticks_rotation=45, scatter=True)
+        do.pl.barplot(adata,  'annotation', 'CD4', reference = 'pDC', groups=['B_cells'], xticks_rotation=45, scatter=True)
 
     Setting the `hue` argument allow to test across conditions for several groups.
 
@@ -115,7 +115,7 @@ def barplot(
 
         # Take only lymphoid cells
         lymphoid = adata[adata.obs['annotation'].isin(['T_cells', 'NK', 'B_cells'])].copy()
-        do.pl.violin(lymphoid,'annotation','CD4',  hue = 'condition', reference = 'healthy', groups=['disease'], hue_order=['healthy', 'disease'], xticks_rotation=45, figsize=(6, 4))
+        do.pl.barplot(lymphoid,'annotation','CD4',  hue = 'condition', reference = 'healthy', groups=['disease'], hue_order=['healthy', 'disease'], xticks_rotation=45, figsize=(6, 4))
 
     Plot a continuous value in `adata.obs`.
 
@@ -298,7 +298,7 @@ def boxplot(
 
         # Take only lymphoid cells
         lymphoid = adata[adata.obs['annotation'].isin(['T_cells', 'NK', 'B_cells'])].copy()
-        do.pl.boxplot(lymphoid, 'annotation', 'RPL11', hue = 'condition', reference = 'healthy', groups=['disease'], hue_order=['healthy', 'disease'], xtick_rotation=45, figsize=(6, 4))
+        do.pl.boxplot(lymphoid, 'annotation', 'RPL11', hue = 'condition', reference = 'healthy', groups=['disease'], hue_order=['healthy', 'disease'], xticks_rotation=45, figsize=(6, 4))
 
      Plot a continuous value in `adata.obs`.
 
