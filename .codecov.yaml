@@ -10,10 +10,11 @@ coverage:
     - "src/dotools_py/_experimental/_deprecated/_statistics.py"  # R code
     - "src/dotools_py/utility/_spatial.py"  # No example currently
     - "src/dotools_py/pl/_visium.py" # No example currently
+    - "src/dotools_py/_experimental/_deprecated/_expression.py"
   status:
     project:
       default:
-        # Require 1% coverage, i.e., always succeed
+        # Require 50% coverage
         target: 50
     #patch: false
     changes: false
