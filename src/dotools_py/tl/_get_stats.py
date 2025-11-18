@@ -274,16 +274,20 @@ def rank_genes_condition(
         logger.info(f"Saving DGE ExcelSheet in {str(out_path.name)}")
         with pd.ExcelWriter(out_path) as writer:
             dge.to_excel(writer, sheet_name="AllGenes", index=False)
-            for case in groups:
-                dge_up = dge[
-                    (dge["padj"] < pval_cutoff) & (dge["log2fc"] > log2fc_cutoff) & (dge[dge["group"] == case])
-                    ]
-                dge_down = dge[
-                    (dge["padj"] < pval_cutoff) & (dge["log2fc"] < -log2fc_cutoff) & (dge[dge["group"] == case])
-                    ]
+            try:
+                for case in groups:
+                    # TODO might cause memory error in some instances
+                    dge_up = dge[
+                        (dge["padj"] < pval_cutoff) & (dge["log2fc"] > log2fc_cutoff) & (dge[dge["group"] == case])
+                        ]
+                    dge_down = dge[
+                        (dge["padj"] < pval_cutoff) & (dge["log2fc"] < -log2fc_cutoff) & (dge[dge["group"] == case])
+                        ]
 
-                dge_up.to_excel(writer, sheet_name=f"UpregGenes_{case}", index=False)
-                dge_down.to_excel(writer, sheet_name=f"DownregGenes_{case}", index=False)
+                    dge_up.to_excel(writer, sheet_name=f"UpregGenes_{case}", index=False)
+                    dge_down.to_excel(writer, sheet_name=f"DownregGenes_{case}", index=False)
+            except MemoryError as e:
+                logger.warn(f"{e} while saving some excelsheets")
     if get_results:
         return dge
     else:
