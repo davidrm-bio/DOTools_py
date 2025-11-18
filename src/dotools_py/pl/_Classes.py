@@ -118,13 +118,17 @@ class BaseSeaborn:
         self.legends_width = self.DEFAULT_LEGEND_WIDTH
         self.cmap = self.DEFAULT_CMAP if cmap is None else cmap
 
-        if isinstance(self.cmap, str):
-            tmp = self.hue_order if hue_order is not None else self.xticks_order
-            colors_dict = dict(zip(tmp, get_hex_colormaps(self.cmap), strict=False))
-        elif isinstance(self.cmap, dict):
-            colors_dict = self.cmap
-        else:
-            raise Exception('palette can only be a string or dictionary')
+        colors_dict = None  # Only used when hue is not None
+        if hue is not None:
+            if isinstance(self.cmap, str):
+                list_colors = get_hex_colormaps(self.cmap)
+                if len(list_colors) < len(self.hue_order):
+                    list_colors *= 5
+                colors_dict = dict(zip(self.hue_order, get_hex_colormaps(self.cmap), strict=False))
+            elif isinstance(self.cmap, dict):
+                colors_dict = self.cmap
+            else:
+                raise Exception('palette can only be a string or dictionary')
 
         self.cmap_dict = colors_dict
 
