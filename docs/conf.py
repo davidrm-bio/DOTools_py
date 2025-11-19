@@ -10,6 +10,11 @@ from datetime import datetime
 from importlib.metadata import metadata
 from pathlib import Path, PurePosixPath
 import matplotlib
+from functools import partial
+from docutils import nodes
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from sphinx.application import Sphinx
 
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE / "extensions"))
@@ -118,6 +123,22 @@ intersphinx_mapping = {
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
+
+def setup(app: Sphinx):
+    """App setup hook."""
+    app.add_generic_role("small", partial(nodes.inline, classes=["small"]))
+    app.add_generic_role("smaller", partial(nodes.inline, classes=["smaller"]))
+    app.add_config_value(
+        "recommonmark_config",
+        {
+            "auto_toc_tree_section": "Contents",
+            "enable_auto_toc_tree": True,
+            "enable_math": True,
+            "enable_inline_math": False,
+            "enable_eval_rst": True,
+        },
+        True,  # noqa: FBT003
+    )
 
 
 # -- Options for HTML output -------------------------------------------------
