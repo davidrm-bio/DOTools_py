@@ -9,9 +9,9 @@ and this project adheres to [Semantic Versioning][].
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
 
-## Version 0.0.3 {small}``
+## Version 0.0.3
 
-#### Bug fixes
+### Bug fixes
 
 - Fix Bug in ``dotools_py.pl.barplot``,  ``dotools_py.pl.boxplot`` and  ``dotools_py.pl.violinplot`` where the legends
 were not correctly display when `hue` was set but `hue_order` was not set.
