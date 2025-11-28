@@ -16,6 +16,7 @@ functions for enhance visualization of sc/snRNA-seq data.
     pl.umap
     pl.dotplot
     pl.heatmap
+    pl.heatmap_foldchange
     pl.barplot
     pl.violinplot
     pl.boxplot

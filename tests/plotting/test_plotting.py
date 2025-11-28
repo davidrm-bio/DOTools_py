@@ -175,6 +175,18 @@ def test_heatmap():
     assert "legend_ax" in axs
     assert "signifiance_ax" in axs
 
+    axs = do.pl.heatmap_foldchange(adata, group_by="annotation", features="CD4", condition_key="condition",
+                                   reference="healthy", add_stats=True, show=False)
+    plt.close()
+    assert isinstance(axs, dict)
+    assert "mainplot_ax" in axs
+    assert "legend_ax" in axs
+    assert "signifiance_ax" in axs
+    assert "color_group_ax" in axs
+    assert "legend_group_ax" in axs
+
+
+
 
 
 def test_plotter():

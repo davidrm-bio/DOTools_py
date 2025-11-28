@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning][].
 
 ## Version 0.0.3
 
+### Features
+
+- Add ``dotools_py.pl.heatmap_foldchange`` to visualize log2foldchanges between groups across conditions.
+
 ### Bug fixes
 
 - Fix Bug in ``dotools_py.pl.barplot``,  ``dotools_py.pl.boxplot`` and  ``dotools_py.pl.violinplot`` where the legends
