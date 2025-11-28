@@ -8,7 +8,7 @@ def heart_markers(
 ) -> dict:
     """Marker genes for cell-types in the heart.
 
-    :param species: Format for gene names. Set `human` for everything upper case and `mouse` for capitalise.
+    :param species: Format for gene names. Set `human` for everything upper case and `mouse` for capitalize.
     :return: Returns a dictionary with a list of marker genes for major cell-types present in the heart.
 
     Example
