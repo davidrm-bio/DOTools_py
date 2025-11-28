@@ -150,7 +150,7 @@ class DotPlot(BasePlot):
         If True, gene expression is averaged only over the cells
         expressing the given genes.
     standard_scale
-        Whether or not to standardize that dimension between 0 and 1,
+        Whether to standardize that dimension between 0 and 1,
         meaning for each variable or group,
         subtract the minimum and divide each by its maximum.
     kwds
@@ -1155,7 +1155,7 @@ def dotplot_scanpy(
 def dotplot(
     adata: ad.AnnData,
     x_axis: str,
-    features: str | list,
+    features: str | list | dict,
     y_axis: str = None,
     layer: str | None = None,
     x_categories_order: list | None = None,
@@ -1203,7 +1203,7 @@ def dotplot(
 ) -> dict | None:
     """Makes a 2d dotplot or 3d dotplot.
 
-    There are two type of visualisation:
+    There are two type of visualization:
         * 2d dotplot: X_axis shows ``x_axis`` categories and Y_axis the ``features``. The color represents the logarithmize mean
                     nUMI and the size of the dots the fractions of cells expressing the feature.
         * 3d dotplot: X_axis shows ``x_axis`` categories and Y_axis shows ``y_axis`` categories. For each feature the
@@ -1799,7 +1799,7 @@ def dotplot(
             vcenter = vcenter if vcenter is not None else 0.0  # For Zscore values can be negative, set center to 0
             cmap = cmap if cmap != "Reds" else "RdBu_r"  # Because we have neg and pos, we use a divergent colormap
 
-        vmax = round(_color_df.max().max() * 20) / 20 if vmax is None else vmax  # Normalise to round to 5 or 0
+        vmax = round(_color_df.max().max() * 20) / 20 if vmax is None else vmax  # Normalize to round to 5 or 0
         normalize = check_colornorm(vmin=vmin, vmax=vmax, vcenter=vcenter)
         colormap = plt.get_cmap(cmap)
         color = colormap(normalize(mean_flat))
