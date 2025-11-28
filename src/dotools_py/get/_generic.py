@@ -120,7 +120,7 @@ def mean_expr(
     """Calculate the average expression in an AnnData objects for features.
 
     This function calculates the average expression of a set of features grouping by one
-    or several categories. Assume log-normalised counts. If logcounts is set to True, the
+    or several categories. Assume log-normalized counts. If logcounts is set to True, the
     log10 transformation is undone for the mean expression calculation. The reported mean
     expression is log-transformed.
 
