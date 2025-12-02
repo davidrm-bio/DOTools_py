@@ -2,7 +2,6 @@ from typing import Literal, Dict
 from pathlib import Path
 
 import anndata as ad
-import matplotlib.colors
 import matplotlib.gridspec as gridspec
 import matplotlib.patches as patches
 import matplotlib.lines as mlines
@@ -178,7 +177,7 @@ def heatmap(
     :param z_score: Apply z-score transformation.
     :param path: Path to the folder to save the figure.
     :param filename: Name of file to use when saving the figure.
-    :param layer: Name of the AnnData object layer that wants to be plotted. By default `adata.X` is plotted.
+    :param layer: Name of the AnnData object layer that wants to be plotted. By default, `adata.X` is plotted.
                  If layer is set to a valid layer name, then the layer is plotted.
     :param swap_axes: Whether to swap the axes or not.
     :param palette: String denoting matplotlib colormap.
@@ -192,7 +191,7 @@ def heatmap(
     :param ax: Matplotlib axes to use for plotting. If not set, a new figure will be generated.
     :param figsize: Figure size, the format is (width, height).
     :param linewidth: Linewidth for the border of cells.
-    :param ticks_fontproperties: Dictionary which should contain 'size' and 'weight' to define the fontsize and fontweight of the font of the x/y axis.
+    :param ticks_fontproperties: Dictionary which should contain 'size' and 'weight' to define the fontsize and fontweight of the font of the x/y-axis.
     :param xticks_rotation: Rotation of the x-ticks.
     :param yticks_rotation: Rotations of the y-ticks.
     :param vmin: The value representing the lower limit of the color scale.
@@ -226,6 +225,7 @@ def heatmap(
     """
     import scanpy as sc
     from scipy.cluster.hierarchy import dendrogram, linkage
+    from matplotlib.colorbar import Colorbar
 
     # Checks
     sanitize_anndata(adata)
@@ -283,23 +283,25 @@ def heatmap(
                 )
                 table_filt = table[table["names"].isin(features)]
             elif all(item in list(adata.obs.columns) for item in features):
-                raise Exception('Not Implemented')
+                raise Exception('Not Implemented, provide features in adata.var_names')
                 # TODO Fix Bug
-                tdf = adata.obs[[group_by] + features]
-                tdata = ad.AnnData(tdf.iloc[:, 1:].values, obs=pd.DataFrame(tdf[group_by]), var=list(tdf.columns)[1:])
-                tdata.var_names = tdata.var[0].copy()
-                rank_genes_groups(
-                    tdata,
-                    groupby=group_by,
-                    method=test,
-                    tie_correct=True,
-                    corr_method=correction_method,
-                    logcounts=False,
-                )
-                table = sc.get.rank_genes_groups_df(
-                    tdata, group=None, pval_cutoff=pval_cutoff, log2fc_min=log2fc_cutoff
-                )
-                table_filt = table[table["names"].isin(features)]
+                #tdf = adata.obs[[group_by] + features]
+                #tdata = ad.AnnData(tdf.iloc[:, 1:].values, obs=pd.DataFrame(tdf[group_by]), var=list(tdf.columns)[1:])
+                #tdata.var_names = tdata.var[0].copy()
+                #rank_genes_groups(
+                #    tdata,
+                #    groupby=group_by,
+                #    method=test,
+                #    tie_correct=True,
+                #    corr_method=correction_method,
+                #    logcounts=False,
+                #)
+                #table = sc.get.rank_genes_groups_df(
+                #    tdata, group=None, pval_cutoff=pval_cutoff, log2fc_min=log2fc_cutoff
+                #)
+                #table_filt = table[table["names"].isin(features)]
+            else:
+                raise ValueError("Provide features in adata.var_names")
 
             # Dataframe with gene x groups with the pvals
             table_filt["group"] = table_filt["group"].str.replace("-", "_")  # Correction used in get_expr()
@@ -375,7 +377,7 @@ def heatmap(
     title_fontprop = {"weight": title_fontproperties.get("weight", "bold"), "size": title_fontproperties.get("size", 15)}
     # Parameters for colorbar
     vmin = 0.0 if vmin is None else vmin
-    vmax = round(df.max().max() * 20) / 20 if vmax is None else vmax  # Normalise to round to 5 or 0
+    vmax = round(df.max().max() * 20) / 20 if vmax is None else vmax  # Normalize to round to 5 or 0
     colormap = plt.get_cmap(palette)
     normalize = check_colornorm(vmin=vmin, vmax=vmax, vcenter=vcenter)
     mappable = ScalarMappable(norm=normalize, cmap=colormap)
@@ -420,7 +422,7 @@ def heatmap(
     )
 
     # Add Legend
-    matplotlib.colorbar.Colorbar(color_legend_ax, mappable=mappable, orientation="horizontal")
+    Colorbar(color_legend_ax, mappable=mappable, orientation="horizontal")
     color_legend_ax.set_title(legend_title, fontsize="small", fontweight="bold")
     color_legend_ax.xaxis.set_tick_params(labelsize="small")
     return_ax_dict["legend_ax"] = color_legend_ax
@@ -557,7 +559,7 @@ def heatmap_foldchange(
     :param ax: Matplotlib axes to use for plotting. If not set, a new figure will be generated.
     :param figsize: Figure size, the format is (width, height).
     :param linewidth: Linewidth for the border of cells.
-    :param ticks_fontproperties: Dictionary which should contain 'size' and 'weight' to define the fontsize and fontweight of the font of the x/y axis.
+    :param ticks_fontproperties: Dictionary which should contain 'size' and 'weight' to define the fontsize and fontweight of the font of the x/y-axis.
     :param xticks_rotation: Rotation of the x-ticks.
     :param yticks_rotation: Rotations of the y-ticks.
     :param vmin: The value representing the lower limit of the color scale.
@@ -591,6 +593,7 @@ def heatmap_foldchange(
 
     """
     import scanpy as sc  # Lazy load
+    from matplotlib.colorbar import Colorbar
 
     # Checks
     assert reference is not None, "Provide reference condition"
@@ -849,8 +852,9 @@ def heatmap_foldchange(
             )
         )
     groups_ax_legend.legend(
-        handles=handles, frameon=False, loc="center", ncols=group_legend_ncols, prop={"size": "medium", "weight": "bold"}, title=groups_legend_title,
-        title_fontproperties={"size": "small", "weight": "bold"},
+        handles=handles, frameon=False, loc="center", ncols=group_legend_ncols, prop={"size": "small", "weight": "bold"}, title=groups_legend_title,
+        title_fontproperties={"size": "small", "weight": "bold"}, borderaxespad=0.2, bbox_transform=groups_ax_legend.transAxes, bbox_to_anchor=(0.5, 0.5),
+
     )
     groups_ax_legend.axis("off")  # Hide axes for clean display
     return_ax_dict["color_group_ax"] = groups_ax
@@ -858,7 +862,7 @@ def heatmap_foldchange(
 
 
     # Add Colorbar Legend
-    matplotlib.colorbar.Colorbar(color_legend_ax, mappable=mappable, orientation="horizontal")
+    Colorbar(color_legend_ax, mappable=mappable, orientation="horizontal")
     color_legend_ax.xaxis.set_tick_params(labelsize="small")
     color_legend_ax.set_title(colorbar_legend_title, fontsize="small", fontweight="bold")
     return_ax_dict["legend_ax"] = color_legend_ax
