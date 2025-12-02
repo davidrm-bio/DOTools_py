@@ -10,7 +10,7 @@ import seaborn as sns
 
 from dotools_py import logger
 from dotools_py.pl._StatsPlotter import TestData, StatsPlotter
-from dotools_py.utils import iterase_input, logmean
+from dotools_py.utils import iterase_input
 
 from dotools_py.pl._plot_utils import COMMON_EXPR_ARGS, _doc_params
 from dotools_py.pl._Classes import BaseSeaborn
