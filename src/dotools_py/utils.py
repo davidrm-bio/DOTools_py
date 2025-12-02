@@ -235,10 +235,7 @@ def require_dependencies(required_packages):
                 print("The following packages are missing:")
                 for pkg in missing:
                     print(f" - {pkg}")
-                #choice = input("Do you want to install them now? [y/N]: ").strip().lower()
-                #if choice == "y":
                 subprocess.check_call([sys.executable, "-m", "pip", "install", *missing])
-                #else:
                 raise ImportError("Missing required packages.")
 
             return func(*args, **kwargs)
@@ -255,7 +252,6 @@ def deprecated_function(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         warnings.warn(f"{func.__name__} will be deprecated and cannot be called.", category=DeprecationWarning, stacklevel=2)
-        #raise DeprecatedFunctionError(f"{func.__name__} is no longer available.")
 
     return wrapper
 
