@@ -235,7 +235,7 @@ def embedding(
                 vmax = vmax_genes if val in adata.var_names else vmax
                 sc.pl.embedding(
                     adata, color=val, ax=axs[idx], colorbar_loc=cb_loc, basis=basis, vmax=vmax, show=False, **kwargs
-                )  # use embedding to generalise
+                )  # use embedding to generalize
                 spine_format(axs[idx], txt_basis)
                 axs[idx].set_title(val, fontdict=title_fontproperties)
                 remove_extra(nExtra, nrows, ncols, axs)
