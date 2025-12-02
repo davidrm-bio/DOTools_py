@@ -78,7 +78,7 @@ class StatsPlotter:
         hue: str = None,
         hue_order: list = None,
     ):
-        """Initialise.
+        """Initialize.
 
         :param axis: matplotlib axis.
         :param x_axis: name of the x-axis.
@@ -451,7 +451,7 @@ class TestData:
         test: Literal["wilcoxon", "t-test", "kruskal", "anova", "logreg", "t-test_overestim_var"] = None,
         test_correction: Literal["benjamini-hochberg","bonferroni"] = None,
     ):
-        """Initialise,
+        """Initialize,
 
         :param data: annotated data matrix or pandas dataframe.
         :param feature: var_names or obs column in the AnnData or column in the DataFrame.
@@ -708,7 +708,7 @@ class TestData:
 
     @classmethod
     def pvalues_labels(cls):
-        """Get list with the labels of the group tested. The order matches the order of the `pvals` attribute. Only initialise
+        """Get list with the labels of the group tested. The order matches the order of the `pvals` attribute. Only initialize
         if the hue category_key is set.
         :return:
         """
