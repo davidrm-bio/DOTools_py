@@ -1,8 +1,24 @@
 <component name="ProjectDictionaryState">
   <dictionary name="project">
     <words>
+      <w>Abca</w>
+      <w>Endo</w>
+      <w>Frmd</w>
+      <w>Kalucka</w>
+      <w>Stmn</w>
+      <w>benjamini</w>
+      <w>bonferroni</w>
       <w>figsize</w>
+      <w>fontproperties</w>
       <w>gridspec</w>
+      <w>hochberg</w>
+      <w>logcounts</w>
+      <w>mainplot</w>
+      <w>nrows</w>
+      <w>pbmc</w>
+      <w>pvals</w>
+      <w>pvalues</w>
+      <w>wilcoxon</w>
     </words>
   </dictionary>
 </component>

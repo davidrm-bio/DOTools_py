@@ -3,5 +3,8 @@
   <component name="Black">
     <option name="sdkName" value="do_env" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="scrna_py10" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="scrna_py11" project-jdk-type="Python SDK" />
+  <component name="PyreflyConfiguration">
+    <option name="enabled" value="true" />
+  </component>
 </project>
