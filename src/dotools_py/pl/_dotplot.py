@@ -29,7 +29,7 @@ from scanpy.plotting._utils import (
 from scanpy.plotting._anndata import VarGroups, _plot_var_groups_brackets
 from dotools_py import logger
 from dotools_py.get._generic import expr as get_expr
-from dotools_py.utils import convert_path, sanitize_anndata, draw_bracket, save_plot, return_axis
+from dotools_py.utils import sanitize_anndata, save_plot, return_axis
 from dotools_py.pl._heatmap import small_squares
 from dotools_py.tl._get_stats import rank_genes_groups
 
@@ -158,7 +158,7 @@ class DotPlot(BasePlot):
 
     See Also
     --------
-    :func:`~scanpy.pl.dotplot`: Simpler way to call DotPlot but with less options.
+    :func:`~scanpy.pl.dotplot`: Simpler way to call DotPlot but with fewer options.
     :func:`~scanpy.pl.rank_genes_groups_dotplot`: to plot marker
         genes identified using the :func:`~scanpy.tl.rank_genes_groups` function.
 
@@ -426,12 +426,12 @@ class DotPlot(BasePlot):
             When `color_on='square'`, ``None`` means a line width of 1.5.
         size_exponent
             Dot size is computed as:
-            fraction  ** size exponent and afterwards scaled to match the
+            fraction  ** size exponent and afterward scaled to match the
             `smallest_dot` and `largest_dot` size parameters.
             Using a different size exponent changes the relative sizes of the dots
             to each other.
         grid
-            Set to true to show grid lines. By default grid lines are not shown.
+            Set to true to show grid lines. By default, grid lines are not shown.
             Further configuration of the grid lines can be achieved directly on the
             returned ax.
         x_padding
@@ -555,7 +555,7 @@ class DotPlot(BasePlot):
             step = 0.05
         else:
             step = 0.2
-        # a descending range that is afterwards inverted is used
+        # a descending range that is afterward inverted is used
         # to guarantee that dot_max is in the legend.
         size_range = np.arange(self.dot_max, self.dot_min, step * -1)[::-1]
         if self.dot_min != 0 or self.dot_max != 1:
