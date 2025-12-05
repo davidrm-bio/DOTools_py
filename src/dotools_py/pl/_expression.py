@@ -183,13 +183,13 @@ def barplot(
             )
             testing.run_test()
             groups_pvals = testing.pvals  # Should be the same order as for StatsPlotter
-
+            del testing
         stats_plotter = StatsPlotter(
             bp, x_axis=x_axis, y_axis="expr", ctrl=reference, groups=groups_cond, pvals=groups_pvals, txt_size=txt_size,
             txt=txt, kind="bar", line_offset=line_offset, hue=hue, hue_order=hue_order,
         )
         stats_plotter.plot_stats()
-        del stats_plotter, testing
+        del stats_plotter
 
     # Set the Layout
     plotter.set_xticks(ax=bp)
@@ -356,13 +356,14 @@ def boxplot(
             )
             testing.run_test()
             groups_pvals = testing.pvals  # Should be the same order as for StatsPlotter
+            del testing
 
         stats_plotter = StatsPlotter(
             bx, x_axis=x_axis, y_axis="expr", ctrl=reference, groups=groups_cond, pvals=groups_pvals, txt_size=txt_size,
             txt=txt, kind="box", line_offset=line_offset, hue=hue, hue_order=hue_order,
         )
         stats_plotter.plot_stats()
-        del stats_plotter, testing
+        del stats_plotter
 
     # Set the Layout
     plotter.set_xticks(ax=bx)
@@ -538,13 +539,14 @@ def violinplot(
             )
             testing.run_test()
             groups_pvals = testing.pvals  # Should be the same order as for StatsPlotter
+            del testing
 
         stats_plotter = StatsPlotter(
             vln, x_axis=x_axis, y_axis="expr", ctrl=reference, groups=groups_cond, pvals=groups_pvals, txt_size=txt_size,
             txt=txt, kind="violin", line_offset=line_offset, hue=hue, hue_order=hue_order,
         )
         stats_plotter.plot_stats()
-        del stats_plotter, testing
+        del stats_plotter
 
     # Set the Layout
     plotter.set_xticks(ax=vln)
