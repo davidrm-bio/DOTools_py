@@ -2,6 +2,7 @@ import functools
 import importlib
 from pathlib import Path
 from collections.abc import Iterable
+from typing import Literal
 
 import anndata as ad
 import matplotlib.gridspec as gridspec
@@ -398,3 +399,21 @@ def return_axis(show: bool, axis: dict | plt.Axes, tight: bool = True) -> None |
     else:
         return axis
 
+
+class EmptyType:
+    """A singleton sentinel representing an 'empty' value."""
+
+    def __repr__(self) -> Literal["Empty"]:
+        return "Empty"
+
+
+def vector_friendly():
+    """ Decorator to set Scanpy figure parameters in a vector-friendly way."""
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            import scanpy as sc
+            sc.set_figure_params(scanpy=False, vector_friendly=True)
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator

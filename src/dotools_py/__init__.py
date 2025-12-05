@@ -3,7 +3,7 @@ from importlib.metadata import version
 
 from . import dt, pl, pp, settings, tl, utility, get
 
-__all__ = ["pl", "pp", "tl", "dt", "get", "utility", "settings"]
+__all__ = ["pl", "pp", "tl", "dt", "get", "utility", "settings", "io"]
 
 __version__ = version("DOTools_py")
 

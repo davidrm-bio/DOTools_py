@@ -145,6 +145,8 @@ def read_rds(
             os.remove(os.path.join(input_folder, f))
         except FileNotFoundError:
             continue
+    # Save the Updated Object
+    adata.write(path_h5ad)
     logger.info("Done")
     return adata
 
