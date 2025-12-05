@@ -53,7 +53,11 @@ def read_excel(
 
     if df is _Empty:
         df: pd.DataFrame = pd.read_excel(io=input_path, sheet_name=sheet_name, **kwargs)
-
+    if "Unnamed: 0" in df.columns:
+        df.set_index("Unnamed: 0", inplace=True)
+        df.index.name = None
+    if "" in df.columns:
+        del df[""]
     return df
 
 
@@ -100,7 +104,11 @@ def read_csv(
 
     if df is _Empty:
         df: pd.DataFrame | Any = pd.read_csv(input_path, sep=delimiter, iterator=False, **kwargs)
-
+    if "" in df.columns:
+        del df[""]
+    if "Unnamed: 0" in df.columns:
+        df.set_index("Unnamed: 0", inplace=True)
+        df.index.name = None
     return  df
 
 
@@ -139,11 +147,15 @@ def read_parquet(
     if backend == "polars":
         try:
             df: pl.DataFrame = pl.read_parquet(source=input_path, **kwargs)
+            df = df.to_pandas()
         except Exception as e:
             logger.warn(f"Error using polars backend falling back to pandas.\n{e}")
 
     if df is _Empty:
         df: pd.DataFrame | Any = pd.read_parquet(input_path, **kwargs)
 
+    if "__index_level_0__" in df.columns:
+        df.set_index("__index_level_0__", inplace=True)
+        df.index.name = None
     return df
 
