@@ -4,7 +4,7 @@ import uuid
 from datetime import date
 from pathlib import Path
 from beartype import beartype
-from beartype.typing import Literal
+from beartype.typing import Literal, Dict
 import anndata as ad
 import matplotlib.pyplot as plt
 import numpy as np
@@ -118,12 +118,14 @@ def _filter_quantiles(
 
 @beartype
 def find_doublets(
-    adata: ad.AnnData,
+    adata: ad.AnnData | pd.DataFrame,
     batch_key: str | None = None,
     cluster_key: str | bool | None = None,
     doublet_rate: int = None,
     scdblfinder_metric: Literal['merror', 'logloss', 'auc', 'aucpr'] = "logloss",
-    method: Literal["scDblFinder", "DoubletDetection", "Scrublet"] = "scDblFinder",
+    method: Literal["scDblFinder", "DoubletDetection", "Scrublet", "Ovrlpy"] = "scDblFinder",
+    ovrlpy_keys: Dict = None,
+    ovrlpy_report_path = None,
 ) -> None:
     """Detect doublets in scRNAseq.
 
@@ -132,7 +134,7 @@ def find_doublets(
     Parameters
     ----------
     adata:
-        Annotated data matrix.
+        Annotated data matrix or a pandas DataFrame if method is set to `Ovrlpy`.
     batch_key
         Column in `adata.obs` with batch information. If omitted, doublets will be searched for with all cells together.
         If given, doublets will be searched for independently for each sample, which is preferable if they represent
@@ -147,7 +149,17 @@ def find_doublets(
     scdblfinder_metric
         Error metric to optimize during training (e.g. 'merror', 'logloss', 'auc', 'aucpr').
     method
-        Library to use for detecting doublets.
+        Library to use for detecting doublets. For scRNA-seq data the available methods are:
+        `scDblFinder <https://f1000research.com/articles/10-979/v2>`_,
+        `DoubletDetection <https://zenodo.org/records/14827937>`_, and
+        `Scrublet <https://www.sciencedirect.com/science/article/pii/S2405471218304745>`_.
+        For Spatial Transcriptomics at single cell resolution, like Xenium the avaialble methods are:
+        `Ovrlpy <https://ovrlpy.readthedocs.io/latest/>`_ (Allow the detection of vertical doublets in image based ST).
+    ovrlpy_keys
+        Dictionary with the following keys: `gene_key`, `x_key`, `y_key` and `z_key` indicating the name of the column
+        in the dataframe with the gene names and the x, y and z coordinate.
+    ovrlpy_report_path
+        Directory where the quality control plots and the ovrlpy object will be saved.
 
     Returns
     -------
@@ -227,6 +239,47 @@ def find_doublets(
         scrublet(adata, expected_doublet_rate=expected_doublet_rate)
         adata.obs["doublet_class"] = adata.obs["predicted_doublet"].map({False: "singlet", True: "doublet"})
         del adata.obs["predicted_doublet"]
+    elif method == "Ovrlpy":
+        assert isinstance(adata, pd.DataFrame), ("To run Ovrlpy (Detection of doublets in scSpatialTranscriptomics "
+                                                 "provide a DataFrame with X,Y,Z coordinates for features.")
+        assert batch_key is None, "Ovrlpy cannot perform doublet detection across batches"
+        assert ovrlpy_report_path is not None, "Provide path to save the report from the Ovrlpy inference"
+        import ovrlpy
+        import pickle
+        available_cores = int(os.cpu_count() / 2)
+        ovrlpy_keys = {} if ovrlpy_keys is None else ovrlpy_keys
+        gene_key, x_key, y_key, z_key = (ovrlpy_keys.get("gene_key", "feature_name"),
+                                         ovrlpy_keys.get("x_key", "x_location"),
+                                         ovrlpy_keys.get("y_key", "y_location"),
+                                         ovrlpy_keys.get("z_key", "z_location"))
+
+        data = ovrlpy.Ovrlp(
+            adata, n_workers=available_cores, random_state=42, gene_key=gene_key, coordinate_keys=(x_key, y_key, z_key)
+        )
+        data.analyse()
+
+        # Save results in the report folder
+        logger.info("Generating Report")
+        os.makedirs(ovrlpy_report_path, exist_ok=True)
+        _ = ovrlpy.plot_pseudocells(data)
+        plt.savefig(convert_path(ovrlpy_report_path) / "Overview_Ovrlpy.pdf", bbox_inches="tight")
+        plt.close()
+        fig = ovrlpy.plot_signal_integrity(data, signal_threshold=3)
+        plt.savefig(convert_path(ovrlpy_report_path) / "Integrity_Ovrlpy.pdf", bbox_inches="tight")
+        plt.close()
+
+        doublets = data.detect_doublets(min_signal=3, integrity_sigma=2)
+
+        fig, ax = plt.subplots()
+        _scatter = ax.scatter(doublets["x"], doublets["y"], c=doublets["integrity"], s=0.2, cmap="viridis")
+        _ = ax.set_aspect("equal")
+        _ = fig.colorbar(_scatter, ax=ax)
+        plt.savefig(convert_path(ovrlpy_report_path) / "DoubletsIntegrity_Ovrlpy.pdf", bbox_inches="tight")
+        plt.close()
+
+        with open(convert_path(ovrlpy_report_path) / "ObjectOvrlpy.pickle", "wb") as file:
+            pickle.dump(data, file)
+        doublets.write_csv(convert_path(ovrlpy_report_path) / "SummaryDoublets.csv")
     else:
         raise Exception("Doublet detection tool available: scDblFinder, Scrublet and DoubletDetection")
 
