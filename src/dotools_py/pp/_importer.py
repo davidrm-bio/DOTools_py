@@ -1,5 +1,4 @@
 import os
-import shutil
 import subprocess
 import uuid
 from datetime import date
@@ -237,8 +236,6 @@ def find_doublets(
 def _normalise(
     adata: ad.AnnData,
     n_reads: int = 10_000,
-    max_val: float | None = None,
-    scale: bool = True
 ) -> None:
     """Normalise raw counts.
 
@@ -261,11 +258,6 @@ def _normalise(
     sc.pp.log1p(adata)
     adata.layers["logcounts"] = adata.X.copy()
 
-    if scale:
-        logger.info("Scaling data")
-        sc.pp.scale(adata, zero_center=True, max_value=max_val)
-        adata.layers["scaled"] = adata.X.copy()
-        adata.X = adata.layers["logcounts"].copy()
     return
 
 
@@ -308,7 +300,6 @@ def _qc_scrna(
     :param metrics: whether to generate a metrics file or not.
     :return: annotated dt matrix
     """
-    import doubletdetection
     import scanpy as sc
 
     # Create a metrics file
@@ -599,7 +590,7 @@ def importer_py(
         adata_dict.values(), label=batch_key, keys=adata_dict.keys(), join="outer", index_unique="-", fill_value=0
     )
     logger.info("Normalisation of the expression")
-    _normalise(adata_concat, n_reads=n_reads, scale=False)
+    _normalise(adata_concat, n_reads=n_reads)
 
     logger.info("Finding Highly Variable Genes shared across samples")
     sc.pp.highly_variable_genes(adata_concat, batch_key=batch_key)
