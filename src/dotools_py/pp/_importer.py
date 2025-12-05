@@ -125,11 +125,9 @@ def find_doublets(
     scdblfinder_metric: Literal['merror', 'logloss', 'auc', 'aucpr'] = "logloss",
     method: Literal["scDblFinder", "DoubletDetection", "Scrublet", "Ovrlpy"] = "scDblFinder",
     ovrlpy_keys: Dict = None,
-    ovrlpy_report_path = None,
+    ovrlpy_report_path: str | Path = None,
 ) -> None:
-    """Detect doublets in scRNAseq.
-
-     The inference is performed using `scDblFinder <https://github.com/plger/scDblFinder>`_ in R.
+    """Detect doublets in scRNAseq and iST.
 
     Parameters
     ----------
