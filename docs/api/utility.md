@@ -3,20 +3,11 @@ The utility module is collection of functions useful for
 the analysis.
 
 
-## Transfer between Python and R
+## General
 ```{eval-rst}
 .. module:: dotools_py.utility
 .. currentmodule:: dotools_py
 
-.. autosummary::
-    :toctree: generated
-
-    utility.save_rds
-    utility.read_rds
-```
-
-## General
-```{eval-rst}
 .. autosummary::
     :toctree: generated
 
