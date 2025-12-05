@@ -1,9 +1,9 @@
 import os
 from importlib.metadata import version
 
-from . import dt, pl, pp, settings, tl, utility, get
+from . import dt, pl, pp, settings, tl, utility, get, io
 
-__all__ = ["pl", "pp", "tl", "dt", "get", "utility", "settings", "io"]
+__all__ = ["pl", "pp", "tl", "dt", "get", "io", "utility", "settings"]
 
 __version__ = version("DOTools_py")
 
