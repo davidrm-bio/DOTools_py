@@ -16,12 +16,6 @@ analysing sc/snRNA-seq with different implementations building on packages from 
     pp.run_cellbender
     pp.importer_py
     pp.find_doublets
-```
-
-## Normalisation
-```{eval-rst}
-.. autosummary::
-    :toctree: generated
-
     pp.sctransform_normalise
+
 ```
