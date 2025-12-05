@@ -589,7 +589,7 @@ def heatmap_foldchange(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.heatmap_foldchange(adata, 'annotation', ['CD4', 'CD79A'], "condition", "healthy", add_stats=True, figsize=(4, 6))
+        do.pl.heatmap_foldchange(adata, 'annotation', ['CD4', 'CD79A'], "condition", "healthy", add_stats=True, figsize=(5, 7))
 
     """
     import scanpy as sc  # Lazy load

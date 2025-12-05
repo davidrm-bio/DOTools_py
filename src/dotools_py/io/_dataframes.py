@@ -39,8 +39,7 @@ def read_excel(
 
     Returns
     -------
-    pd.DataFrame
-        Returns a `pd.DataFrame` containing the content from the selected sheet.
+    Returns a `pd.DataFrame` containing the content from the selected sheet.
 
     """
     input_path: Path = convert_path(path) / filename
@@ -86,8 +85,7 @@ def read_csv(
 
     Returns
     -------
-    pd.DataFrame
-        Returns a `pd.DataFrame` containing the content from the selected sheet.
+    Returns a `pd.DataFrame` containing the content from the selected sheet.
 
     """
     input_path: Path = convert_path(path) / filename
@@ -131,8 +129,7 @@ def read_parquet(
 
     Returns
     -------
-     pd.DataFrame
-            Returns a `pd.DataFrame` containing the content from the selected sheet.
+    Returns a `pd.DataFrame` containing the content from the selected sheet.
 
     """
 

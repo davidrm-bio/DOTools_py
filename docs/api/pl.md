@@ -3,7 +3,7 @@
 The plotting module {mod}`dotools_py.pl` contains a collection of
 functions for enhance visualization of sc/snRNA-seq data.
 
-## sc/snRNA
+## Categorical plots
 ```{eval-rst}
 .. module:: dotools_py.pl
 .. currentmodule:: dotools_py
@@ -11,16 +11,38 @@ functions for enhance visualization of sc/snRNA-seq data.
 .. autosummary::
     :toctree: generated
 
-    pl.embedding
-    pl.split_embeddding
-    pl.umap
-    pl.dotplot
-    pl.heatmap
-    pl.heatmap_foldchange
     pl.barplot
     pl.violinplot
     pl.boxplot
     pl.lineplot
+```
+
+## Embeddings plots
+```{eval-rst}
+.. autosummary::
+    :toctree: generated
+
+    pl.embedding
+    pl.split_embeddding
+    pl.umap
+```
+
+## Matrix plots
+```{eval-rst}
+.. autosummary::
+    :toctree: generated
+
+    pl.dotplot
+    pl.heatmap
+    pl.heatmap_foldchange
+```
+
+
+## Statistical plots
+```{eval-rst}
+.. autosummary::
+    :toctree: generated
+
     pl.cell_composition
     pl.split_bar_gsea
     pl.correlation

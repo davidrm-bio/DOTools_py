@@ -11,7 +11,6 @@ import dotools_py as do
 settings
 dt
 io
-get
 ```
 
 ```{toctree}
@@ -20,5 +19,6 @@ get
 pp
 tl
 pl
+get
 utility
 ```

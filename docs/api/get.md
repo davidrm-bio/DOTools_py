@@ -12,10 +12,16 @@ AnnData object.
 
     get.expr
     get.mean_expr
-    get.subset
-    get.dge_results
     get.log2fc
     get.pcts_cells
-    get.pseudobulk
+    get.dge_results
 ```
 
+## Object transformation
+```{eval-rst}
+.. autosummary::
+    :toctree: generated
+
+    get.subset
+    get.pseudobulk
+```
