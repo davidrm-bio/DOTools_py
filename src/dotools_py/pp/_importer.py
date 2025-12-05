@@ -152,7 +152,7 @@ def find_doublets(
     Returns
     -------
     None
-    Returns `None`. Sets the following fields:
+        Returns `None`. Sets the following fields:
 
     `adata.obs['doublet_class']` : :class:`pandas.Series` (dtype `str`)
         Class indicating predicted doublet status
