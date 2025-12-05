@@ -4,8 +4,8 @@ import subprocess
 import uuid
 from datetime import date
 from pathlib import Path
-from typing import Literal
-
+from beartype import beartype
+from beartype.typing import Literal
 import anndata as ad
 import matplotlib.pyplot as plt
 import numpy as np
@@ -83,38 +83,155 @@ def _filter_quantiles(
     return adata[mask, :].copy()
 
 
-def _run_scdblfinder(
+# def _run_scdblfinder(
+#     adata: ad.AnnData,
+#     batch_key: str | None = None,
+# ) -> None:
+#     """Find doublets.
+#
+#     The inference is performed using `scDblFinder <https://github.com/plger/scDblFinder>`_ in R.
+#
+#     :param adata: annotated anndata matrix
+#     :param batch_key: `.obs` column name with batch information. Required if the anndata contain more than 1 sample.
+#     :return:
+#     """
+#     import polars
+#
+#     logger.info("Finding Neotypic doublets")
+#     rscript = get_paths_utils("_run_scDblFinder.R")
+#     tmpdir_path = Path("/tmp") / f"scDblFinder_{uuid.uuid4().hex}"
+#     tmpdir_path.mkdir(parents=True, exist_ok=False)
+#     adata.write(tmpdir_path / "adata_tmp.h5ad")
+#
+#     logger.info("Running scDblFinder")
+#     cmd = ["Rscript", rscript, "--input=" + str(tmpdir_path) + "/adata_tmp.h5ad", "--out=" + str(tmpdir_path) + "/"]
+#     if batch_key:
+#         cmd += ["--name=" + batch_key]
+#     subprocess.call(cmd)
+#
+#     doublets = polars.read_csv(tmpdir_path / "scDblFinder_inference.csv", infer_schema_length=0)
+#     doublets = doublets.to_pandas()
+#     doublets = doublets.set_index(adata.obs_names)  # Avoid ImplicitModificationWarning
+#     adata.obs[["doublet_class", "doublet_score"]] = doublets.values
+#     shutil.rmtree(tmpdir_path)
+#     return
+
+
+@beartype
+def find_doublets(
     adata: ad.AnnData,
     batch_key: str | None = None,
+    cluster_key: str | bool | None = None,
+    doublet_rate: int = None,
+    scdblfinder_metric: Literal['merror', 'logloss', 'auc', 'aucpr'] = "logloss",
+    method: Literal["scDblFinder", "DoubletDetection", "Scrublet"] = "scDblFinder",
 ) -> None:
-    """Find doublets.
+    """Detect doublets in scRNAseq.
 
-    The inference is performed using `scDblFinder <https://github.com/plger/scDblFinder>`_ in R.
+     The inference is performed using `scDblFinder <https://github.com/plger/scDblFinder>`_ in R.
 
-    :param adata: annotated anndata matrix
-    :param batch_key: `.obs` column name with batch information. Required if the anndata contain more than 1 sample.
-    :return:
+    Parameters
+    ----------
+    adata:
+        Annotated data matrix.
+    batch_key
+        Column in `adata.obs` with batch information. If omitted, doublets will be searched for with all cells together.
+        If given, doublets will be searched for independently for each sample, which is preferable if they represent
+        different captures.
+    cluster_key
+        Column in `adata.obs` with clustering information. This is used to make doublets more efficiently.
+        Alternatively, if `cluster_key=True`, fast clustering will be performed. If `cluster_key` is None or False,
+        purely random artificial doublets will be generated.
+    doublet_rate
+        The expected doublet rate, i.e. the proportion of the cells expected to be doublets.
+        If omitted, will be calculated automatically for scDblFinder and will be set to 0.05 for Scrublet.
+    scdblfinder_metric
+        Error metric to optimize during training (e.g. 'merror', 'logloss', 'auc', 'aucpr').
+    method
+        Library to use for detecting doublets.
+
+    Returns
+    -------
+    None
+    Returns `None`. Sets the following fields:
+
+    `adata.obs['doublet_class']` : :class:`pandas.Series` (dtype `str`)
+        Class indicating predicted doublet status
+    `adata.obs['doublet_score']` : :class:`pandas.Series` (dtype `float`)
+        Doublet scores for each observed transcriptome
+
+    Examples
+    --------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> find_doublets(adata, batch_key="batch", method="scDblFinder")
+    >>> adata.obs[["doublet_class", "doublet_score"]].head()
+                                  doublet_class doublet_score
+    CAAAGAATCAGATTGC-1-batch2       singlet      0.692706
+    AGCTTCCCAGTCAACT-1-batch1       singlet      0.014858
+    GAGAGGTTCCCTCTAG-1-batch1       singlet      0.172094
+    CTAACTTCAGATCATC-1-batch1       singlet      0.092695
+    CATGGTACAAACGGCA-1-batch1       singlet      0.237514
+
     """
-    import polars
+    def py_none_to_r(obj):
+        if obj is None:
+            return r("NULL")  # evaluated at conversion time
+        return obj
 
-    logger.info("Finding Neotypic doublets")
-    rscript = get_paths_utils("_run_scDblFinder.R")
-    tmpdir_path = Path("/tmp") / f"scDblFinder_{uuid.uuid4().hex}"
-    tmpdir_path.mkdir(parents=True, exist_ok=False)
-    adata.write(tmpdir_path / "adata_tmp.h5ad")
+    if method == "scDblFinder":
+        import anndata2ri
+        from rpy2.robjects import r, conversion, globalenv, pandas2ri
+        none_converter = conversion.Converter("None converter")
+        none_converter.py2rpy.register(type(None), py_none_to_r)
+        adata_copy = adata.copy()
+        del adata_copy.raw, adata_copy.uns
+        with conversion.localconverter(anndata2ri.converter + none_converter + pandas2ri.converter):
+            r.assign("adata", adata_copy)
+            r.assign("batch", batch_key)
+            r.assign("cluster", cluster_key)
+            r.assign("dbr", doublet_rate)
+            r.assign("metric", scdblfinder_metric)
+            r(
+                """
+                library(scDblFinder)
+                if (!suppressPackageStartupMessages(require(SingleCellExperiment))) {
+                    stop("R dependecy SingleCellExperiment not found.")
+                }
+                sce <- as(adata, "SingleCellExperiment")
+                sce <- scDblFinder(sce, samples = batch, clusters=cluster, dbr=dbr, metric=metric, verbose = F)
+                df <- data.frame(
+                    scDblFinder.class = as.character(colData(sce)$scDblFinder.class),
+                    scDblFinder.score = as.numeric(colData(sce)$scDblFinder.score),
+                    stringsAsFactors = FALSE
+                )
+                """
+            )
+            doublets = globalenv["df"]
+        doublets = doublets.set_index(adata.obs_names)
+        adata.obs[["doublet_class", "doublet_score"]] = doublets.values
+    elif method == "DoubletDetection":
+        import doubletdetection
+        clf = doubletdetection.BoostClassifier(
+            n_iters=15, clustering_algorithm="leiden", standard_scaling=True, verbose=False, n_jobs=-1,
+            random_state=42,
+        )
+        doublets = clf.fit(adata.X).predict()
+        doublet_score = clf.doublet_score()
+        mapped = np.full(doublets.shape, "singlet", dtype=object)
+        mapped[doublets == 1.0] = "doublet"
+        adata.obs["doublet_class"] = pd.Categorical(mapped, categories=["singlet", "doublet"])
+        adata.obs["doublet_score"] = doublet_score
+    elif method == "Scrublet":
+        from scanpy.preprocessing import scrublet
+        expected_doublet_rate = doublet_rate if doublet_rate is not None else 0.05
+        scrublet(adata, expected_doublet_rate=expected_doublet_rate)
+        adata.obs["doublet_class"] = adata.obs["predicted_doublet"].map({False: "singlet", True: "doublet"})
+        del adata.obs["predicted_doublet"]
+    else:
+        raise Exception("Doublet detection tool available: scDblFinder, Scrublet and DoubletDetection")
 
-    logger.info("Running scDblFinder")
-    cmd = ["Rscript", rscript, "--input=" + str(tmpdir_path) + "/adata_tmp.h5ad", "--out=" + str(tmpdir_path) + "/"]
-    if batch_key:
-        cmd += ["--name=" + batch_key]
-    subprocess.call(cmd)
-
-    doublets = polars.read_csv(tmpdir_path / "scDblFinder_inference.csv", infer_schema_length=0)
-    doublets = doublets.to_pandas()
-    doublets = doublets.set_index(adata.obs_names)  # Avoid ImplicitModificationWarning
-    adata.obs[["doublet_class", "doublet_score"]] = doublets.values
-    shutil.rmtree(tmpdir_path)
-    return
+    return None
 
 
 def _normalise(
@@ -168,7 +285,7 @@ def _qc_scrna(
     high_quantile: int | None = None,
     include_rbs: bool = True,
     remove_doublets: bool = False,
-    doublet_tool: str = "scDblFinder",
+    doublet_tool: Literal["scDblFinder", "DoubletDetection", "Scrublet"] = "scDblFinder",
     metrics: bool = True,
 ) -> ad.AnnData:
     """Basic QC.
@@ -263,30 +380,32 @@ def _qc_scrna(
 
     # Step 5 -
     if remove_doublets:
-        if doublet_tool == "scDblFinder":
-            adata.layers["counts"] = adata.X.copy()  # needed for scDblFinder
-            _run_scdblfinder(adata, batch_key)
-        elif doublet_tool == "Scrublet":
-            sc.pp.scrublet(adata)
-            adata.obs["doublet_class"] = adata.obs["predicted_doublet"].map({False: "singlet", True: "doublet"})
-            del adata.obs["predicted_doublet"]
-        elif doublet_tool == "DoubletDetection":
-            clf = doubletdetection.BoostClassifier(
-                n_iters=15,
-                clustering_algorithm="leiden",
-                standard_scaling=True,
-                pseudocount=0.1,
-                verbose=False,
-                n_jobs=-1,
-            )
-            doublets = clf.fit(adata.X).predict()
-            doublet_score = clf.doublet_score()
-            mapped = np.full(doublets.shape, "singlet", dtype=object)
-            mapped[doublets == 1.0] = "doublet"
-            adata.obs["doublet_class"] = pd.Categorical(mapped, categories=["singlet", "doublet"])
-            adata.obs["doublet_score"] = doublet_score
-        else:
-            raise Exception("Doublet detection tool available: scDblFinder, Scrublet and DoubletDetection")
+        find_doublets(adata, batch_key=batch_key, method=doublet_tool)
+
+        # if doublet_tool == "scDblFinder":
+        #     adata.layers["counts"] = adata.X.copy()  # needed for scDblFinder
+        #     _run_scdblfinder(adata, batch_key)
+        # elif doublet_tool == "Scrublet":
+        #     sc.pp.scrublet(adata)
+        #     adata.obs["doublet_class"] = adata.obs["predicted_doublet"].map({False: "singlet", True: "doublet"})
+        #     del adata.obs["predicted_doublet"]
+        # elif doublet_tool == "DoubletDetection":
+        #     clf = doubletdetection.BoostClassifier(
+        #         n_iters=15,
+        #         clustering_algorithm="leiden",
+        #         standard_scaling=True,
+        #         pseudocount=0.1,
+        #         verbose=False,
+        #         n_jobs=-1,
+        #     )
+        #     doublets = clf.fit(adata.X).predict()
+        #     doublet_score = clf.doublet_score()
+        #     mapped = np.full(doublets.shape, "singlet", dtype=object)
+        #     mapped[doublets == 1.0] = "doublet"
+        #     adata.obs["doublet_class"] = pd.Categorical(mapped, categories=["singlet", "doublet"])
+        #     adata.obs["doublet_score"] = doublet_score
+        # else:
+        #     raise Exception("Doublet detection tool available: scDblFinder, Scrublet and DoubletDetection")
 
         n_doublets = adata.obs["doublet_class"].value_counts()["doublet"]
         adata = adata[adata.obs["doublet_class"] == "singlet"].copy()
