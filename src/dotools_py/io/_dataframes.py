@@ -81,7 +81,7 @@ def read_csv(
         Character or regex pattern to treat as the delimiter.
     backend
         Library to use for reading. If ``"polars"`` is selected and reading fails, Pandas is used as a fallback.
-    kwargs
+    **kwargs
         Additional arguments passed directly to
             `polars.read_csv <https://docs.pola.rs/api/python/stable/reference/api/polars.read_csv.html>`_
             or
@@ -129,7 +129,7 @@ def read_parquet(
          Name of the parquet file.
     backend
         Library to use for reading. If ``"polars"`` is selected and reading fails, Pandas is used as a fallback.
-    kwargs
+    **kwargs
         Additional arguments passed directly to
             `polars.read_parquet <https://docs.pola.rs/api/python/stable/reference/api/polars.read_parquet.html>`_
             or

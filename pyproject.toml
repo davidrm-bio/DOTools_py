@@ -119,7 +119,8 @@ optional-dependencies.test = [
   "tqdm",
   "pyarrow",
   "beartype",
-  "fastexcel"
+  "fastexcel",
+  "zarr"
 ]
 # https://docs.pypi.org/project_metadata/#project-urls
 urls.Documentation = "https://DOTools_py.readthedocs.io/"
