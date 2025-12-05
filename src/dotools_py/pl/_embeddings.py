@@ -11,9 +11,9 @@ import matplotlib.pyplot as plt
 
 from dotools_py.get._generic import expr as get_expr
 from dotools_py.utils import (get_centroids, get_subplot_shape, remove_extra, sanitize_anndata,
-                              return_axis, save_plot, spine_format)
+                              return_axis, save_plot, spine_format, vector_friendly)
 
-
+@vector_friendly()
 def embedding(
     # Data
     adata: ad.AnnData,
@@ -392,7 +392,7 @@ def umap(
     return return_axis(show, axis=axis)
 
 
-
+@vector_friendly()
 def split_embeddding(
     # Data
     adata: ad.AnnData,
