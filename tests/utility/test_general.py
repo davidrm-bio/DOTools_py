@@ -7,6 +7,14 @@ def test_gc():
     return None
 
 
+def test_settings():
+    try:
+        do.settings.matplotlib_backend("pycharm")
+    except Exception:
+        do.settings.matplotlib_backend("agg")
+    do.settings.matplotlib_backend("agg")
+    return
+
 def test_transferLabels():
     adata = do.dt.example_10x_processed()
 

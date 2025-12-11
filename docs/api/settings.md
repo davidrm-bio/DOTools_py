@@ -11,4 +11,5 @@ the pipeline.
 
     settings.session_settings
     settings.interactive_session
+    settings.matplotlib_backend
 ```

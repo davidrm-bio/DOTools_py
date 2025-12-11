@@ -1,1 +1,1 @@
-from dotools_py.settings._configure import interactive_session, session_settings
+from dotools_py.settings._configure import interactive_session, session_settings, matplotlib_backend

@@ -1,6 +1,7 @@
 import logging
 import os
 import warnings
+from typing import Literal
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -46,19 +47,35 @@ def interactive_session(enable: bool = True) -> None:
     return None
 
 
-#def vector_friendly(enable: bool = True) -> None:
-#    """Plot scatter plots using png backend even when exporting as pdf or svg.
-#
-#    :param enable: Set to true to enable.
-#    :return: Returns None
-#    """
-#    import scanpy as sc
-#    # Keep settings from session_settings default
-#    sc.set_figure_params(scanpy=False, dpi=90, dpi_save=300,
-#                         frameon=True, vector_friendly=True,
-#                         fontsize=13, figsize=None, color_map='Reds',
-#                         format='pdf', facecolor='white', transparent=False)
-#    return
+
+def matplotlib_backend(backend: str | Literal["pycharm", "jupyter"] = "tkagg") -> None:
+    """Set matplotlib backend.
+
+    Parameters
+    ----------
+    backend
+         Use for displaying `Matplotlib figures <https://matplotlib.org/stable/users/explain/figure/backends.html#what-is-a-backend>`_.
+         If backend is set to `pycharm` it will display plots in the SciView section.
+         If backend is set to `jupyter` it will display the plots inline.
+
+
+    Returns
+    -------
+    Returns `None`
+    """
+    from IPython import get_ipython
+
+    if backend == "pycharm":
+        mpl.use("module://backend_interagg")
+    elif backend == "jupyter":
+        get_ipython().run_line_magic("matplotlib", "inline")
+    else:
+        try:
+            mpl.use(backend)
+        except ValueError as e:
+            logger.warn(f"{backend} not a valid matplotlib backend: {e}")
+    return None
+
 
 
 def session_settings(
