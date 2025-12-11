@@ -143,7 +143,7 @@ def read_mtx(
     path
          Directory with the `.mtx` file.
     filename
-        Name of the `.mtx` file.  If not specified, assume that `path` contains the full path to the ``.mtx file.
+        Name of the `.mtx` file.  If not specified, assume that `path` contains the full path to the `.mtx` file.
     kwargs
         Additional arguments pass to `anndata.io.read_mtx <https://anndata.readthedocs.io/en/stable/generated/anndata.io.read_mtx.html#anndata.io.read_mtx>`_.
 
