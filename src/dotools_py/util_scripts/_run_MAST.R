@@ -64,6 +64,7 @@ if (is.null(opt$input)) {
 message('Reading AnnData in R')
 sce <- zellkonverter::readH5AD(opt$input)
 
+
 # Re-organise to set reference as first level
 condition <- factor(x = SummarizedExperiment::colData(sce)[[opt$key]])
 condition <- relevel(x = condition, ref = opt$ref)
@@ -77,6 +78,8 @@ sca <- FromMatrix(exprsArray =  as.matrix(logcounts(sce)),
                   cData =  as.data.frame(colData(sce)),
                   fData = as.data.frame(rowData(sce))
 )
+sce <- NULL
+invisible(gc())
 
 formula <- as.formula(object = paste0(" ~ ", paste(latent.vars, collapse = "+")))
 
