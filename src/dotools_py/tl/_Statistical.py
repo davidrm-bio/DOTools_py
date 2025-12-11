@@ -36,7 +36,7 @@ class DGEAnalysis:
 
     Parameters
     ----------
-    adata (ad.AnnData)
+    data (ad.AnnData)
         Annotated data matrix.
     groupby (str)
         Column in `obs` to use for testing.
