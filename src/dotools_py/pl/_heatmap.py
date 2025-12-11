@@ -594,6 +594,7 @@ def heatmap_foldchange(
     """
     import scanpy as sc  # Lazy load
     from matplotlib.colorbar import Colorbar
+    from dotools_py.utility import get_hex_colormaps
 
     # Checks
     assert reference is not None, "Provide reference condition"
@@ -620,7 +621,6 @@ def heatmap_foldchange(
     df = pd.concat(df)
     df = df.pivot(index=["genes", "class"], columns="group_by", values="log2fc")
     # Set colors for the groups
-    from dotools_py.utility import get_hex_colormaps
     if isinstance(palette_conditions, str):
         if len(adata.obs[condition_key].cat.categories) > len(get_hex_colormaps(palette_conditions)):
             logger.warn(f"There are {len(adata.obs[condition_key].cat.categories)} conditions but the colormap has"
