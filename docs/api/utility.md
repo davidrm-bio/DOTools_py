@@ -16,14 +16,6 @@ the analysis.
     utility.add_gene_metadata
 ```
 
-## AnnData Transformations
-```{eval-rst}
-.. autosummary::
-    :toctree: generated
-
-    utility.swap_layer
-```
-
 
 ## Plotting
 ```{eval-rst}

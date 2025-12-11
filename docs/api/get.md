@@ -24,4 +24,5 @@ AnnData object.
 
     get.subset
     get.pseudobulk
+    get.layer_swap
 ```

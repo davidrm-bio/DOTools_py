@@ -4,4 +4,5 @@ from dotools_py.get._generic import (expr,
                                      subset,
                                      log2fc,
                                      pcts_cells,
-                                     pseudobulk)
+                                     pseudobulk,
+                                     layer_swap)
