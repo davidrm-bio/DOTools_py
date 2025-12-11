@@ -14,7 +14,7 @@ _Empty = EmptyType()
 @beartype
 def read_excel(
     path: str | Path,
-    filename: str,
+    filename: str = None,
     sheet_name: str = "Sheet1",
     backend: Literal["pandas", "polars"] = "pandas",
     **kwargs
@@ -26,7 +26,7 @@ def read_excel(
     path
         Directory containing the Excel Sheet.
     filename
-        Name of the Excel Sheet file, including its extension
+        Name of the Excel Sheet file, including its extension. If not specified, assume that `path` contains the full path to the ExcelSheet.
     sheet_name
         Name of the Sheet to read.
     backend
@@ -42,7 +42,11 @@ def read_excel(
     Returns a `pd.DataFrame` containing the content from the selected sheet.
 
     """
-    input_path: Path = convert_path(path) / filename
+    if filename is None:
+        input_path: Path = convert_path(path)
+    else:
+        input_path: Path = convert_path(path) / filename
+
     df: pl.DataFrame | pd.DataFrame | EmptyType = _Empty
     if backend == "polars":
         try:
@@ -64,7 +68,7 @@ def read_excel(
 @beartype
 def read_csv(
     path: str | Path,
-    filename: str,
+    filename: str = None,
     delimiter: str = ",",
     backend: Literal["pandas", "polars"] = "pandas",
     **kwargs
@@ -76,7 +80,7 @@ def read_csv(
     path
         Directory containing the comma separated file.
     filename
-        Name of the comma separated file.
+        Name of the comma separated file. If not specified, assume that `path` contains the full path to the file.
     delimiter
         Character or regex pattern to treat as the delimiter.
     backend
@@ -92,7 +96,10 @@ def read_csv(
     Returns a `pd.DataFrame` containing the content from the selected sheet.
 
     """
-    input_path: Path = convert_path(path) / filename
+    if filename is None:
+        input_path: Path = convert_path(path)
+    else:
+        input_path: Path = convert_path(path) / filename
     df: pl.DataFrame | pd.DataFrame | Any  = _Empty
 
     if backend == "polars":
@@ -115,7 +122,7 @@ def read_csv(
 @beartype
 def read_parquet(
     path: str | Path,
-    filename: str,
+    filename: str = None,
     backend: Literal["pandas", "polars"] = "pandas",
     **kwargs
 ) -> pd.DataFrame:
@@ -126,7 +133,7 @@ def read_parquet(
     path
         Directory containing the comma separated file.
     filename
-         Name of the parquet file.
+         Name of the parquet file. If not specified, assume that `path` contains the full path to the file.
     backend
         Library to use for reading. If ``"polars"`` is selected and reading fails, Pandas is used as a fallback.
     **kwargs
@@ -141,7 +148,10 @@ def read_parquet(
 
     """
 
-    input_path: Path = convert_path(path) / filename
+    if filename is None:
+        input_path: Path = convert_path(path)
+    else:
+        input_path: Path = convert_path(path) / filename
     df: pl.DataFrame | pd.DataFrame | Any = _Empty
 
     if backend == "polars":

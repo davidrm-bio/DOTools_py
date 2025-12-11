@@ -13,6 +13,9 @@ The `io` module contains functions to read and save data.
     io.read_zarr
     io.read_rds
     io.save_rds
+    io.read_10x_mtx
+    io.read_10x_h5
+    io.read_mtx
 ```
 
 ## DataFrames
