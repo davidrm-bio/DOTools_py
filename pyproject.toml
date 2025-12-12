@@ -95,7 +95,8 @@ optional-dependencies.doc = [
   "sphinxcontrib-bibtex>=1",
   "sphinxext-opengraph",
   "tqdm",
-  "beartype"
+  "beartype",
+  "spatialdata"
 ]
 optional-dependencies.test = [
   "adjusttext",
