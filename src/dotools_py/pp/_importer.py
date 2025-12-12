@@ -18,7 +18,7 @@ from dotools_py.utils import convert_path, get_paths_utils
 def _qc_vln(
     adata: ad.AnnData,
     title: str = "ViolinPlots - Quality Metrics",
-    path: str | None = None,
+    path: str | Path = None,
     filename: str = "ViolinPlots.png",
     stats: list = ("total_counts", "n_genes_by_counts", "pct_counts_mt"),
     colors: str | list = "lightsteelblue",
@@ -263,7 +263,7 @@ def find_doublets(
         _ = ovrlpy.plot_pseudocells(data)
         plt.savefig(convert_path(ovrlpy_report_path) / "Overview_Ovrlpy.pdf", bbox_inches="tight")
         plt.close()
-        fig = ovrlpy.plot_signal_integrity(data, signal_threshold=3)
+        _ = ovrlpy.plot_signal_integrity(data, signal_threshold=3)
         plt.savefig(convert_path(ovrlpy_report_path) / "Integrity_Ovrlpy.pdf", bbox_inches="tight")
         plt.close()
 
@@ -289,17 +289,17 @@ def _normalise(
     adata: ad.AnnData,
     n_reads: int = 10_000,
 ) -> None:
-    """Normalise raw counts.
+    """Normalize raw counts.
 
-    The input is an unnormalise anndata object. The dt in X will be log-normalise to 10,000 reads per cell.
+    The input is an unnormalize anndata object. The dt in X will be log-normalize to 10,000 reads per cell.
     The returned anndata object will contain 3 layers:
-    * counts: contains the raw unnormalised counts
-    * logcounts: contains the log-normalise counts
-    * scaled: contained the log-normalise counts scaled
-    Additionally, the log-normalise counts will also be saved under the X attribute.
+    * counts: contains the raw unnormalized counts
+    * logcounts: contains the log-normalize counts
+    * scaled: contained the log-normalize counts scaled
+    Additionally, the log-normalize counts will also be saved under the X attribute.
 
     :param adata: annData object
-    :param n_reads: target number of reads per cell to normalise to. (Default  is **10,000**)
+    :param n_reads: target number of reads per cell to normalize to. (Default  is **10,000**)
     :return: log-normalise anndata object
     """
     import scanpy as sc
@@ -312,9 +312,14 @@ def _normalise(
 def log_normalize(
     adata: ad.AnnData,
     target_sum: int = 10_000,
-    layer: str = None
 ) -> None:
     """Apply LogNormalization.
+
+    The data in X will be log-normalize to 10,000 reads per cell.
+    The returned anndata object will contain 3 layers:
+    * counts: contains the raw un-normalized counts
+    * logcounts: contains the log-normalize counts
+    Additionally, the log-normalize counts will also be saved under the X attribute.
 
     Parameters
     ----------
@@ -322,19 +327,12 @@ def log_normalize(
         Annotated data matrix.
     target_sum
          Target number of reads per cell to normalize to.
-    layer
-        Layer in `adata.layers` to normalize.
     Returns
     -------
     Returns `None`. Changes will be performed inplace.
 
     """
     from scipy.sparse import issparse
-
-    if layer is not None:
-        assert layer in adata.layers.keys(), f"{layer} is not a valid adata.layers key"
-        adata.layers["X_copy"] = adata.X.copy()  # Save what we had in adata.X to keep it unmodified
-        adata.X = adata.layers[layer].copy()
 
     # LogNormalization should only be performed on raw counts
     matrix = adata.X.data if issparse(adata.X) else adata.X.flatten()
@@ -345,10 +343,6 @@ def log_normalize(
 
     _normalise(adata, n_reads=target_sum)
 
-    if layer is not None:
-        adata.layers[layer] = adata.X.copy()
-        adata.X = adata.layers["X_copy"].copy()
-        del adata.layers["X_copy"]
     return None
 
 
@@ -576,10 +570,9 @@ def quality_control(
     along with violin plots showing the distribution of `total_counts`, `n_genes_by_counts`,
     and `pct_mt_content` before and after QC.
 
-    Notes
-    -----
-    This function reproduces the quality control steps of :func:`dotools_py.pp.importer_py`: but allows
-    to provide an AnnData object as input.  This function assumes that `adata.X` contains raw counts.
+    .. note::
+        This function reproduces the quality control steps of :func:`dotools_py.pp.importer_py` but allows
+        to provide an AnnData object as input.  This function assumes that `adata.X` contains raw counts.
 
     Parameters
     ----------
@@ -893,7 +886,7 @@ def sctransform_normalize(
     norm_counts = norm_counts.to_pandas().astype(float)
     norm_counts = norm_counts.set_index(adata.obs_names)
 
-    # Transfer genes not kept during normalisation to .obsm
+    # Transfer genes not kept during normalization to .obsm
     excluded_genes = [gene for gene in adata.var_names if gene not in norm_counts.columns]
     adata.var["SCT_rm"] = [True if gene in excluded_genes else False for gene in adata.var_names]
     adata.obsm["SCT_rm"] = adata[:, adata.var["SCT_rm"].values].X.toarray()
