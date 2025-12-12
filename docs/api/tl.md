@@ -13,6 +13,8 @@ analysis and statistical methods.
     :toctree: generated
 
     tl.integrate_data
+    tl.run_scvi
+    tl.run_scanvi
     tl.auto_annot
     tl.reclustering
     tl.full_recluster

@@ -119,6 +119,8 @@ intersphinx_mapping = {
     "scvi-tools": ("https://docs.scvi-tools.org/en/stable/", None)
 }
 
+autodoc_mock_imports = ["spatialdata"]
+
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.

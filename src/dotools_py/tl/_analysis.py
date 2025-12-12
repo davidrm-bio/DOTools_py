@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from scvi.model._scvi import SCVI
+    from scvi.model._scanvi import SCANVI
 
 DictUpdateCellLabels = standard_ct_labels_heart()
 
@@ -69,7 +70,6 @@ def _run_scvi(
     adata: ad.AnnData,
     batch_key: str,
     layer_counts: str = "counts",
-    layer_logcounts: str = "logcounts",
     categorical_covariates: list = None,
     continuous_covariates: list = None,
     n_hidden: int = 128,
@@ -78,6 +78,7 @@ def _run_scvi(
     dispersion: Literal["gene", "gene-batch", "gene-label", "gene-cell"] = "gene-batch",
     gene_likelihood: Literal["zinb", "nb", "poisson", "normal"] = "zinb",
     get_model: bool = False,
+    gene_key: str = "highly_variable",
     **kwargs,
 ) -> "SCVI | None":
     """Run scVI.
@@ -88,7 +89,6 @@ def _run_scvi(
     :param adata: annotated dt matrix.
     :param batch_key: `.obs` column with batch information.
     :param layer_counts: layer with counts. Raw counts are required.
-    :param layer_logcounts: layer with log-counts. Log-counts required for calculation of HVG.
     :param categorical_covariates: `.obs` column names with categorical covariates for scVI inference.
     :param continuous_covariates: `.obs` column names with continuous covariates for scVI inference.
     :param n_hidden: number of hidden layers.
@@ -103,12 +103,11 @@ def _run_scvi(
     import scvi
 
     logger.info("Run scVI")
-    assert layer_logcounts in adata.layers, "logcounts layer not in anndata"
     assert layer_counts in adata.layers, "counts layer not in anndata"
     assert "highly_variable" in list(adata.var.columns), "highly_variable not in adata.var"
 
     # Integration using only HVG
-    hvg = adata[:, adata.var.highly_variable].copy()
+    hvg = adata[:, adata.var[gene_key]].copy()
 
     # Set-up anndata and model
     scvi.model.SCVI.setup_anndata(
@@ -137,6 +136,188 @@ def _run_scvi(
         return model_scvi
     else:
         del model_scvi
+        return None
+
+
+def run_scvi(
+    adata: ad.AnnData,
+    batch_key: str,
+    gene_key: str | Literal["all"] = "highly_variable",
+    layer_counts: str = "counts",
+    categorical_covariates: list = None,
+    continuous_covariates: list = None,
+    n_hidden: int = 128,
+    n_latent: int = 30,
+    n_layers: int = 3,
+    dispersion: Literal["gene", "gene-batch", "gene-label", "gene-cell"] = "gene-batch",
+    gene_likelihood: Literal["zinb", "nb", "poisson", "normal"] = "zinb",
+    get_model: bool = False,
+    **kwargs,
+) -> "SCVI | None":
+    """Run scVI.
+
+    Run scVI to integrate sc/snRNA more information on
+    `scvi-tools <https://docs.scvi-tools.org/en/stable/api/reference/scvi.model.SCVI.html>`_.
+
+    Parameters
+    ----------
+    adata
+        Annotated data matrix.
+    batch_key
+        Column in `adata.obs` with batch information.
+    gene_key
+        Boolean column in `adata.var` used to select the genes that will be used for the inference.
+    layer_counts
+        Layer in `adata.layers` with raw counts.
+    categorical_covariates
+        Column in `adata.obs` with categorical covariates to correct for during scVI inference.
+    continuous_covariates
+        Column in `adara.obs` with continuous covariates to correct for during scVI inference.
+    n_hidden
+        Number of hidden layers.
+    n_latent
+        Dimensions of the latent space.
+    n_layers
+        Number of layers
+    dispersion
+        Gene dispersion mode for scVI.
+    gene_likelihood
+        Gene likelihood.
+    get_model
+        Return the trained model.
+    kwargs
+        Additional arguments for `scvi.model.SCVI <https://docs.scvi-tools.org/en/stable/api/reference/scvi.model.SCVI.html#scvi.model.SCVI>`_.
+
+    Returns
+    -------
+    Returns `None` or the trained scVI model if `get_model` is set to `True`.
+    The latent space is saved in the AnnData under X_scVI.
+
+    """
+
+    if gene_key == "all":
+        adata.var["scvi_genes"] = True
+        gene_key = "scvi_genes"
+
+    model = _run_scvi(
+        adata=adata,
+        batch_key=batch_key,
+        layer_counts=layer_counts,
+        categorical_covariates=categorical_covariates,
+        continuous_covariates=continuous_covariates,
+        n_hidden=n_hidden,
+        n_latent=n_latent,
+        n_layers=n_layers,
+        dispersion=dispersion,
+        gene_likelihood=gene_likelihood,
+        get_model=get_model,
+        gene_key=gene_key,
+        **kwargs,
+    )
+
+    return model
+
+
+def run_scanvi(
+    adata: ad.AnnData,
+    batch_key: str,
+    label_key: str,
+    unlabel_group: str = "unknown",
+    scvi_model: "SCVI" = None,
+    gene_key: str | Literal["all"] = "highly_variable",
+    layer_counts: str = "counts",
+    categorical_covariates: list = None,
+    continuous_covariates: list = None,
+    n_hidden: int = 128,
+    n_latent: int = 30,
+    n_layers: int = 3,
+    dispersion: Literal["gene", "gene-batch", "gene-label", "gene-cell"] = "gene-batch",
+    gene_likelihood: Literal["zinb", "nb", "poisson", "normal"] = "zinb",
+    get_model: bool = False,
+    scvi_kwargs: dict = None,
+    scanvi_kwargs: dict = None
+) -> "None | SCANVI":
+    """Run scANVI.
+
+    Run scANVI to integrate sc/snRNA more information on
+    `scvi-tools <https://docs.scvi-tools.org/en/stable/api/reference/scvi.model.SCANVI.html>`_.
+
+    Parameters
+    ----------
+    adata
+        Annotated data matrix.
+    batch_key
+        Column in `adata.obs` with batch information.
+    label_key
+        Column in `adata.obs` with label information.
+    unlabel_group
+        Value used for unlabeled cells in `labels_key`
+    scvi_model
+        Trained scVI model.
+    gene_key
+        Boolean column in `adata.var` used to select the genes that will be used for the inference.
+    layer_counts
+        Layer in `adata.layers` with raw counts.
+    categorical_covariates
+        Column in `adata.obs` with categorical covariates to correct for during scVI inference.
+    continuous_covariates
+        Column in `adara.obs` with continuous covariates to correct for during scVI inference.
+    n_hidden
+        Number of hidden layers.
+    n_latent
+        Dimensions of the latent space.
+    n_layers
+        Number of layers
+    dispersion
+        Gene dispersion mode for scVI.
+    gene_likelihood
+        Gene likelihood.
+    get_model
+        Return the trained scANVI model.
+    scvi_kwargs
+        Additional arguments for `scvi.model.SCVI <https://docs.scvi-tools.org/en/stable/api/reference/scvi.model.SCVI.html#scvi.model.SCVI>`_.
+    scanvi_kwargs
+        Additional arguments for `scvi.model.SCANVI <https://docs.scvi-tools.org/en/stable/api/reference/scvi.model.SCVI.html#scvi.model.SCANVI>`_.
+
+    Returns
+    -------
+    Returns `None` or the trained scANVI model if `get_model` is set to `True`.
+    The latent space is saved in the AnnData under X_scANVI.
+
+    """
+    import scvi
+    logger.info("Run scVI")
+
+    if scvi_model is None:
+        scvi_model = run_scvi(
+            adata=adata,
+            batch_key=batch_key,
+            layer_counts=layer_counts,
+            categorical_covariates=categorical_covariates,
+            continuous_covariates=continuous_covariates,
+            n_hidden=n_hidden,
+            n_latent=n_latent,
+            n_layers=n_layers,
+            dispersion=dispersion,
+            gene_likelihood=gene_likelihood,
+            get_model=True,
+            gene_key=gene_key,
+            **scvi_kwargs
+        )
+
+    logger.info("Run scANVI")
+
+    model_scanvi = scvi.model.SCANVI.from_scvi_model(
+        scvi_model, labels_key=label_key, unlabeled_category=unlabel_group, **scanvi_kwargs
+    )
+    model_scanvi.view_anndata_setup()
+    model_scanvi.train()
+    adata.obsm["X_scANVI"] = model_scanvi.get_latent_representation()
+
+    if get_model:
+        return model_scanvi
+    else:
+        del model_scanvi
         return None
 
 
@@ -251,7 +432,7 @@ def integrate_data(
         sce.pp.scanorama_integrate(hvg, key=batch_key)
         adata.obsm["X_scanorama"] = hvg.obsm["X_scanorama"]
         dim_reduc = "X_scanorama"
-    elif  integration_method == "scvi":
+    elif integration_method == "scvi":
         logger.info("Integration using scVI")
         model = _run_scvi(adata, batch_key=batch_key,
                           categorical_covariates=categorical_covariates,
@@ -260,14 +441,14 @@ def integrate_data(
                           **kwargs,
                           )
         dim_reduc = "X_scVI"
-    elif  integration_method == "cca4":
+    elif integration_method == "cca4":
         logger.info("Integration using CCA (Seurat v4 approach)")
         adata.obsm["X_CCA"] = _run_cca(hvg, batch_key, version="v4")
         logger.info("Using CCA matrix for PCA")
         hvg.X = adata.obsm["X_CCA"].copy()
         sc.pp.pca(hvg)
         adata.obsm["X_pca"] = hvg.obsm["X_pca"]
-    elif  integration_method == "cca5":
+    elif integration_method == "cca5":
         logger.info("Integration using CCA (Seurat v5 approach)")
         adata.obsm["X_CCA"] = _run_cca(hvg, batch_key, version="v5")
         dim_reduc = "X_CCA"
@@ -449,7 +630,7 @@ def reclustering(
     batch_key: str,
     recluster_apporach: Literal["cca4", "cca5", "harmony", "scanorama", "pca", "scvi", "pca"],
     use_clusters: str | list | None = None,
-    bbknn: bool  =False,
+    bbknn: bool = False,
     hvg_batch: bool = False,
     use_rep: str = None,
     resolution: float = 0.3,
