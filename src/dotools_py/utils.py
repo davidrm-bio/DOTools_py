@@ -246,15 +246,13 @@ def require_dependencies(required_packages):
     return decorator
 
 
-def deprecated_function(func):
-    """Decorator to mark a function as deprecated."""
-    import warnings
-
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        warnings.warn(f"{func.__name__} will be deprecated and cannot be called.", category=DeprecationWarning, stacklevel=2)
-
-    return wrapper
+#def deprecated_function(func):
+#    """Decorator to mark a function as deprecated."""
+#    import warnings
+#    @functools.wraps(func)
+#    def wrapper(*args, **kwargs):
+#        warnings.warn(f"{func.__name__} will be deprecated and cannot be called.", category=DeprecationWarning, stacklevel=2)
+#    return wrapper
 
 
 # def deprecated_fxn(message=None):
