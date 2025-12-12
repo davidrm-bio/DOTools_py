@@ -42,11 +42,7 @@ def read_excel(
     Returns a `pd.DataFrame` containing the content from the selected sheet.
 
     """
-    if filename is None:
-        input_path: Path = convert_path(path)
-    else:
-        input_path: Path = convert_path(path) / filename
-
+    input_path: Path = convert_path(path) if filename is None else convert_path(path) / filename
     df: pl.DataFrame | pd.DataFrame | EmptyType = _Empty
     if backend == "polars":
         try:
@@ -96,10 +92,7 @@ def read_csv(
     Returns a `pd.DataFrame` containing the content from the selected sheet.
 
     """
-    if filename is None:
-        input_path: Path = convert_path(path)
-    else:
-        input_path: Path = convert_path(path) / filename
+    input_path: Path = convert_path(path) if filename is None else convert_path(path) / filename
     df: pl.DataFrame | pd.DataFrame | Any  = _Empty
 
     if backend == "polars":
@@ -147,11 +140,8 @@ def read_parquet(
     Returns a `pd.DataFrame` containing the content from the selected sheet.
 
     """
+    input_path: Path = convert_path(path) if filename is None else convert_path(path) / filename
 
-    if filename is None:
-        input_path: Path = convert_path(path)
-    else:
-        input_path: Path = convert_path(path) / filename
     df: pl.DataFrame | pd.DataFrame | Any = _Empty
 
     if backend == "polars":
