@@ -287,6 +287,8 @@ def run_scanvi(
     """
     import scvi
     logger.info("Run scVI")
+    scvi_kwargs = {} if scvi_kwargs is None else scvi_kwargs
+    scanvi_kwargs = {} if scanvi_kwargs is None else scanvi_kwargs
 
     if scvi_model is None:
         scvi_model = run_scvi(
