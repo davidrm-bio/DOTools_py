@@ -5,11 +5,15 @@
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/dotools_py" isTestSource="false" />
     </content>
-    <orderEntry type="jdk" jdkName="scrna_py11" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="$USER_HOME$/miniconda3/envs/scrna_py11" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PackageRequirementsSettings">
     <option name="requirementsPath" value="" />
+  </component>
+  <component name="PyDocumentationSettings">
+    <option name="format" value="NUMPY" />
+    <option name="myDocStringFormat" value="NumPy" />
   </component>
   <component name="TestRunnerService">
     <option name="PROJECT_TEST_RUNNER" value="py.test" />

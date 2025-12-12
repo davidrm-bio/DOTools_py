@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="Black">
-    <option name="sdkName" value="do_env" />
+    <option name="sdkName" value="$USER_HOME$/miniconda3/envs/scrna_py11" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="scrna_py11" project-jdk-type="Python SDK" />
-  <component name="PyreflyConfiguration">
-    <option name="enabled" value="true" />
-  </component>
+  <component name="ProjectRootManager" version="2" project-jdk-name="$USER_HOME$/miniconda3/envs/scrna_py11" project-jdk-type="Python SDK" />
 </project>
