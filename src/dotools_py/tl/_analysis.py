@@ -482,7 +482,7 @@ def update_cell_labels(
 
     This function will rename the cell type labels returned by Celltypist when using the Heart Model.
 
-    :param adata: Anndata object previously analysed by Celltypist.
+    :param adata: Anndata object previously analyzed by Celltypist.
     :param cell_col: Column in `obs` with cell type labels.
     :param key_added: Column in `obs` where new labels will be saved.
     :param dict_data: Dictionary with the labels to use to update the labels.
@@ -535,7 +535,7 @@ def auto_annot(
     :param dict_labels: Dictionary with the updated labels for the names in celltypist model. Currently, only a
                         dictionary for the `Human_Adult_Heart.pkl` model.
                         See :func:`dotools_py.dt.standard_ct_labels_heart()`
-    :param pl_cell_prob: Generate a Dotplot to visualise the cell probabilities for each cluster.
+    :param pl_cell_prob: Generate a Dotplot to visualize the cell probabilities for each cluster.
     :param path: Path to save the dotplot of cell probabilities.
     :param filename: Name of the file.
 
@@ -623,12 +623,11 @@ def auto_annot(
 
     return None
 
-
 def reclustering(
     adata: ad.AnnData,
     cluster_key: str,
     batch_key: str,
-    recluster_apporach: Literal["cca4", "cca5", "harmony", "scanorama", "pca", "scvi", "pca"],
+    recluster_approach: Literal["cca4", "cca5", "harmony", "scanorama", "pca", "scvi", "pca"],
     use_clusters: str | list | None = None,
     bbknn: bool = False,
     hvg_batch: bool = False,
@@ -665,7 +664,7 @@ def reclustering(
     :param use_clusters: Clusters in `cluster_key` to re-cluster. If several clusters are provided,
                          the re-clustering will be performed subsetting for all the clusters specified.
     :param hvg_batch: If set to `True`. The  highly variable genes that are shared across samples will be used.
-    :param recluster_apporach: Reclustering approach to use.
+    :param recluster_approach: Reclustering approach to use.
     :param bbknn: Use BBKNN to compute neighbors.
     :param use_rep: Name in `obsm` with the representation. Required for SCVI, CCA and Scanorama approach.
     :param resolution: Resolution for the leiden clustering.
@@ -743,7 +742,7 @@ def reclustering(
     adata_subset = adata[adata.obs[cluster_key].isin(celltype)]
 
     # If CCA was used, redo PCA of the subsetted integrated matrix
-    if recluster_apporach.lower() == "cca4":
+    if recluster_approach.lower() == "cca4":
         logger.info("Reclustering using CCA4 approach")
         assert use_rep is not None, "Specify obsm key with integrated matrix"
         try:
@@ -754,16 +753,16 @@ def reclustering(
         sc.pp.pca(adata_tmp)
         representation = "X_pca"
         adata_subset.obsm[representation] = adata_tmp.obsm[representation]
-    elif recluster_apporach.lower() == "cca5":
+    elif recluster_approach.lower() == "cca5":
         logger.info("Reclustering using CCA5 approach")
         assert use_rep is not None, "Specify obsm key with integrated matrix"
         representation = use_rep
-    elif recluster_apporach.lower() == "scanorama":
+    elif recluster_approach.lower() == "scanorama":
         logger.info("Reclustering using Scanorama approach")
         assert use_rep is not None, "Specify obsm key with integrated matrix"
         representation = use_rep
     # If harmony was used, redo harmony
-    elif recluster_apporach.lower() == "harmony":
+    elif recluster_approach.lower() == "harmony":
         logger.info("Reclustering using Harmony approach")
         adata_tmp = adata_subset.copy()
         sc.pp.highly_variable_genes(adata_tmp, batch_key=hvg_key)
@@ -773,7 +772,7 @@ def reclustering(
         representation = "X_pca_harmony"
         adata_subset.obsm[representation] = adata_tmp.obsm[representation]
     # If bbknn was used, redo PCA
-    elif recluster_apporach.lower() == "pca":
+    elif recluster_approach.lower() == "pca":
         logger.info("Reclustering using BBKNN approach")
         adata_tmp = adata_subset.copy()
         sc.pp.highly_variable_genes(adata_tmp, batch_key=hvg_key)
@@ -782,11 +781,11 @@ def reclustering(
         representation = "X_pca"
         adata_subset.obsm[representation] = adata_tmp.obsm[representation]
     # If scvi was used, take the scvi latent space
-    elif recluster_apporach.lower() == "scvi":
+    elif recluster_approach.lower() == "scvi":
         logger.info("Reclustering using scVI approach")
         assert use_rep is not None, "Specify obsm key with integrated matrix"
         representation = use_rep
-    elif recluster_apporach.lower() == "pca":
+    elif recluster_approach.lower() == "pca":
         adata_tmp = adata_subset.copy()
         sc.pp.highly_variable_genes(adata_tmp, batch_key=hvg_key)
         sc.pp.scale(adata_tmp)
@@ -794,7 +793,7 @@ def reclustering(
         representation = "X_pca"
         adata_subset.obsm["X_pca"] = adata_tmp.obsm["X_pca"]
     else:
-        raise NotImplementedError(f"{recluster_apporach} not implemented, use: CCA4, CCA5, harmony, bbknn or scvi")
+        raise NotImplementedError(f"{recluster_approach} not implemented, use: CCA4, CCA5, harmony, bbknn or scvi")
 
     # Calculate neighbors, UMAP and leiden
     if bbknn:
@@ -849,9 +848,10 @@ def full_recluster(
     adata: ad.AnnData,
     cluster_key: str,
     batch_key: str,
-    recluster_apporach: Literal["cca4", "harmony", "cca5", "bbknn", "scvi", "scanorama", "pca"],
+    recluster_approach: Literal["cca4", "cca5", "harmony","scanorama","pca", "scvi"],
     hvg_batch: bool = False,
     use_rep: str = None,
+    bbknn: bool = False,
     resolution: float = 0.3,
     neighbors_batch: int = 3,
     majority: bool = True,
@@ -873,8 +873,9 @@ def full_recluster(
     :param cluster_key: Metadata column  in `obs` with cluster groups.
     :param batch_key: Metadata column in `obs` with  batch groups.
     :param hvg_batch:  If set to `True`. The  highly variable genes that are shared across samples will be used.
-    :param recluster_apporach: Reclustering approach to use.
+    :param recluster_approach: Reclustering approach to use.
     :param use_rep: Name in `obsm` with the representation. Required for SCVI, CCA and Scanorama approach.
+    :param bbknn: Use BBKNN to compute neighbors.
     :param resolution: Resolution for the leiden clustering.
     :param neighbors_batch: To compute the nearest neighbors distance matrix and a neighborhood graph of observations a
                             `BBKNN <https://academic.oup.com/bioinformatics/article/36/3/964/5545955?login=true>`_ is
@@ -903,7 +904,7 @@ def full_recluster(
     >>> import dotools_py as do
     >>> adata = do.dt.example_10x_processed()
     >>> do.tl.full_recluster(
-    ...     adata, cluster_key="annotation", batch_key="batch", recluster_apporach="cca5", use_rep="X_CCA"
+    ...     adata, cluster_key="annotation", batch_key="batch", recluster_approach="cca5", use_rep="X_CCA"
     ... )
     >>> adata
     AnnData object with n_obs × n_vars = 700 × 1851
@@ -929,13 +930,14 @@ def full_recluster(
                 adata,
                 cluster_key=cluster_key,
                 batch_key=batch_key,
-                recluster_apporach=recluster_apporach,
+                recluster_approach=recluster_approach,
                 use_clusters=[ct],
                 hvg_batch=hvg_batch,
                 use_rep=use_rep,
                 resolution=resolution,
                 neighbors_batch=neighbors_batch,
                 automatic_annot=False,
+                bbknn=bbknn,
                 majority=majority,
                 convert=convert,
                 get_subset=True,

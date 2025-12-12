@@ -40,7 +40,6 @@ def read_h5ad(
     return  ad.read_h5ad(filename=input_path, **kwargs)
 
 
-@beartype
 def read_zarr(
     path: str | Path,
     filename: str = None,
