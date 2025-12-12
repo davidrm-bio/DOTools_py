@@ -13,7 +13,7 @@ def test_integrate():
     do.tl.integrate_data(adata, batch_key="batch", integration_method="harmony")
     assert "X_harmony" in adata.obsm.keys()
     subset = do.tl.reclustering(adata,"annotation", "batch",  use_clusters=["NK"],
-                                recluster_apporach="harmony", use_rep="X_harmony", get_subset=True)
+                                recluster_approach="harmony", use_rep="X_harmony", get_subset=True)
     assert isinstance(subset, ad.AnnData)
     assert subset.n_obs < adata.n_obs
 
@@ -26,7 +26,7 @@ def test_integrate():
     do.tl.integrate_data(adata, batch_key="batch", integration_method="pca")
     assert "X_umap" in adata.obsm.keys()
     subset = do.tl.reclustering(adata, "annotation", "batch", use_clusters=["NK"],
-                                recluster_apporach="pca", get_subset=True)
+                                recluster_approach="pca", get_subset=True)
     assert isinstance(subset, ad.AnnData)
     assert subset.n_obs < adata.n_obs
 
@@ -34,7 +34,7 @@ def test_integrate():
     do.tl.integrate_data(adata, batch_key="batch", integration_method="scvi")
     assert "X_scVI" in adata.obsm.keys()
     subset = do.tl.reclustering(adata, "annotation", "batch", use_clusters=["NK"],
-                                recluster_apporach="scvi", use_rep="X_scVI", get_subset=True)
+                                recluster_approach="scvi", use_rep="X_scVI", get_subset=True)
     assert isinstance(subset, ad.AnnData)
     assert subset.n_obs < adata.n_obs
 
@@ -42,7 +42,7 @@ def test_integrate():
     do.tl.integrate_data(adata, batch_key="batch", integration_method="scanorama")
     assert "X_scanorama" in adata.obsm.keys()
     subset = do.tl.reclustering(adata, "annotation", "batch", use_clusters=["NK"],
-                                recluster_apporach="scanorama", use_rep="X_scanorama", get_subset=True)
+                                recluster_approach="scanorama", use_rep="X_scanorama", get_subset=True)
     assert isinstance(subset, ad.AnnData)
     assert subset.n_obs < adata.n_obs
 
@@ -80,7 +80,7 @@ def test_full_recluster():
     adata = do.dt.example_10x_processed()
 
     do.tl.full_recluster(adata, "leiden", batch_key="batch",
-                         recluster_apporach="cca5", use_rep="X_CCA", resolution=1)
+                         recluster_approach="cca5", use_rep="X_CCA", resolution=1)
 
     assert "annotation_fullrecluster" in adata.obs.columns
     assert len(adata.obs["annotation_fullrecluster"].unique()) > len(adata.obs["leiden"].unique())

@@ -6,8 +6,6 @@ import atexit
 import datetime
 import traceback
 from typing import Literal
-from IPython import get_ipython
-from IPython.utils.capture import capture_output
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -262,6 +260,9 @@ def set_kernel_logger(
     ========== KERNEL SESSION PAUSED 2025-12-12 13:48:25.090038 ==========
 
     """
+    from IPython import get_ipython
+    from IPython.utils.capture import capture_output
+
     global _kernel_logger_recording, _kernel_logger_file, _kernel_logger_registered
     _session = True if session == "activate" else False
     _kernel_logger_recording = _session
@@ -344,7 +345,7 @@ def toogle_kernel_logger(state: bool):
 
     See Also
     --------
-        :func:`dotools_py.settings.set_kernel_logger`: initialize kernel history recording. 
+        :func:`dotools_py.settings.set_kernel_logger`: initialize kernel history recording.
 
 
     """
