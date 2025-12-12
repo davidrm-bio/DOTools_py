@@ -22,7 +22,7 @@ def embedding(
     catgs_order: list = None,
 
     # Figure Parameters
-    figsize: tuple = (6, 5),
+    figsize: tuple[float, float] = (6, 5),
     ax: plt.Axes = None,
     ncols: int = 4,
 
@@ -399,7 +399,7 @@ def split_embeddding(
     split_by: str,
 
     # Figure Parameters
-    figsize: tuple[int, int] = (6, 5),
+    figsize: tuple[float, float] = (6, 5),
     title_fontproperties: Dict[Literal["size", "weight"], str | int] = None,
     ncols: int = 4,
 

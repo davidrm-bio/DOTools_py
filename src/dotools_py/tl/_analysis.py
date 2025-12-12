@@ -629,7 +629,7 @@ def reclustering(
     adata: ad.AnnData,
     cluster_key: str,
     batch_key: str,
-    recluster_approach: Literal["cca4", "cca5", "harmony", "scanorama", "pca", "scvi", "pca"],
+    recluster_approach: Literal["cca4", "cca5", "harmony", "scanorama", "pca", "scvi"],
     use_clusters: str | list | None = None,
     bbknn: bool = False,
     hvg_batch: bool = False,
