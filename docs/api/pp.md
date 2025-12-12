@@ -15,7 +15,9 @@ analysing sc/snRNA-seq with different implementations building on packages from 
 
     pp.run_cellbender
     pp.importer_py
+    pp.quality_control
+    pp.log_normalize
+    pp.sctransform_normalize
     pp.find_doublets
-    pp.sctransform_normalise
 
 ```

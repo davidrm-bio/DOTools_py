@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning][].
 
 - Add ``dotools_py.pl.heatmap_foldchange`` to visualize log2foldchanges between groups across conditions.
 - Add ``io`` module for reading/writing. `dotools_py.utility.read_rds` and `dotools_py.utility.save_rds` have been moved to this module.
-- Add `dotools_py.pp.find_doublets` to detect doublets.
+- Make ``dotools_py.pp`` functions public.
 - Add `dotools_py.get.layer_swap` to swap layers.
 
 ### Bug fixes

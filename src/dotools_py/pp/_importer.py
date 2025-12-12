@@ -183,6 +183,7 @@ def find_doublets(
     CATGGTACAAACGGCA-1-batch1       singlet      0.237514
 
     """
+
     def py_none_to_r(obj):
         if obj is None:
             return r("NULL")  # evaluated at conversion time
@@ -299,8 +300,6 @@ def _normalise(
 
     :param adata: annData object
     :param n_reads: target number of reads per cell to normalise to. (Default  is **10,000**)
-    :param max_val: maximum expression value after scaling. (Default is **None**)
-    :param scale: whether to scale or not the dt. (Default is **True**)
     :return: log-normalise anndata object
     """
     import scanpy as sc
@@ -308,8 +307,49 @@ def _normalise(
     sc.pp.normalize_total(adata, target_sum=n_reads)
     sc.pp.log1p(adata)
     adata.layers["logcounts"] = adata.X.copy()
-
     return
+
+def log_normalize(
+    adata: ad.AnnData,
+    target_sum: int = 10_000,
+    layer: str = None
+) -> None:
+    """Apply LogNormalization.
+
+    Parameters
+    ----------
+    adata
+        Annotated data matrix.
+    target_sum
+         Target number of reads per cell to normalize to.
+    layer
+        Layer in `adata.layers` to normalize.
+    Returns
+    -------
+    Returns `None`. Changes will be performed inplace.
+
+    """
+    from scipy.sparse import issparse
+
+    if layer is not None:
+        assert layer in adata.layers.keys(), f"{layer} is not a valid adata.layers key"
+        adata.layers["X_copy"] = adata.X.copy()  # Save what we had in adata.X to keep it unmodified
+        adata.X = adata.layers[layer].copy()
+
+    # LogNormalization should only be performed on raw counts
+    matrix = adata.X.data if issparse(adata.X) else adata.X.flatten()
+    if (matrix % 1 != 0).any():
+        raise ValueError("The count matrix should only contain integers.")
+    if (matrix < 0).any():
+        raise ValueError("The count matrix should only contain non-negative values.")
+
+    _normalise(adata, n_reads=target_sum)
+
+    if layer is not None:
+        adata.layers[layer] = adata.X.copy()
+        adata.X = adata.layers["X_copy"].copy()
+        del adata.layers["X_copy"]
+    return None
 
 
 def _qc_scrna(
@@ -334,8 +374,9 @@ def _qc_scrna(
     """Basic QC.
 
     :param adata: annotated dt matrix.
-    :param ids: id or name for the dt.
+    :param ids: id or name for the data.
     :param qc_path: path where to save the metric and the violin plots.
+    :param batch_key: Column in `adata.obs` with sample information.
     :param min_genes_in_cell: minimum number of genes in a cell.
     :param min_cells_with_genes:  minimum number of cells expressing a gene.
     :param cut_mt: maximum number of mitochondrial content for cells.
@@ -501,6 +542,125 @@ def _qc_scrna(
     return adata
 
 
+def quality_control(
+    adata: ad.AnnData,
+    batch_key: str | None = None,
+    min_genes_in_cell: int = 300,
+    min_cells_with_genes: int = 5,
+    cut_mt: int = 5,
+    min_counts: int | None = None,
+    max_counts: int | None = None,
+    min_genes: int | None = None,
+    max_genes: int | None = None,
+    low_quantile: int | None = None,
+    high_quantile: int | None = None,
+    include_rbs: bool = True,
+    remove_doublets: bool = False,
+    doublet_tool: Literal["scDblFinder", "DoubletDetection", "Scrublet"] = "scDblFinder",
+    metrics: bool = True,
+    qc_path: str | Path | None = None,
+) -> ad.AnnData:
+    """Basic quality control for sc/snRNA-seq.
+
+    For each sample in an AnnData object, several quality and filtering steps are applied:
+
+    - Filter genes expressed in a low number of cells.
+    - Filter cells with a low number of genes.
+    - Filter cells with high mitochondrial content (recommended: 5% for scRNA, 3% for snRNA).
+    - Filter cells based on nUMI and features using two modes:
+        1. **Absolute filtering**: Sets absolute values for min/max UMI and features.
+        2. **Quantile filtering**: Filters top/lower quantiles.
+    - Remove doublets using scDblFinder, Scrublet, or DoubletDetection.
+
+    An Excel sheet summarizing how many cells/genes were removed at each step will be generated,
+    along with violin plots showing the distribution of `total_counts`, `n_genes_by_counts`,
+    and `pct_mt_content` before and after QC.
+
+    Notes
+    -----
+    This function reproduces the quality control steps of :func:`dotools_py.pp.importer_py`: but allows
+    to provide an AnnData object as input.  This function assumes that `adata.X` contains raw counts.
+
+    Parameters
+    ----------
+    adata
+        Annotated data matrix with raw counts in `adata.X`.
+    batch_key
+        Column in `adata.obs` with sample information.
+    min_genes_in_cell
+        Minimum number of genes per cell.
+    min_cells_with_genes
+        Minimum number of cells expressing a gene.
+    cut_mt
+         Maximum percentage of mitochondrial genes per cell.
+    min_counts
+        Minimum number of counts per cell.
+    max_counts
+        Maximum number of counts per cell.
+    min_genes
+        Minimum number of genes per cell.
+    max_genes
+        Maximum number of genes per cell.
+    low_quantile
+        Low quantile to filter cells based on counts.
+    high_quantile
+        Upper quantile to filter cells based on counts.
+    include_rbs
+        Calculate statistics for ribosomal genes.
+    remove_doublets
+        Identify and remove doublets.
+    doublet_tool
+        Method to use for the removal of doublets.
+    metrics
+        Whether to compute statistics of how many cells and genes are remove in each step.
+    qc_path
+        Directory where the quality control plots and metrics are saved.
+
+    Returns
+    -------
+    Returns a processed AnnData object.
+
+    """
+    from scipy.sparse import issparse
+
+    matrix = adata.X.data if issparse(adata.X) else adata.X.flatten()
+    if (matrix % 1 != 0).any():
+        raise ValueError("The count matrix should only contain integers.")
+    if (matrix < 0).any():
+        raise ValueError("The count matrix should only contain non-negative values.")
+
+    database = {}
+    for batch_name in adata.obs[batch_key].unique():
+        os.makedirs(convert_path(qc_path) / batch_name, exist_ok=True)
+        adata_batch = adata[adata.obs[batch_key] == batch_name].copy()
+        adata_batch = _qc_scrna(
+            adata=adata_batch,
+            ids=batch_name,
+            batch_key=batch_key,
+            min_genes_in_cell=min_genes_in_cell,
+            min_cells_with_genes=min_cells_with_genes,
+            cut_mt=cut_mt,
+            min_counts=min_counts,
+            max_counts=max_counts,
+            min_genes=min_genes,
+            max_genes=max_genes,
+            low_quantile=low_quantile,
+            high_quantile=high_quantile,
+            include_rbs=include_rbs,
+            remove_doublets=remove_doublets,
+            doublet_tool=doublet_tool,
+            metrics=metrics,
+            qc_path=qc_path,
+
+        )
+        database[batch_name] = adata_batch
+
+    adata = ad.concat(
+        database.values(), label=batch_key, keys=database.keys(), join="outer", index_unique="-", fill_value=0
+    )
+    return adata
+
+
 def importer_py(
     paths: list,
     ids: list,
@@ -552,7 +712,7 @@ def importer_py(
     :param doublet_tool: doublet tool to use. Available scDblFinder, Scrublet and DoubletDetection.
     :param min_genes_in_cell: minimum number of genes per cell.
     :param min_cells_with_genes: minimum cells expressing a genes.
-    :param n_reads: target sum after normalisation per cell.
+    :param n_reads: target sum after normalization per cell.
     :param cut_mt: maximum percentage of mitochondrial genes per cell.
     :param min_counts:  minimum number of counts per cell.
     :param max_counts: maximum number of counts per cell.
@@ -655,15 +815,19 @@ def importer_py(
     return adata_concat
 
 
-def sctransform_normalise(adata: ad.AnnData, batch_key: str = None, layer: str = None) -> None:
-    """Normalisation based on `SCTransform <https://github.com/satijalab/sctransform>`_.
+def sctransform_normalize(
+    adata: ad.AnnData,
+    batch_key: str = None,
+    layer: str = None
+) -> None:
+    """Normalization based on `SCTransform <https://github.com/satijalab/sctransform>`_.
 
-    This function performs an alternative normalisation based on the SCTransform.
+    This function performs an alternative normalization based on the SCTransform.
 
     :param adata: AnnData object with counts in `X`.
     :param batch_key: obs metadata with batch information.
     :param layer: layer to use.
-    :return: Returns None. The input AnnData object will have two new layers containing the SCT counts and normalise data.
+    :return: Returns None. The input AnnData object will have two new layers containing the SCT counts and normalize data.
 
     Example
     ------
@@ -684,7 +848,7 @@ def sctransform_normalise(adata: ad.AnnData, batch_key: str = None, layer: str =
     layers: 'counts', 'logcounts'
     obsp: 'connectivities', 'distances'
     >>>
-    >>> do.pp.sctransform_normalise(adata, batch_key="batch", layer="counts")
+    >>> do.pp.sctransform_normalize(adata, batch_key="batch", layer="counts")
     >>> adata
     AnnData object with n_obs × n_vars = 700 × 1181
     obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts',
