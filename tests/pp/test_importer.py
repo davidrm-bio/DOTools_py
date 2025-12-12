@@ -2,6 +2,7 @@ import dotools_py as do
 import os
 import shutil
 import anndata as ad
+from scipy.sparse import issparse
 
 
 def test_importer():
@@ -44,3 +45,48 @@ def test_cellbender():
         lr=0.00001,  # Learning Rate
         log=False,  # Generates a log file for each sample with the stdout
     )
+
+
+
+
+def test_log_normalize():
+    adata = do.dt.example_10x_processed()
+    do.get.layer_swap(adata, "counts")
+    matrix = adata.X.data if issparse(adata.X) else adata.X.flatten()
+    if (matrix % 1 != 0).any():
+        raise ValueError("The count matrix should only contain integers.")
+    if (matrix < 0).any():
+        raise ValueError("The count matrix should only contain non-negative values.")
+    do.pp.log_normalize(adata)
+    matrix = adata.X.data if issparse(adata.X) else adata.X.flatten()
+    passing = False
+    if (matrix % 1 != 0).any():
+        passing = True
+    if not passing:
+        raise ValueError
+
+
+def test_quality_control():
+    adata = do.dt.example_10x_processed()
+    os.makedirs(".QC")
+    do.get.layer_swap(adata, "counts")
+    adata_new = do.pp.quality_control(
+        adata,
+        batch_key="batch",
+        min_cells_with_genes=1,
+        min_genes_in_cell=1,
+        cut_mt=5,
+        low_quantile=5,
+        max_counts=10000,
+        min_genes=10,
+        max_genes=10000,
+        include_rbs=True,
+        remove_doublets=False,
+        metrics=True,
+        qc_path="./QC"
+    )
+    assert isinstance(adata_new, ad.AnnData)
+    assert os.path.exists("./QC")
+    shutil.rmtree("./QC")
+
+

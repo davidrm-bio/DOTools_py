@@ -73,6 +73,12 @@ def test_reclustering():
                                        use_rep="X_CCA", use_clusters=["B_cells"], get_subset=True)
     assert isinstance(adata_subset, ad.AnnData)
     assert adata_subset.n_obs == counts["B_cells"]
+
+    adata_subset = do.tl.reclustering(adata, "annotation", "batch", "pca",
+                       use_clusters=["B_cells"], get_subset=True)
+    assert isinstance(adata_subset, ad.AnnData)
+    assert adata_subset.n_obs == counts["B_cells"]
+
     return None
 
 
@@ -88,5 +94,18 @@ def test_full_recluster():
     return None
 
 
+def test_scvi_scvianvi():
+    adata = do.dt.example_10x_processed()
+    do.tl.run_scanvi(adata, batch_key="batch", label_key="annotation")
+    assert  "X_scANVI" in adata.obsm.keys()
+    assert  "X_scVI" in adata.obsm.keys()
+    return
 
 
+def test_update_labels():
+    from dotools_py.tl._analysis import update_cell_labels
+    adata = do.dt.example_10x_processed()
+    update_cell_labels(adata, cell_col="annotation")
+    update_cell_labels(adata, cell_col="annotation", dict_data={"NK":"NaturalKiller"})
+    assert "NaturalKiller" in list(adata.obs.annotation.unique())
+    return

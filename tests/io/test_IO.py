@@ -1,6 +1,7 @@
 import dotools_py as do
 import os
 import shutil
+import anndata as ad
 
 
 def test_dataframes():
@@ -56,3 +57,8 @@ def test_objects():
     adata_new = do.io.read_zarr("./", filename="adata.zarr", backend="anndata")
     shutil.rmtree("./adata.zarr")
 
+    os.makedirs("./tmp", exist_ok=True)
+    do.dt.example_10x("./tmp")
+    adata = do.io.read_10x_h5("./tmp/disease/outs/filtered_feature_bc_matrix.h5")
+    assert isinstance(adata, ad.AnnData)
+    shutil.rmtree("./tmp")
