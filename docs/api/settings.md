@@ -12,4 +12,6 @@ the pipeline.
     settings.session_settings
     settings.interactive_session
     settings.matplotlib_backend
+    settings.set_kernel_logger
+    settings.toogle_kernel_logger
 ```

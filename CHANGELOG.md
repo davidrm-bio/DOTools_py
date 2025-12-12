@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning][].
 - Add ``io`` module for reading/writing. `dotools_py.utility.read_rds` and `dotools_py.utility.save_rds` have been moved to this module.
 - Make internal functions in ``dotools_py.pp`` and ``dotools_py.tl`` public.
 - Add `dotools_py.get.layer_swap` to swap layers.
+- Add ``dotools_py.settings.set_kernel_logger`` and ``dotools_py.settings.toggle_kernel_logger`` to record the kernel history.
 
 ### Bug fixes
 
