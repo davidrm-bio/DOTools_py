@@ -1,6 +1,6 @@
 name: Feature request
 description: Propose a new feature for DOTools_py
-labels: enhancement
+type: enhancement
 body:
   - type: textarea
     id: description
