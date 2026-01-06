@@ -40,8 +40,6 @@ def add_smooth_kernel(
     """
     import liana
 
-    adata = adata.copy()
-
     if multiple:
         smooth_x = pd.DataFrame([])
         for sample in tqdm(adata.obs["sample"].unique(), desc="Analysed samples :"):
