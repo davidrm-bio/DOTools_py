@@ -40,7 +40,7 @@ def embedding(
 
     # Fx Specific
     labels: str = None,
-    labels_fontproporties:  Dict[Literal["size", "weight"], str | int] = None,
+    labels_fontproporties:  Dict[Literal["size", "weight", "outline"], str | int] = None,
     labels_repel: dict = None,
     basis: str = "X_umap",
     **kwargs,
@@ -309,7 +309,7 @@ def umap(
     catgs_order: list = None,
 
     # Figure Parameters
-    figsize: tuple = (6, 5),
+    figsize: tuple[float, float] = (6, 5),
     ax: plt.Axes = None,
     ncols: int = 4,
 
