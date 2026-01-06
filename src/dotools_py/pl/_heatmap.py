@@ -692,7 +692,17 @@ def heatmap_foldchange(
                         df_pvals.loc[row[group_by], (row["names"], row["group"])] = row["pvals_adj"]
 
             df_pvals[df_pvals.isna()] = 1
-        else:  # TODO Check with R version
+        else:
+            df_pvals = (
+                df_pvals
+                .pivot(
+                    index=group_by,
+                    columns=["genes", condition_key],
+                    values="value"
+                )
+                .sort_index()
+            )
+
             if list(df.index)[0] in list(df_pvals.index):
                 pass
             else:
