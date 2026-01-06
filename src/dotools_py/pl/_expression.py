@@ -36,7 +36,7 @@ def barplot(
     xticks_order: list = None,
     xticks_rotation: int = None,
     ylabel: str = "LogMean(nUMI)",
-    ylim_max: int = None,
+    ylim_max: float = None,
 
     # Legend Parameters
     legend_title: str = None,
