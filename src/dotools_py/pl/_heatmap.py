@@ -829,7 +829,7 @@ def heatmap_foldchange(
         data=df_copy, cmap=palette, ax=main_ax, linewidths=linewidth, cbar=False, annot=annot_pvals, fmt="s",
         square=False, annot_kws=
         {"color": "black", "size": stats_x_size, "ha": "center", "va": "center", "fontfamily": 'DejaVu Sans Mono'},
-        **kargs,
+        vmax=vmax, vmin=vmin, center=vcenter, **kargs,
     )
     if isinstance(df.index, pd.MultiIndex):
         classes = df.reset_index()["class"].astype(
