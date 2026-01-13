@@ -426,7 +426,7 @@ def log2fc(
 
     df_mean = mean_expr(adata, group_by=group_by, features=features, out_format="wide", layer=layer)
 
-    logfoldchanges = pd.DataFrame([], index=features)
+    logfoldchanges = pd.DataFrame([], index=list(df_mean.index))
     for group in groups:
         # Speed up with numba
         foldchanges = _get_log2fc(group=df_mean[group].to_numpy(), ref=df_mean[reference].to_numpy())
