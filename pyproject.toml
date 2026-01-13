@@ -38,7 +38,7 @@ dependencies = [
   "celltypist",
   "doubletdetection>=4.3",
   "fast-array-utils[accel,sparse]>=1.2.1; python_version>='3.11'", # Only installed in python is 3.11 >=
-  "gseapy",
+  "gseapy<1.1.11",
   "harmonypy",
   "jupyter",
   "numpy>=1.26.4",
