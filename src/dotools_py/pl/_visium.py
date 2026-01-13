@@ -186,8 +186,8 @@ def slides(
 
         spine_format(axs[idx], txt="SP")
         remove_extra(extras, nrows, ncols, axs)  # Remove extra subplots
-        if path is not None:
-            plt.savefig(convert_path(path) / filename, bbox_inches="tight")
+    if path is not None:
+        plt.savefig(convert_path(path) / filename, bbox_inches="tight")
     if show:
         return None
     else:
