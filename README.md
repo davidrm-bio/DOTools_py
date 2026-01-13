@@ -7,7 +7,7 @@
 [![Issues][badge-issues]][issue tracker]
 [![Stars][badge-stars]](https://github.com/davidrm-bio/DOTools_py/stargazers)
 [![PyPI][badge-pypi]][pypi]
-[![PyPI Downloads](https://static.pepy.tech/personalized-badge/dotools-py?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/dotools-py)
+[![PyPI Downloads](https://static.pepy.tech/personalized-badge/dotools-py?period=monthly&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=monthly+downloads)](https://pepy.tech/projects/dotools-py)
 
 [badge-tests]: https://img.shields.io/github/actions/workflow/status/davidrm-bio/DOTools_py/test.yaml?branch=main
 [badge-docs]:  https://img.shields.io/readthedocs/DOTools_py/stable
