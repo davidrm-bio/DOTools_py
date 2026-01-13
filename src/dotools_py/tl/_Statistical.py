@@ -18,6 +18,7 @@ from dotools_py.get import log2fc as get_log2fc
 from dotools_py import logger
 from dotools_py.utils import check_missing, iterase_input, get_paths_utils, sanitize_anndata
 from dotools_py.tl._rankGenes import rank_genes_groups
+from tests.conftest import adata
 
 
 def tag(tag_name):
@@ -459,6 +460,10 @@ class DGEAnalysis:
             for clust in self.adata.obs[self.pseudobulk_groups].unique():
                 logger.info(f"Running {method} for {clust}")
                 adata_clust = self.adata[self.adata.obs[self.pseudobulk_groups] == clust]
+
+                if layer is not None:
+                    adata_clust.X = adata_clust.layers[layer].copy()
+
                 if method == "mast":
                     df_current = self._run_mast(
                         adata=adata_clust, cond_key=self.groupby, reference=reference, disease=groups,
@@ -474,6 +479,9 @@ class DGEAnalysis:
             res_df = pd.concat(res_df)
 
         else:
+            if layer is not None:
+                self.adata.X = self.adata.layers[layer].copy()
+
             if method == "mast":
                 res_df = self._run_mast(
                     adata=self.adata, cond_key=self.groupby, reference=reference, disease=groups,
@@ -721,9 +729,26 @@ class DGEAnalysis:
         self,
         reference: str,
         groups: str | list = None,
-        covariates: list = None,
+        covariates: str = None,
         layer: str = None,
     ) -> None:
+        """Run the Mast Test.
+
+        Parameters
+        ----------
+        reference
+            Name of the reference condition in `adata.obs[groupby]`.
+        groups
+            Name of the alternative conditions in `adata.obs[groupby]`
+        covariates
+            Additional columns in `adata.obs`, written in the format of "covariate1+covariate2".
+        layer
+            Layer in `adata.layers` to use.
+
+        Returns
+        -------
+
+        """
         self._dge["mast"] = self._run_sc(
             reference=reference, groups=groups, method="mast", logcounts=True, covariates=covariates, layer=layer
         )
