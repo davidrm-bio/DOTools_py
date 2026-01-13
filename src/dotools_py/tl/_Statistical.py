@@ -359,7 +359,10 @@ class DGEAnalysis:
 
             # Pcts
             pct = get_pcts_cells(adata, group_by=cond_key, features=dge["primerid"])
-            pct.columns = ["pts_" + col if col != "genes" else "GeneName" for col in pct.columns]
+            # First column always "genes"
+            new_columns = list(pct.columns)
+            new_columns[0] = "genes"
+            pct.columns = ["pts_" + col if col != "genes" else "GeneName" for col in new_columns]
             lfcs = get_log2fc(adata, group_by=cond_key, reference=reference, groups=alternative)
             lfcs.rename(columns={"genes": "GeneName"}, inplace=True)
 
@@ -369,8 +372,16 @@ class DGEAnalysis:
                 del dge["Unnamed: 0"]
 
             dge.rename(columns={"primerid": "GeneName"}, inplace=True)
-            dge = pd.merge(dge, lfcs, on="GeneName")
-            dge = pd.merge(dge, pct, on="GeneName")
+            try:
+                dge = pd.merge(dge, lfcs, on="GeneName")
+            except KeyError:
+                logger.info("Internal problem, log2fc could not be added")
+                pass
+            try:
+                dge = pd.merge(dge, pct, on="GeneName")
+            except KeyError:
+                logger.info("Internal problem, pcts could not be added")
+                pass
 
             dge.rename(
                 columns={
