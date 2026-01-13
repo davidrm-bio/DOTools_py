@@ -14,6 +14,7 @@ coverage:
     - "src/dotools_py/tl/_Statistical.py"
     - "src/dotools_py/_experimental/_deprecated/_convertion.py"
     - "src/dotools_py/io/_rds.py"
+    - "src/dotools_py/pp/_cellbender.py" # Decrease time for github actions
 
   status:
     project:
