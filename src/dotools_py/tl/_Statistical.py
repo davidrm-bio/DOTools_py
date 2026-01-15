@@ -18,7 +18,6 @@ from dotools_py.get import log2fc as get_log2fc
 from dotools_py import logger
 from dotools_py.utils import check_missing, iterase_input, get_paths_utils, sanitize_anndata
 from dotools_py.tl._rankGenes import rank_genes_groups
-from tests.conftest import adata
 
 
 def tag(tag_name):
