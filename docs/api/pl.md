@@ -25,6 +25,7 @@ functions for enhance visualization of sc/snRNA-seq data.
     pl.embedding
     pl.split_embeddding
     pl.umap
+    pl.density
 ```
 
 ## Matrix plots

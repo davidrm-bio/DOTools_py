@@ -8,10 +8,15 @@ import pandas as pd
 from adjustText import adjust_text
 import matplotlib.patheffects as path_effects
 import matplotlib.pyplot as plt
+import seaborn as sns
+import matplotlib.lines as mlines
 
 from dotools_py.get._generic import expr as get_expr
 from dotools_py.utils import (get_centroids, get_subplot_shape, remove_extra, sanitize_anndata,
-                              return_axis, save_plot, spine_format, vector_friendly)
+                              return_axis, save_plot, spine_format, vector_friendly, iterase_input,
+                              make_grid_spec)
+from dotools_py.pl._heatmap import check_colornorm, ScalarMappable
+from dotools_py import logger
 
 @vector_friendly()
 def embedding(
@@ -30,7 +35,7 @@ def embedding(
     title_fontproperties: Dict[Literal["size", "weight"], str | int] = None,
     share_legend: bool = False,
 
-    vmax: float | str | None  = None,
+    vmax: float | str | None = None,
     spacing: tuple = (0.3, 0.2),
 
     # IO
@@ -40,7 +45,7 @@ def embedding(
 
     # Fx Specific
     labels: str = None,
-    labels_fontproporties:  Dict[Literal["size", "weight", "outline"], str | int] = None,
+    labels_fontproporties: Dict[Literal["size", "weight", "outline"], str | int] = None,
     labels_repel: dict = None,
     basis: str = "X_umap",
     **kwargs,
@@ -178,7 +183,6 @@ def embedding(
             ).mean()  # the vmax is the mean of 99.2 percentile across genes
         else:  # We could also be plotting one gene splitting by categories
             if split_by is not None and color[0] in adata.var_names:
-
                 def q99_2(x):
                     return x.quantile(0.992)
 
@@ -298,7 +302,7 @@ def embedding(
             fig.supylabel(color, fontsize=23, fontweight="bold")
 
     save_plot(path, filename)
-    return  return_axis(show, axis=axs)
+    return return_axis(show, axis=axs)
 
 
 def umap(
@@ -404,7 +408,7 @@ def split_embeddding(
     ncols: int = 4,
 
     # IO
-    path: str = None,
+    path: str | Path = None,
     filename: str = "UMAP.svg",
     show: bool = True,
 
@@ -477,5 +481,362 @@ def split_embeddding(
         remove_extra(nextra, nrows, ncols, axs)
 
     save_plot(path, filename)
-    return  return_axis(show, axis=axs)
+    return return_axis(show, axis=axs)
+
+
+def _density_individual_continuous(
+    adata: ad.AnnData,
+    color: str,
+    basis: str,
+    figsize: tuple,
+    ax: plt.Axes | None,
+    vmin: int | str | None,
+    vmax: int | str| None,
+    vcenter: int | str| None,
+    cmap: str,
+    kwargs_kde: dict | None,
+    color_legend_title: str = "Log(nUMI)",
+    density_legend_title: str = "Log(nUMI) density",
+    fill: bool = True,
+    density_alpha: float = 0.5,
+    density_bw_adjust: float =0.5,
+    show_basis: bool = True,
+    **kwargs,
+) -> dict:
+    from matplotlib.colorbar import Colorbar
+
+    # Set Figure Parameters
+    width, height = figsize
+    mainplot_width = width - (1.5 + 0)  # Main Axes
+    legends_width_spacer = 0.7 / width  # Legend Axes
+
+    min_figure_height = max([0.35, height])  # Legend Axes
+    cbar_legend_height = min_figure_height * 0.08  # Legend Axes
+    spacer_height = min_figure_height * 0.3  # Legend Axes
+
+    height_ratios = [
+        height - cbar_legend_height - cbar_legend_height - spacer_height,
+        spacer_height,
+        cbar_legend_height,
+        spacer_height / 2,
+        cbar_legend_height,
+    ]
+
+    fig, gs = make_grid_spec(
+        ax or (width, height), nrows=1, ncols=2, wspace=legends_width_spacer, width_ratios=[mainplot_width, 1.5]
+    )
+
+    # Create Main and Legend Axes
+    main_ax = fig.add_subplot(gs[0])
+    legend_ax = fig.add_subplot(gs[1])
+
+    fig, legend_gs = make_grid_spec(legend_ax, nrows=len(height_ratios), ncols=1, height_ratios=height_ratios)
+    axes_dict = {}
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # UMAP Embeddings
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    if show_basis:
+        color_legend_ax = fig.add_subplot(legend_gs[2])
+        main_ax = embedding(
+            adata=adata, color=color, figsize=figsize, ax=main_ax, show=False, basis=basis, cmap=cmap, **kwargs,
+            split_by=None,
+        )
+        # Remove UMAP colorbar
+        cbar_ax = [a for a in main_ax.figure.axes if a is not main_ax if a.get_label() == "<colorbar>"][0]
+        cbar_ax.set_visible(False)
+        ticks = [float(tck.get_text()) for tck in cbar_ax.get_yticklabels()]
+        vmin, vmax = np.min(ticks) if vmin is None else vmin, np.max(ticks) if vmax is None else vmax
+        colormap = plt.get_cmap(cmap)
+        normalize = check_colornorm(vmin=vmin, vmax=vmax, vcenter=vcenter)
+        mappable = ScalarMappable(norm=normalize, cmap=colormap)
+        Colorbar(color_legend_ax, mappable=mappable, orientation="horizontal")
+        color_legend_ax.set_title(color_legend_title, fontsize="small", fontweight="bold")
+        color_legend_ax.xaxis.set_tick_params(labelsize="small")
+        axes_dict["color_legend_ax"] = color_legend_ax
+
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # Density Plot
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    if color in adata.var_names:
+        df_density = get_expr(adata, color, out_format="wide")
+    else:
+        df_density = pd.DataFrame(adata.obs[color])
+
+    df_density[["x", "y"]] = adata.obsm[basis].copy()
+    kwargs_kde = {} if kwargs_kde is None else kwargs_kde
+    cbar_kws = kwargs_kde["cbar_kws"] if "cbar_kws" in kwargs_kde else {"orientation": "horizontal"}
+
+    density_legend_ax = fig.add_subplot(legend_gs[4])
+    sns.kdeplot(
+        df_density, x="x", y="y", weights=color, ax=main_ax, cmap=cmap, fill=fill, alpha=density_alpha,
+        bw_adjust=density_bw_adjust, zorder=2, cbar=True, cbar_ax=density_legend_ax, cbar_kws=cbar_kws,
+        **kwargs_kde
+    )
+    if not show_basis:
+        spine_format(main_ax, basis)
+
+    density_legend_ax.set_xticks([np.min(density_legend_ax.get_xticks()), np.max(density_legend_ax.get_xticks())])
+    density_legend_ax.set_xticklabels(["Min", "Max"])
+    density_legend_ax.set_title(density_legend_title, fontsize="small", fontweight="bold")
+    density_legend_ax.xaxis.set_tick_params(labelsize="small")
+
+    axes_dict["density_legend_ax"] = density_legend_ax
+    axes_dict["mainplot_ax"] = main_ax
+    return axes_dict
+
+
+
+
+def _density_individual_categorical(
+    adata: ad.AnnData,
+    color: str,
+    basis: str,
+    figsize: tuple,
+    ax: plt.Axes | None,
+    palette: dict,
+    kwargs_kde: dict | None,
+    color_legend_title: str = "",
+    density_legend_title: str = "Density",
+    fill: bool = True,
+    density_alpha: float = 0.5,
+    density_bw_adjust: float =0.5,
+    show_basis: bool = True,
+    **kwargs,
+) -> dict:
+
+    # Set Figure Parameters
+    width, height = figsize
+    mainplot_width = width - (1.5 + 0)  # Main Axes
+    legends_width_spacer = 0.7 / width  # Legend Axes
+
+    min_figure_height = max([0.35, height])  # Legend Axes
+    cbar_legend_height = min_figure_height * 0.08  # Legend Axes
+
+    height_ratios = [
+        height - cbar_legend_height,
+        cbar_legend_height,
+    ]
+
+    fig, gs = make_grid_spec(
+        ax or (width, height), nrows=1, ncols=2, wspace=legends_width_spacer, width_ratios=[mainplot_width, 1.5]
+    )
+
+    # Create Main and Legend Axes
+    main_ax = fig.add_subplot(gs[0])
+    legend_ax = fig.add_subplot(gs[1])
+
+    fig, legend_gs = make_grid_spec(legend_ax, nrows=len(height_ratios), ncols=1, height_ratios=height_ratios)
+
+    # Create ColorBar and DensityBar Legend Axes
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # UMAP Embeddings
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    if show_basis:
+        legend_ax = fig.add_subplot(legend_gs[0])
+        main_ax = embedding(
+            adata=adata, color=color, figsize=figsize, ax=main_ax, show=False, basis=basis, legend_loc = None, **kwargs,
+            split_by=None,
+        )
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # Density Plot
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    df_density = pd.DataFrame(adata.obs[color])
+    df_density["codes"] = df_density[color].cat.codes
+    df_density[["x", "y"]] = adata.obsm[basis].copy()
+    kwargs_kde = {} if kwargs_kde is None else kwargs_kde
+    cbar_kws = kwargs_kde["cbar_kws"] if "cbar_kws" in kwargs_kde else {"orientation": "horizontal"}
+
+    palette = dict(zip(adata.obs[color].cat.categories, adata.uns[color + "_colors"])) if palette is None else palette
+    ct_to_code = df_density[["annotation", "codes"]].reset_index(drop=True).drop_duplicates().set_index("annotation").to_dict()["codes"]
+    palette_codes = {ct_to_code[ct]:palette[ct] for ct in palette}
+
+    density_legend_ax = fig.add_subplot(legend_gs[1])
+    sns.kdeplot(
+        df_density, x="x", y="y", hue="codes", ax=main_ax, fill=fill, alpha=density_alpha,
+        bw_adjust=density_bw_adjust, zorder=2, cbar=True, cbar_ax=density_legend_ax, cbar_kws=cbar_kws,
+        palette=palette_codes, legend=False,
+        **kwargs_kde
+    )
+    if not show_basis:
+        spine_format(main_ax, basis)
+
+    density_legend_ax.set_xticks([np.min(density_legend_ax.get_xticks()), np.max(density_legend_ax.get_xticks())])
+    density_legend_ax.set_xticklabels(["Min", "Max"])
+    density_legend_ax.set_title(density_legend_title, fontsize="small", fontweight="bold")
+    density_legend_ax.xaxis.set_tick_params(labelsize="small")
+    handles = [mlines.Line2D(
+        [0], [0], marker=".", color=palette[h], lw=0, label=h, markerfacecolor=palette[h],
+                      markeredgecolor=None, markersize=15) for h in palette
+    ]
+    legend_ax.legend(handles=handles, frameon=False, loc="center left", ncols=1, title=color_legend_title)
+    legend_ax.tick_params(axis="both", left=False, labelleft=False, labelright=False, bottom=False,
+                           labelbottom=False)
+    legend_ax.spines[["right", "left", "top", "bottom"]].set_visible(False)
+    legend_ax.grid(visible=False)
+    return {"mainplot_ax": main_ax, "color_legend_ax": legend_ax, "density_legend_ax": density_legend_ax}
+
+
+
+
+def density(
+    # Data
+    adata: ad.AnnData,
+    color: str | list,
+
+    # Figure Parameters
+    figsize: tuple[float, float] = (6, 5),
+    ax: plt.Axes = None,
+    ncols: int = 4,
+    cmap: str = "Reds",
+    palette: dict = None,
+    show: bool = True,
+    vmax: int | str = None,
+    vmin: int | str = None,
+    vcenter: int | str = None,
+    color_legend_title: str = None,
+    density_legend_title: str = None,
+
+    # Fx Specific
+    basis: str = "spatial",
+    show_basis: bool = True,
+    density_alpha: float = 0.75,
+    density_bw_adjust: float = 0.5,
+    fill: bool = True,
+    kwargs_kde: dict = None,
+    **kwargs,
+)-> plt.Axes | None:
+    """Density plot.
+
+    Parameters
+    ----------
+    adata
+        Annotated data matrix.
+    color
+        Value in adata.var_names or column name in adata.obs
+    figsize
+        Figure size, the format is (width, height)
+    ax
+        Matplotlib axes.
+    ncols
+        Number of columns per row when multiple values are plotted.
+    cmap
+        String denoting matplotlib color map.
+    palette
+        Colors to use for plotting categorical annotation groups in dictionary format with group as key and
+        color as the value. If `None`, categorical variable with already colors stored in adata.uns["{var}_colors"]
+        will be used.
+    show
+         If set to `False`, returns a dictionary with the matplotlib axes.
+    vmax
+        The value representing the upper limit of the color scale.
+    vmin
+        The value representing the lower limit of the color scale.
+    vcenter
+        The value representing the center of the color scale.
+    color_legend_title
+        Title of the colorbar legend
+    density_legend_title
+        Titlte of the colorbar for the density
+    basis
+        Embedding to use, default spatial.
+    show_basis
+        If set to `True` both the density and the scatterplot for the embedding will shown.
+    density_alpha
+        Transparency for the density kernel.
+    density_bw_adjust
+        Factor that multiplicatively scales the value chosen using bw_method. Increasing will make the curve smoother.
+    fill
+        If `True`, fill in the area under univariate density curves or between bivariate contours.
+    kwargs_kde
+        Additional arguments pass to `sns.kdeplot <https://seaborn.pydata.org/generated/seaborn.kdeplot.html>`_
+    kwargs
+        Additional arguments pass to dotools_py.pl.embedding.
+
+    Returns
+    -------
+    Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
+
+    Examples
+    --------
+    Visualize a categorical column
+
+    .. plot::
+        :context: close-figs
+
+        import dotools_py as do
+        adata = do.dt.example_10x_processed()
+        do.pl.density(adata, 'annotation', basis="X_umap", density_alpha=1, show_basis=False)
+
+    or the expression of a gene
+
+    .. plot::
+        :context: close-figs
+
+        do.pl.density(adata, 'CD4', basis="X_umap", density_alpha=.75)
+
+    """
+    color = iterase_input(color)
+    sanitize_anndata(adata)
+    if len(color) == 1:
+        if color[0] in adata.var_names or not adata.obs[color[0]].dtype == "category":
+            color_legend_title = "Log(nUMI)" if color_legend_title is None else color_legend_title
+            density_legend_title = "Log(nUMI) Density" if density_legend_title is None else density_legend_title
+
+            axes_dict = _density_individual_continuous(
+                adata=adata, color=color[0], basis=basis, figsize=figsize, ax=ax,
+                vmin=vmin, vmax=vmax, vcenter=vcenter, cmap=cmap, kwargs_kde=kwargs_kde,
+                color_legend_title=color_legend_title, density_legend_title=density_legend_title,
+                density_alpha=density_alpha, density_bw_adjust=density_bw_adjust, fill=fill, show_basis=show_basis,
+                **kwargs
+            )
+        else:
+            color_legend_title = "" if color_legend_title is None else color_legend_title
+            density_legend_title = "Density" if density_legend_title is None else density_legend_title
+
+            axes_dict = _density_individual_categorical(
+                adata=adata, color=color[0], basis=basis, figsize=figsize, ax=ax,
+                palette=palette, kwargs_kde=kwargs_kde,
+                color_legend_title=color_legend_title, density_legend_title=density_legend_title,
+                density_alpha=density_alpha, density_bw_adjust=density_bw_adjust, fill=fill,show_basis=show_basis,
+                **kwargs,
+            )
+    else:
+        if ax is not None:
+            logger.warn("When color has multiple value 'ax' is ignored")
+        ncatgs = len(color)
+        nrows, ncols, nExtra = get_subplot_shape(ncatgs, ncols)
+
+        fig, ax  = plt.subplots(nrows, ncols, figsize=figsize)
+        ax = ax.flatten() if nrows > 1 else ax
+
+        axes_dict = {}
+        for idx, c in enumerate(color):
+            if c in adata.var_names or not adata.obs[c].dtype == "category":
+                color_legend_title = "Log(nUMI)" if color_legend_title is None else color_legend_title
+                density_legend_title = "Log(nUMI) Density" if density_legend_title is None else density_legend_title
+
+                axes_dict_current = _density_individual_continuous(
+                    adata=adata, color=c, basis=basis, figsize=figsize, ax=ax[idx],
+                    vmin=vmin, vmax=vmax, vcenter=vcenter, cmap=cmap, kwargs_kde=kwargs_kde,
+                    color_legend_title=color_legend_title, density_legend_title=density_legend_title,
+                    density_alpha=density_alpha, density_bw_adjust=density_bw_adjust, fill=fill, show_basis=show_basis,
+                    **kwargs
+                )
+            else:
+                color_legend_title = "" if color_legend_title is None else color_legend_title
+                density_legend_title = "Density" if density_legend_title is None else density_legend_title
+
+                axes_dict_current = _density_individual_categorical(
+                    adata=adata, color=c, basis=basis, figsize=figsize, ax=ax[idx],
+                    palette=palette, kwargs_kde=kwargs_kde,
+                    color_legend_title=color_legend_title, density_legend_title=density_legend_title,
+                    density_alpha=density_alpha, density_bw_adjust=density_bw_adjust, fill=fill, show_basis=show_basis,
+                    **kwargs,
+                )
+            axes_dict[f"subplot_axes_{idx}"] = axes_dict
+        remove_extra(nExtra, nrows, ncols, ax)
+    return return_axis(show, axes_dict)
 
