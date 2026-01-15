@@ -87,7 +87,7 @@ formula <- as.formula(object = paste0(" ~ ", paste(latent.vars, collapse = "+"))
 # Run Test
 message('Running MAST Test')
 zlmCond <- MAST::zlm(formula = formula, sca = sca)
-summaryCond <- MAST::summary(object = zlmCond, doLRT = paste0(opt$key, opt$disease))
+summaryCond <- MAST::summary(object = zlmCond, doLRT = paste0("condition", opt$disease))
 summaryDt <- summaryCond$datatable
 
 # Generate Results dataframe
