@@ -286,13 +286,15 @@ def dge_results(
     return df_results
 
 
-def subset(adata: ad.AnnData,
-           obs_key: str | None = None,
-           obs_groups: str | list | float | bool | None = None,
-           var_key: str | None = None,
-           var_groups: str | list | float | bool | None = None,
-           comparison: Literal[">=", ">", "==", "<", "<=", "include", "exclude"] = "include",
-           copy: bool = False) -> ad.AnnData:
+def subset(
+    adata: ad.AnnData,
+    obs_key: str | None = None,
+    obs_groups: str | list | float | bool | None = None,
+    var_key: str | None = None,
+    var_groups: str | list | float | bool | None = None,
+    comparison: Literal[">=", ">", "==", "<", "<=", "include", "exclude"] = "include",
+    copy: bool = False
+) -> ad.AnnData:
     """Subset AnnData object.
 
     Subset an AnnData object based on `obs` or `var` column. Currently it does not allow to subset
@@ -626,14 +628,12 @@ def pseudobulk(
     return pdata
 
 
-
-
 def layer_swap(
     adata: ad.AnnData,
     layer_key: str,
     x_key: str = "X",
     inplace: bool = True,
-)-> ad.AnnData | None:
+) -> ad.AnnData | None:
     """Swap `adata.X` with `adata.layers`.
 
     Parameters
@@ -663,4 +663,3 @@ def layer_swap(
         adata_copy.layers[x_key] = adata_copy.X.copy()
         adata_copy.X = adata_copy.layers[layer_key].copy()
         return adata_copy
-
