@@ -109,7 +109,7 @@ class BaseSeaborn:
         self.logcounts = logcounts
 
 
-        # Figure paramters
+        # Figure parameters
         self.figsize = figsize
         self.fig = None,
         self.gs = None
