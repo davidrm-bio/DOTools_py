@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 from scipy.sparse import issparse
 
-from dotools_py.utils import get_paths_utils
+from dotools_py.utils import get_paths_utils, check_r_package
 from dotools_py import logger
 
 
@@ -56,6 +56,8 @@ def read_rds(
     """
     import polars as pl
     import scipy.sparse as sp
+
+    check_r_package(["Seurat", "zellkonverter", "optparse", "remotes", "data.table"])
 
     rscript = get_paths_utils("_ReadWrite_RDS.R")
 
@@ -197,6 +199,7 @@ def save_rds(
 
     """
     import polars as pl
+    check_r_package(["Seurat", "zellkonverter", "optparse", "remotes", "data.table"])
 
     rscript = get_paths_utils("_ReadWrite_RDS.R")
 

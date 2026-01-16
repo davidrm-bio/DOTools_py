@@ -16,7 +16,7 @@ from dotools_py.get import pcts_cells as get_pcts_cells
 from dotools_py.get import log2fc as get_log2fc
 
 from dotools_py import logger
-from dotools_py.utils import check_missing, iterase_input, get_paths_utils, sanitize_anndata
+from dotools_py.utils import check_missing, iterase_input, get_paths_utils, sanitize_anndata, check_r_package
 from dotools_py.tl._rankGenes import rank_genes_groups
 
 
@@ -101,6 +101,7 @@ class DGEAnalysis:
         """
 
         # Checks
+        check_r_package(["MAST", "optparse", "zellkonverter", "glmGamPoi"])
         self._is_numeric_counts(data, numeric=True, integers=False)
         if isinstance(data, ad.AnnData):
             sanitize_anndata(data)

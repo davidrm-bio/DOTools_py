@@ -12,7 +12,7 @@ import pandas as pd
 
 from dotools_py import logger
 from dotools_py.tl._rankGenes import rank_genes_groups
-from dotools_py.utils import convert_path, get_paths_utils, sanitize_anndata, iterase_input
+from dotools_py.utils import convert_path, get_paths_utils, sanitize_anndata, iterase_input, check_r_package
 from dotools_py.get import mean_expr, dge_results
 from dotools_py.get import log2fc as get_log2fc
 from dotools_py.get import pcts_cells as get_pct_cells
@@ -66,6 +66,8 @@ def run_mast(
     4    ABCB9  0.458918 -1.468043  0.808238  0.121154   0.044444  disease
 
     """
+    check_r_package(["MAST", "optparse", "zellkonverter", "glmGamPoi"])
+
     rscript = get_paths_utils("_Run_MAST.R")
 
     tmpdir_path = Path("/tmp") / f"MAST_Test_{uuid.uuid4().hex}"

@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+import logger
+
 
 class DeprecatedFunctionError(Exception):
     pass
@@ -415,3 +417,21 @@ def vector_friendly():
             return func(*args, **kwargs)
         return wrapper
     return decorator
+
+
+
+def check_r_package(package: str | list)->None:
+    from rpy2.robjects.packages import importr
+
+    package = iterase_input(package)
+
+    missing = []
+    for p in package:
+        try:
+            base = importr(p)
+        except Exception as e:
+            missing.append(p)
+    if len(missing) != 0:
+        raise ModuleNotFoundError(f"The R packages: {missing} are not installed")
+    return None
+
