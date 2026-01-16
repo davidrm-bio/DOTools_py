@@ -152,6 +152,7 @@ if (opt$operation == 'read') {  # Convert RDS (SCE/Seurat) to AnnData
         message("Saving batch information")
         output.obj <- tryCatch({
             output.obj$orig.ident <- output.obj@meta.data[opt$batch_key]
+            output.obj
         }, error = function(e) {
             message("Error while renaming batch_key: ", e$message)
             return(output.obj) }
@@ -193,9 +194,9 @@ if (opt$operation == 'read') {  # Convert RDS (SCE/Seurat) to AnnData
         reductions_names_clean <- tolower(sub("^X_", "", reductions_names))
 
         for (i in 1:length(reductions_names)) {
-            output.obj@reductions[reductions_names_clean[[i]]] <- output.obj@reductions[reductions_names[[i]]]
-            output.obj@reductions[reductions_names[[i]]] <- NULL
-            output.obj@reductions[reductions_names[[i]]]@assay.used <- "RNA"
+            output.obj@reductions[[reductions_names_clean[i]]] <- output.obj@reductions[[reductions_names[i]]]
+            output.obj@reductions[[reductions_names[i]]] <- NULL
+            output.obj@reductions[[reductions_names_clean[i]]]@assay.used <- "RNA"
         }
 
         # Connectivities -> snn
