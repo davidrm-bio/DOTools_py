@@ -7,7 +7,11 @@ from tqdm import tqdm
 from dotools_py.utils import require_dependencies
 
 
-def select_slide(adata: ad.AnnData, s: str, s_col: str = "sample") -> ad.AnnData:
+def select_slide(
+    adata: ad.AnnData,
+    s: str,
+    s_col: str = "sample"
+) -> ad.AnnData:
     """Subset a Spatial AnnData object.
 
     This function selects the data for one slide from the spatial AnnData object. Useful when working with
@@ -28,7 +32,12 @@ def select_slide(adata: ad.AnnData, s: str, s_col: str = "sample") -> ad.AnnData
 
 @require_dependencies([{"name": "liana"}])
 def add_smooth_kernel(
-    adata: ad.AnnData, layer_name: str = "smooth_X", bandwidth: int = 100, multiple: bool = True
+    adata: ad.AnnData,
+    layer_name: str = "smooth_X",
+    bandwidth: int = 100,
+    multiple: bool = True,
+    connectivities_key: str = "spatial_connectivities",
+    batch_key: str = "batch",
 ) -> None:
     """Compute a smooth kernel, i.e, expression matrix is smooth.
 
@@ -36,25 +45,27 @@ def add_smooth_kernel(
     :param layer_name: name of the layer with smooth expression matrix.
     :param bandwidth: radius (the greater, the more neighbors are considered).
     :param multiple: AnnData Object Contains Multiple Sample.
+    :param connectivities_key: key in adata.obsp with spatial connectivities.
+    :param batch_key: Column in adata.obs with batch information.
     :return: Returns `None`. A new layer will be added `adata.layers['smooth_X' | layer_name]`
     """
     import liana
 
     if multiple:
         smooth_x = pd.DataFrame([])
-        for sample in tqdm(adata.obs["sample"].unique(), desc="Analysed samples :"):
-            slid = select_slide(adata, sample, "sample")
+        for batch in tqdm(adata.obs[batch_key].unique(), desc="Analysed samples :"):
+            slid = select_slide(adata, batch, batch_key)
             liana.ut.spatial_neighbors(
                 slid, bandwidth=bandwidth, cutoff=0.1, kernel="gaussian", set_diag=True, standardize=True
             )
-            slid.X = slid.obsp["spatial_connectivities"].toarray().dot(slid.X.toarray())
+            slid.X = slid.obsp[connectivities_key].toarray().dot(slid.X.toarray())
             current_x = ad.AnnData.to_df(slid)
             smooth_x = pd.concat([smooth_x, current_x])
     else:
         liana.ut.spatial_neighbors(
             adata, bandwidth=bandwidth, cutoff=0.1, kernel="gaussian", set_diag=True, standardize=True
         )
-        adata.X = adata.obsp["spatial_connectivities"].A.dot(adata.X.toarray())
+        adata.X = adata.obsp[connectivities_key].A.dot(adata.X.toarray())
         smooth_x = ad.AnnData.to_df(adata)
 
     smooth_x = smooth_x.reindex(index=adata.obs_names, columns=adata.var_names)
