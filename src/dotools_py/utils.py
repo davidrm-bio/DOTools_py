@@ -10,8 +10,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-import logger
-
 
 class DeprecatedFunctionError(Exception):
     pass
@@ -82,7 +80,7 @@ def spine_format(axis: plt.Axes, txt: str = "UMAP", fontsize: int = 10) -> None:
     Removes the top and right spines and set the x- and y-label for the left and bottom spine
     moving them to the corner.
 
-    :param axis: matplozlib axes object.
+    :param axis: matplotlib axes object.
     :param txt: text for the embedding.
     :param fontsize: size of the text.
     :return:
@@ -120,16 +118,16 @@ def make_grid_spec(
     width_ratios: float = None,
     height_ratios: float = None,
 ):
-    """Taken and adapted from Scanpy.
+    """Adapted from Scanpy.
 
-    :param ax_or_figsize: axes or figsize.
-    :param nrows: number of rows.
-    :param ncols: number of columns.
-    :param wspace: width space.
-    :param hspace: height space.
-    :param width_ratios: width ratio.
-    :param height_ratios: height ratio.
-    :return:
+    :param ax_or_figsize: axes or figsize
+    :param nrows: number of rows
+    :param ncols: number of columns
+    :param wspace: width space
+    :param hspace: height space
+    :param width_ratios: width ratio
+    :param height_ratios: height ratio
+    :return: Figure and matplotlib Axes
     """
     kw = dict(wspace=wspace, hspace=hspace, width_ratios=width_ratios, height_ratios=height_ratios)
 
@@ -271,8 +269,8 @@ def require_dependencies(required_packages):
 #             warn_msg = (
 #                 message
 #                 if message
-#                 else f"{func.__name__} is deprecated and will be removed in a future version."
-#             )
+#                 else f"{func.__name__} is deprecated and will be removed in a future version.")
+#
 #             warnings.warn(warn_msg, category=DeprecationWarning, stacklevel=2)
 #             return func(*args, **kwargs)
 #         return wrapper
@@ -429,7 +427,7 @@ def check_r_package(package: str | list)->None:
     for p in package:
         try:
             base = importr(p)
-        except Exception as e:
+        except Exception:
             missing.append(p)
     if len(missing) != 0:
         raise ModuleNotFoundError(f"The R packages: {missing} are not installed")
