@@ -275,7 +275,7 @@ def boxplot(
     # Fx Specific
     showfliers: bool = False,
     scatter: bool = True,
-    scatter_size: float = 2,
+    marker_size: float = 2,
     **kwargs
 ) -> plt.Axes | dict | None:
     """Boxplot with statistical significance.
@@ -290,7 +290,7 @@ def boxplot(
         Show the outliers beyond the caps.
     scatter:
          Plot the mean expression per sample on top of the boxplots plots.
-    scatter_size:
+    marker_size:
         Radius of the dots.
     kwargs:
         Other parameters are passed through to `sns.boxplot <https://seaborn.pydata.org/generated/seaborn.boxplot.html>`_.
@@ -352,7 +352,7 @@ def boxplot(
     if scatter:
         sns.stripplot(
             df, x=plotter.x_axis, y="expr", ax=bx, color="k", order=plotter.xticks_order,
-            hue=plotter.hue, hue_order=plotter.hue_order, legend=False, size=scatter_size, dodge=True
+            hue=plotter.hue, hue_order=plotter.hue_order, legend=False, size=marker_size, dodge=True
         )
 
 
@@ -456,7 +456,7 @@ def violinplot(
 
     # Fx Specific
     scatter: bool = False,
-    scatter_size: int = 2,
+    marker_size: int = 2,
     cut: float = 0,
 
     **kwargs
@@ -471,7 +471,7 @@ def violinplot(
     {COMMON_ARGS}
     scatter:
          Plot non-zero values as dots on top of the violin plots.
-    scatter_size:
+    marker_size:
         Radius of the dots.
     cut:
         Distance, in units of bandwidth, to extend the density past extreme datapoints.
@@ -535,7 +535,7 @@ def violinplot(
     if scatter:
         sns.stripplot(
             df[df.expr != 0], x=plotter.x_axis, y="expr", ax=vln, color="k", order=plotter.xticks_order,
-            hue=plotter.hue, hue_order=plotter.hue_order, legend=False, size=scatter_size, dodge=True
+            hue=plotter.hue, hue_order=plotter.hue_order, legend=False, size=marker_size, dodge=True
         )
 
 
