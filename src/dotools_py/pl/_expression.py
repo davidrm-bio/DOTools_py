@@ -274,6 +274,8 @@ def boxplot(
 
     # Fx Specific
     showfliers: bool = False,
+    scatter: bool = True,
+    scatter_size: float = 2,
     **kwargs
 ) -> plt.Axes | dict | None:
     """Boxplot with statistical significance.
@@ -286,6 +288,10 @@ def boxplot(
     {COMMON_ARGS}
     showfliers:
         Show the outliers beyond the caps.
+    scatter:
+         Plot the mean expression per sample on top of the boxplots plots.
+    scatter_size:
+        Radius of the dots.
     kwargs:
         Other parameters are passed through to `sns.boxplot <https://seaborn.pydata.org/generated/seaborn.boxplot.html>`_.
 
@@ -303,7 +309,7 @@ def boxplot(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.boxplot(adata,  'annotation', 'CD4', reference = 'pDC', groups=['B_cells'], xticks_rotation=45)
+        do.pl.boxplot(adata,  'annotation', 'CD4', reference = 'pDC', groups=['B_cells'], xticks_rotation=45, scatter=False)
 
     Setting the `hue` argument allow to test across conditions for several groups.
 
@@ -342,6 +348,13 @@ def boxplot(
         df, x=plotter.x_axis, y="expr", showfliers=showfliers, ax=main_axis, palette=plotter.cmap,
         order=plotter.xticks_order, hue=plotter.hue, hue_order=plotter.hue_order, legend=False, **kwargs
     )
+
+    if scatter:
+        sns.stripplot(
+            df, x=plotter.x_axis, y="expr", ax=bx, color="k", order=plotter.xticks_order,
+            hue=plotter.hue, hue_order=plotter.hue_order, legend=False, size=scatter_size, dodge=True
+        )
+
 
     # Statistical testing
     groups_cond = iterase_input(groups)
