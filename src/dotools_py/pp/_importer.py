@@ -315,7 +315,8 @@ def log_normalize(
 ) -> None:
     """Apply LogNormalization.
 
-    The data in X will be log-normalize to 10,000 reads per cell.
+    The data in X will be log-normalize to 10,000 reads per cell.  The shifted logarithm works beneficial for
+    stabilizing variance for subsequent dimensionality reduction and identification of differentially expressed genes.
     The returned anndata object will contain 3 layers:
     * counts: contains the raw un-normalized counts
     * logcounts: contains the log-normalize counts
