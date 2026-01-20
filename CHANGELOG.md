@@ -18,12 +18,14 @@ and this project adheres to [Semantic Versioning][].
 - Make internal functions in ``dotools_py.pp`` and ``dotools_py.tl`` public.
 - Add `dotools_py.get.layer_swap` to swap layers.
 - Add ``dotools_py.settings.set_kernel_logger`` and ``dotools_py.settings.toggle_kernel_logger`` to record the kernel history.
+- Add ``dotools_py.bm`` module that contain metrics for the evaluation of quality control steps.
 
 ### Bug fixes
 
 - Fix Bug in ``dotools_py.pl.barplot``,  ``dotools_py.pl.boxplot`` and  ``dotools_py.pl.violinplot`` where the legends
 were not correctly display when `hue` was set but `hue_order` was not set.
 - Embedding plots will be saved using a ``vector_friendly`` (scatter plots will use png backend even when exporting as PDF or SVG).
+- Internal bug fixes in several other methods
 
 ## Version 0.0.2 {small}`2025-11-25`
 

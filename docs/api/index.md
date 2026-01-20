@@ -20,5 +20,6 @@ utility
 :maxdepth: 1
 
 dt
+bm
 settings
 ```
