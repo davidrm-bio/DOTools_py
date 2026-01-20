@@ -65,7 +65,7 @@ def diffusion_conn(adata, min_k=50, copy=True, max_iterations=26):
     while ((M[large_comp_mask, :][:, large_comp_mask] > 0).sum(1).min() < min_k) and (
         i < max_iterations
     ):
-        print(f"Adding diffusion to step {i}")
+        # print(f"Adding diffusion to step {i}")
         T_agg *= T
         M += T_agg
         i += 1
@@ -123,7 +123,7 @@ def diffusion_nn(adata, k, max_iterations=26):
 
     while ((M > 0).sum(1).min() < (k + 1)) and (i < max_iterations):
         # note: k+1 is used as diag is non-zero (self-loops)
-        print(f"Adding diffusion to step {i}")
+        # print(f"Adding diffusion to step {i}")
         T_agg *= T
         M += T_agg
         i += 1
@@ -184,7 +184,7 @@ def kBET_single(
     except rpy2.rinterface_lib.embedded.RRuntimeError as ex:
         ModuleNotFoundError(ex, "Install kBET in R")
 
-    logger.info("Importing expression matrix")
+    #logger.info("Importing expression matrix")
 
     # Adapted to new rpy2 scheme
     with localconverter(ro.default_converter + anndata2ri.converter + pandas2ri.converter + numpy2ri.converter):
@@ -193,7 +193,7 @@ def kBET_single(
         ro.globalenv["knn_graph"] = knn
         ro.globalenv["k0"] = k0
 
-    logger.info("kBET estimation")
+    # logger.info("kBET estimation")
     ro.r(
         "batch.estimate <- kBET("
         "  data_mtrx,"
@@ -204,7 +204,7 @@ def kBET_single(
         "  do.pca=FALSE,"
         "  heuristic=FALSE,"
         "  adapt=FALSE,"
-        f"  verbose={str(True).upper()}"
+        f"  verbose={str(False).upper()}"
         ")"
     )
 
@@ -299,10 +299,10 @@ def kBET(
         # check if pre-computed neighbors are stored in input file
         adata_tmp = adata.copy()
         if "diffusion_connectivities" not in adata.uns["neighbors"]:
-            logger.info("Compute diffusion neighbours")
+            #logger.info("Compute diffusion neighbours")
             adata_tmp = diffusion_conn(adata, min_k=50, copy=True)
         adata_tmp.obsp["connectivities"] = adata_tmp.uns["neighbors"]["diffusion_connectivities"]
-    logger.info(f"batch: {batch_key}")
+    #logger.info(f"batch: {batch_key}")
 
     # set upper bound for k0
     size_max = 2 ** 31 - 1
@@ -313,7 +313,7 @@ def kBET(
     )
     labels = counts.query(f"{label_key}>=10 and {batch_key} > 1").index
     skipped = counts.index.difference(labels)
-    print(f"{len(skipped)} labels consist of a single batch or is too small. Skip.")
+    # print(f"{len(skipped)} labels consist of a single batch or is too small. Skip.")
 
     # prepare call of kBET per cluster
     kBET_scores = {"cluster": list(skipped), "kBET": [np.nan] * len(skipped)}
@@ -327,7 +327,7 @@ def kBET(
             k0 = np.floor(size_max / adata_sub.n_obs).astype("int")
         matrix = np.zeros(shape=(adata_sub.n_obs, k0 + 1))
 
-        logger.info(f"Use {k0} nearest neighbors.")
+        #logger.info(f"Use {k0} nearest neighbors.")
         n_comp, labs = scipy.sparse.csgraph.connected_components(
             adata_sub.obsp["connectivities"], connection="strong"
         )
@@ -343,7 +343,7 @@ def kBET(
                     k0=k0,
                 )
             except NeighborsError:
-                print("Not enough neighbours")
+                logger.warn("Not enough neighbours")
                 score = 1  # i.e. 100% rejection
 
         else:

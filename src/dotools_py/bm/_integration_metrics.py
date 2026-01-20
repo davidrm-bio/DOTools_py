@@ -9,7 +9,7 @@ from dotools_py.utility._plotting import get_hex_colormaps
 from dotools_py.get import subset as get_subset
 from typing import Literal
 from dotools_py.bm._helper import kBET, scib_silhouette_batch, scib_silhouette
-
+from dotools_py.logger import  logger
 
 @njit
 def _largest_component_fraction(labels):
@@ -479,6 +479,7 @@ def eval_integration(
     # database["isolated_label_asw"] = scib.metrics.isolated_labels_asw(adata=adata_post, label_key=annotation_key, batch_key=batch_key, embed=use_rep, scale=scale, verbose=False)
 
     for rep in use_rep:
+        logger.info(f"Computing metrics for {rep}")
         if "GraphConnectivity" in compute_metrics:
             database["GraphConnectivity"].append(graph_connectivity(adata_post, annotation_key))
         if "kBET" in compute_metrics:
