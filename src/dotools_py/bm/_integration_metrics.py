@@ -9,7 +9,8 @@ from dotools_py.utility._plotting import get_hex_colormaps
 from dotools_py.get import subset as get_subset
 from typing import Literal
 from dotools_py.bm._helper import kBET, scib_silhouette_batch, scib_silhouette
-from dotools_py.logger import  logger
+from dotools_py.logger import logger
+
 
 @njit
 def _largest_component_fraction(labels):
@@ -34,27 +35,12 @@ def graph_connectivity(
 ) -> np.floating:
     """Graph Connectivity.
 
-    Quantify the connectivity of the subgraph per cell type. The final score is the average for all cell types
-    :math:`C`, according to the equation:
+    Quantify the connectivity of the subgraph per cell type. The final score is the average for all cell types.
 
-    .. math::
 
-        GC = \\frac {1} {|C|} \\sum_{c \\in C} \\frac {|{LCC(subgraph_c)}|} {|c|}
-
-    where :math:`|LCC(subgraph_c)|` stands for all cells in the largest connected component
-    and :math:`|c|` stands for all cells of a cell type :math:`c`.
-
-    Parameters
-    ----------
-    adata
-        Integrated annotated data matrix with neighborhood graph computed.
-    annotation_key
-        Column in `adata.obs` containing the group labels.
-
-    Returns
-    -------
-    Returns a float number between 0 and 1 that represents the connectivity of the subgraph. Larger
-    values represent a better batch removal.
+    :param adata: Integrated annotated data matrix with neighborhood graph computed.
+    :param annotation_key:  Column in `adata.obs` containing the group labels.
+    :return: Returns a float number between 0 and 1 that represents the connectivity of the subgraph. Larger values represent a better batch removal.
 
     Examples
     --------
@@ -166,29 +152,18 @@ def kbet(
     This means that smaller values indicate better batch mixing. By default, the original kBET score is scaled
     between 0 and 1 so that larger scores are associated with better batch mixing.
 
-    Parameters
-    ----------
-    adata
-        Annotated data matrix.
-    batch_key
-        Column in adata.obs with batch information.
-    annotation_key
-        Column in adata.obs with cell type or cluster information.
-    integration_type
-        Type of data integration. If set to `knn` it will take the neighborhood present in the object. If
-        set to `embedding` it will recompute the neighborhood based on `use_rep` and if set to `full` it will
-        recompute PCA use the PCA embedding for the neighborhood graph.
-    use_rep
-        Representation to use to compute neighborhood when `integration_type` is set to `embedding`.
-    scale
-        Re-scale output values between 0 and 1 (True/False)
-    get_data
-        If it is set to `True` it also returns a `pd.DataFrame` with kBET observed rejection rater per cluster
 
-    Returns
-    -------
-    Returns de kBET score (average of kBET per label) based on observed rejection rate. If `get_data` is set to `True` it
-    returns a `pd.DataFrame` with kBET observed rejection rater per cluster
+    :param adata: Annotated data matrix.
+    :param batch_key: Column in adata.obs with batch information.
+    :param annotation_key:  Column in adata.obs with cell type or cluster information.
+    :param integration_type: Type of data integration. If set to `knn` it will take the neighborhood present in the object. If
+                             set to `embedding` it will recompute the neighborhood based on `use_rep` and if set to `full` it will
+                             recompute PCA use the PCA embedding for the neighborhood graph.
+    :param use_rep:  Representation to use to compute neighborhood when `integration_type` is set to `embedding`.
+    :param scale: Re-scale output values between 0 and 1 (True/False)
+    :param get_data: If it is set to `True` it also returns a `pd.DataFrame` with kBET observed rejection rater per cluster
+    :return: Returns de kBET score (average of kBET per label) based on observed rejection rate. If `get_data` is set to `True` it
+            returns a `pd.DataFrame` with kBET observed rejection rater per cluster
 
     Examples
     --------
@@ -241,29 +216,15 @@ def pcr_comparison(
     hasn’t changed. The larger the score, the more different the variance contributions
     are before and after integration.
 
-    Parameters
-    ----------
-    adata_pre
-        Annotated data matrix before the integration
-    adata_post
-        Annotated data matrix after the integration
-    covariate
-        Column in adata.obs to regress against
-    use_rep
-        Embedding to use for principal component analysis. If `None`, use the full expression matrix (adata.X),
-        otherwise use the embedding provided in adata_post.obsm[embed].
-    n_comps
-        Number of principal components to compute
-    recompute_pca
-        Whether to recompute PCA with default settings
-    linreg_method
-        Method for computing the linear regression
-    scale
-        If set to `True` scale score between 0 and 1.
-
-    Returns
-    -------
-    Returns the difference of variance contribution of PCR.
+    :param adata_pre: Annotated data matrix before the integration
+    :param adata_post: Annotated data matrix after the integration
+    :param covariate: Column in adata.obs to regress against
+    :param use_rep: Embedding to use for principal component analysis. If `None`, use the full expression matrix (adata.X), otherwise use the embedding provided in adata_post.obsm[use_rep].
+    :param n_comps: Number of principal components to compute
+    :param recompute_pca: Whether to recompute PCA with default settings
+    :param linreg_method: Method for computing the linear regression
+    :param scale: If set to `True` scale score between 0 and 1.
+    :return:  Returns the difference of variance contribution of PCR.
 
     Examples
     --------
@@ -273,7 +234,6 @@ def pcr_comparison(
     >>> del adata_unintegrated.obsm
     >>> do.bm.pcr_comparison(adata_pre=adata_unintegrated, adata_post=adata, covariate="batch", use_rep="X_CCA")
     Out[47]: np.float64(0.832)
-
     """
     import scib
     import multiprocessing
@@ -314,28 +274,15 @@ def silhouette_batch(
     If `scale` is set to `True`, the  absolute ASW per group is subtracted from 1 before averaging, so that
     0 indicates suboptimal label representation and 1 indicates optimal label representation.
 
-
-    Parameters
-    ----------
-    adata
-        Annotated data matrix.
-    batch_key
-        Column in adata.obs with batch information.
-    annotation_key
-        Column in adata.obs with cell type or cluster information.
-    use_rep
-        Column in adata.obsm with the embedding.
-    metric
-        See `sklearn.silhouette_score <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.silhouette_score.html>`_
-    scale
-        If set to `True`, scale the values between 0 and 1
-    get_all
-        If set to `True` returns the silhouette score, the average silhouette score per cluster and all
-        the silhouette scores.
-
-    Returns
-    -------
-    Returns 1) the average width silhouette  2) the average silhouette score per cluster and 3) all silhouette scores
+    :param adata: Annotated data matrix.
+    :param batch_key: Column in adata.obs with batch information.
+    :param annotation_key: Column in adata.obs with cell type or cluster information.
+    :param use_rep: Column in adata.obsm with the embedding.
+    :param metric: See `sklearn.silhouette_score <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.silhouette_score.html>`_
+    :param scale: If set to `True`, scale the values between 0 and 1
+    :param get_all: If set to `True` returns the silhouette score, the average silhouette score per cluster and all
+                    the silhouette scores.
+    :return: Returns 1) the average width silhouette  2) the average silhouette score per cluster and 3) all silhouette scores
     if `get_all` is set to `True`, otherwise returns the average width silhouette (ASW).
 
     Examples
@@ -391,7 +338,8 @@ def eval_integration(
     show: bool = True,
 
     scale: bool = True,
-    compute_metrics: Literal["GraphConnectivity", "kBET", "pcr_comparison", "silhouette_batch", "silhouette_global", "all"] | list = "all",
+    compute_metrics: Literal[
+                         "GraphConnectivity", "kBET", "pcr_comparison", "silhouette_batch", "silhouette_global", "all"] | list = "all",
 ) -> pd.DataFrame | tuple[pd.DataFrame | dict[str, plt.Axes]]:
     """Evaluate the integration.
 
@@ -399,50 +347,27 @@ def eval_integration(
     values are scaled by default between 0 and 1, in which larger scores represent better batch removal. It will generate
     a barplot to summarize all the metrics.
 
-    Parameters
-    ----------
-    adata_post
-        Annotated data matrix after integration.
-    adata_pre
-        Annotated data matrix before integration.
-    batch_key
-        Column in adata.obs with batch information.
-    annotation_key
-        Column in adata.obs with clustering information.
-    use_rep
-        Key(s) in adata.obsp with the embedding generated from the integration.
-    figsize
-        Figure size, the format is (width, height).
-    ax
-        Matplotlib axes to use for plotting. If not set, a new figure will be generated.
-    palette
-        Dictionary with the embedding names (keys) and the color as values.
-    cmap
-        Matplotlib colormap to use for the different embeddings.
-    path
-        Path to the folder to save the figure.
-    filename
-        Name of file to use when saving the figure.
-    title
-        Title for the figure.
-    title_fontsize
-        Size of the title font.
-    title_legend
-        Title of the legend.
-    legend_fontsize
-        Size of the legend title font.
-    show
-         If set to `False`, returns a dictionary with the matplotlib axes.
-    scale
-        If set to `True` scale score between 0 and 1.
-    compute_metrics
-        List of the metrics to compute. Set to "all" to compute all metrics.
-
-    Returns
-    -------
-    Returns a `pd.Dataframe` with the metrics for each embedding in `use_rep`. If show is set to `False` it returns a
-    tuple with the first element being the DataFrame with the metrics and the second a dictionary with the matplotlib
-    axes for the figure.
+    :param adata_post:  Annotated data matrix after integration.
+    :param adata_pre: Annotated data matrix before integration.
+    :param batch_key: Column in adata.obs with batch information.
+    :param annotation_key: Column in adata.obs with clustering information.
+    :param use_rep: Key(s) in adata.obsp with the embedding generated from the integration.
+    :param figsize: Figure size, the format is (width, height).
+    :param ax: Matplotlib axes to use for plotting. If not set, a new figure will be generated.
+    :param palette: Dictionary with the embedding names (keys) and the color as values.
+    :param cmap: Matplotlib colormap to use for the different embeddings.
+    :param path: Path to the folder to save the figure.
+    :param filename:  Name of file to use when saving the figure.
+    :param title: Title for the figure.
+    :param title_fontsize: Size of the title font.
+    :param title_legend: Title of the legend.
+    :param legend_fontsize: Size of the legend title font.
+    :param show:  If set to `False`, returns a dictionary with the matplotlib axes.
+    :param scale: If set to `True` scale score between 0 and 1.
+    :param compute_metrics: List of the metrics to compute. Set to "all" to compute all metrics.
+    :return: Returns a `pd.Dataframe` with the metrics for each embedding in `use_rep`. If show is set to `False` it returns a
+            tuple with the first element being the DataFrame with the metrics and the second a dictionary with the matplotlib
+            axes for the figure.
 
     Examples
     ---------
@@ -456,9 +381,7 @@ def eval_integration(
         adata = do.dt.example_10x_processed()
         adata_unintegrated = adata.copy()
         del adata_unintegrated.obsm
-        database = do.bm.eval_integration(adata_post=adata, adata_pre=adata_unintegrated, batch_key="batch", annotation_key="annotation", use_rep=["X_CCA", "X_pca"], compute_metrics = ["GraphConnectivity", "pcr_comparison", "silhouette_batch", "silhouette_global"] )
-
-        print(database)
+        database = do.bm.eval_integration(adata_post=adata, adata_pre=adata_unintegrated, batch_key="batch", annotation_key="annotation", use_rep=["X_CCA", "X_pca"], compute_metrics = ["GraphConnectivity", "silhouette_batch", "silhouette_global"] )
 
     """
 
@@ -489,7 +412,8 @@ def eval_integration(
             )
         if "pcr_comparison" in compute_metrics:
             database["pcr_comparison"].append(
-                pcr_comparison(adata_post=adata_post, adata_pre=adata_pre, covariate=batch_key, use_rep=rep, scale=scale)
+                pcr_comparison(adata_post=adata_post, adata_pre=adata_pre, covariate=batch_key, use_rep=rep,
+                               scale=scale)
             )
         if "silhouette_batch" in compute_metrics:
             database["silhouette_batch"].append(
