@@ -60,7 +60,7 @@ def graph_connectivity(
     --------
     >>> import dotools_py as do
     >>> adata = do.dt.example_10x_processed()
-    >>> graph_connectivity(adata, "annotation")
+    >>> do.bm.graph_connectivity(adata, "annotation")
     Out[48]: np.float64(0.594)
 
     """
@@ -194,7 +194,7 @@ def kbet(
     --------
     >>> import dotools_py as do
     >>> adata = do.dt.example_10x_processed()
-    >>> kbet(adata, "batch", "annotation")  # Estimation of score per cell type
+    >>> do.bm.kbet(adata, "batch", "annotation")  # Estimation of score per cell type
         Out[23]:
          cluster      kBET
     0    B_cells  1.000000
@@ -271,7 +271,7 @@ def pcr_comparison(
     >>> adata = do.dt.example_10x_processed()
     >>> adata_unintegrated = adata.copy()
     >>> del adata_unintegrated.obsm
-    >>> pcr_comparison(adata_pre=adata_unintegrated, adata_post=adata, covariate="batch", use_rep="X_CCA")
+    >>> do.bm.pcr_comparison(adata_pre=adata_unintegrated, adata_post=adata, covariate="batch", use_rep="X_CCA")
     Out[47]: np.float64(0.832)
 
     """
@@ -342,9 +342,9 @@ def silhouette_batch(
     --------
     >>> import dotools_py as do
     >>> adata = do.dt.example_10x_processed()
-    >>> silhouette_batch(adata, batch_key="batch", annotation_key="annotation", use_rep="X_CCA")
+    >>> do.bm.silhouette_batch(adata, batch_key="batch", annotation_key="annotation", use_rep="X_CCA")
     Out[63]: np.float64(0.8107897347900055)
-    >>> score, mean_score, all_scores = silhouette_batch(adata, batch_key="batch", annotation_key="annotation", use_rep="X_CCA", get_all=True)
+    >>> score, mean_score, all_scores = do.bm.silhouette_batch(adata, batch_key="batch", annotation_key="annotation", use_rep="X_CCA", get_all=True)
     >>> mean_score
                    silhouette_score
     group
@@ -454,7 +454,7 @@ def eval_integration(
         adata = do.dt.example_10x_processed()
         adata_unintegrated = adata.copy()
         del adata_unintegrated.obsm
-        database = eval_integration(adata_post=adata, adata_pre=adata_unintegrated, batch_key="batch", annotation_key="annotation", use_rep=["X_CCA", "X_pca"])
+        database = do.bm.eval_integration(adata_post=adata, adata_pre=adata_unintegrated, batch_key="batch", annotation_key="annotation", use_rep=["X_CCA", "X_pca"])
 
         print(database)
 
