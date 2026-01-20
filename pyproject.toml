@@ -57,7 +57,8 @@ dependencies = [
   "scanpro",
   "numba",
   "beartype",
-  "fastexcel"
+  "fastexcel",
+  "scib"
 ]
 
 # scanpro missing and failts if added here
@@ -96,7 +97,8 @@ optional-dependencies.doc = [
   "sphinxext-opengraph",
   "tqdm",
   "beartype",
-  "spatialdata"
+  "spatialdata",
+  "scib"
 ]
 optional-dependencies.test = [
   "adjusttext",
