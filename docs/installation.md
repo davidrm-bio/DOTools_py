@@ -29,6 +29,9 @@ python -m ipykernel install --user --name=scrna_py11 --display-name=scrna_py11
 
 ## Requirements
 
+This package has been tested on MacOs and Linux System. For a standard dataset (e.g., 6 samples with 10k cells each)
+we suggest 16GB of RAM and at least 5 CPUs.
+
 Some methods are run through R and require additional dependencies
 including: `Seurat`, `MAST`, `scDblFinder`, `zellkonverter`, `data.table` and `optparse`.
 
@@ -53,6 +56,7 @@ when importing the package. In this case run
 pip install --no-cache polars-lts-cpu
 ```
 
+## R version
 We also have an R implementation of the  [DOTools](https://github.com/MarianoRuzJurado/DOtools). This can be
 installed with `devtools`:
 

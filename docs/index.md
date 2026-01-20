@@ -60,5 +60,15 @@ R version <https://github.com/MarianoRuzJurado/DOtools>
 
 ```
 
+## Logging and reproducibility
+We offer a logging method to allow to track the commands that have been run and
+the output of these commands. To activate it run at the beginning of the session:
+
+```python
+import dotools_py as do
+
+do.settings.set_kernel_logger("History.log")
+```
+
 ## Citation
 > t.b.a
