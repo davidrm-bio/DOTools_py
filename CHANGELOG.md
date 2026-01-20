@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning][].
 - Add `dotools_py.get.layer_swap` to swap layers.
 - Add ``dotools_py.settings.set_kernel_logger`` and ``dotools_py.settings.toggle_kernel_logger`` to record the kernel history.
 - Add ``dotools_py.bm`` module that contain metrics for the evaluation of quality control steps.
+- Add ``dotools_py.pl.density`` to visualize density of features in embeddings.
 
 ### Bug fixes
 
