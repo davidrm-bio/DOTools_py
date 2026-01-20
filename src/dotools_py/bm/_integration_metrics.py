@@ -391,6 +391,7 @@ def eval_integration(
     show: bool = True,
 
     scale: bool = True,
+    compute_metrics: Literal["GraphConnectivity", "kBET", "pcr_comparison", "silhouette_batch", "silhouette_global", "all"] | list = "all",
 ) -> pd.DataFrame | tuple[pd.DataFrame | dict[str, plt.Axes]]:
     """Evaluate the integration.
 
@@ -434,7 +435,8 @@ def eval_integration(
          If set to `False`, returns a dictionary with the matplotlib axes.
     scale
         If set to `True` scale score between 0 and 1.
-
+    compute_metrics
+        List of the metrics to compute. Set to "all" to compute all metrics.
 
     Returns
     -------
@@ -454,7 +456,7 @@ def eval_integration(
         adata = do.dt.example_10x_processed()
         adata_unintegrated = adata.copy()
         del adata_unintegrated.obsm
-        database = do.bm.eval_integration(adata_post=adata, adata_pre=adata_unintegrated, batch_key="batch", annotation_key="annotation", use_rep=["X_CCA", "X_pca"])
+        database = do.bm.eval_integration(adata_post=adata, adata_pre=adata_unintegrated, batch_key="batch", annotation_key="annotation", use_rep=["X_CCA", "X_pca"], compute_metrics = ["GraphConnectivity", "pcr_comparison", "silhouette_batch", "silhouette_global"] )
 
         print(database)
 
@@ -464,34 +466,39 @@ def eval_integration(
     import matplotlib.lines as mlines
 
     use_rep = iterase_input(use_rep)
-    database = {
-        "GraphConnectivity": [],
-        "kBET": [],
-        "pcr_comparison": [],
-        "silhouette_batch": [],
-        "silhouette_global": []
-    }
+
+    compute_metrics = (
+        ["GraphConnectivity", "kBET", "pcr_comparison", "silhouette_batch", "silhouette_global"]
+        if compute_metrics == "all" else compute_metrics
+    )
+
+    database = {key: [] for key in compute_metrics}
 
     # database["kBET_annotation_key"] = kbet(adata=adata_post, batch_key=batch_key,annotation_key=annotation_key, integration_type="knn", use_rep=use_rep, scale=scale, get_data=True)
     # database["silhouette_batch_annotation_key"] = silhouette_batch(adata=adata_post,  batch_key=batch_key,annotation_key=annotation_key,  use_rep=use_rep, scale=scale, get_all=True)[1]
     # database["isolated_label_asw"] = scib.metrics.isolated_labels_asw(adata=adata_post, label_key=annotation_key, batch_key=batch_key, embed=use_rep, scale=scale, verbose=False)
 
     for rep in use_rep:
-        database["GraphConnectivity"].append(graph_connectivity(adata_post, annotation_key))
-        database["kBET"].append(
-            kbet(adata=adata_post, batch_key=batch_key, annotation_key=annotation_key, integration_type="knn",
-                 use_rep=rep, scale=scale, get_data=False)
-        )
-        database["pcr_comparison"].append(
-            pcr_comparison(adata_post=adata_post, adata_pre=adata_pre, covariate=batch_key, use_rep=rep, scale=scale)
-        )
-        database["silhouette_batch"].append(
-            silhouette_batch(adata=adata_post, batch_key=batch_key, annotation_key=annotation_key, use_rep=rep,
-                             scale=scale)
-        )
-        database["silhouette_global"].append(
-            scib_silhouette(adata=adata_post, annotation_key=annotation_key, embed=rep, scale=scale)
-        )
+        if "GraphConnectivity" in compute_metrics:
+            database["GraphConnectivity"].append(graph_connectivity(adata_post, annotation_key))
+        if "kBET" in compute_metrics:
+            database["kBET"].append(
+                kbet(adata=adata_post, batch_key=batch_key, annotation_key=annotation_key, integration_type="knn",
+                     use_rep=rep, scale=scale, get_data=False)
+            )
+        if "pcr_comparison" in compute_metrics:
+            database["pcr_comparison"].append(
+                pcr_comparison(adata_post=adata_post, adata_pre=adata_pre, covariate=batch_key, use_rep=rep, scale=scale)
+            )
+        if "silhouette_batch" in compute_metrics:
+            database["silhouette_batch"].append(
+                silhouette_batch(adata=adata_post, batch_key=batch_key, annotation_key=annotation_key, use_rep=rep,
+                                 scale=scale)
+            )
+        if "silhouette_global" in compute_metrics:
+            database["silhouette_global"].append(
+                scib_silhouette(adata=adata_post, annotation_key=annotation_key, embed=rep, scale=scale)
+            )
 
     database = pd.DataFrame.from_dict(database, orient="index", columns=use_rep)
     database = database.reset_index().melt(id_vars="index", var_name="embedding", value_name="value")
