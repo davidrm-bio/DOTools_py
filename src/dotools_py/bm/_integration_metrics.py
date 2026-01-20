@@ -269,10 +269,9 @@ def silhouette_batch(
 
     Modified average silhouette width (ASW) of batch This metric measures the silhouette of a given batch.
     It assumes that a silhouette width close to 0 represents perfect overlap of the batches, thus the absolute value of
-    the silhouette width is used to measure how well batches are mixed.
-
-    If `scale` is set to `True`, the  absolute ASW per group is subtracted from 1 before averaging, so that
-    0 indicates suboptimal label representation and 1 indicates optimal label representation.
+    the silhouette width is used to measure how well batches are mixed. If `scale` is set to `True`, the  absolute ASW
+    per group is subtracted from 1 before averaging, so that 0 indicates suboptimal label representation and 1 indicates
+    optimal label representation.
 
     :param adata: Annotated data matrix.
     :param batch_key: Column in adata.obs with batch information.
@@ -280,10 +279,8 @@ def silhouette_batch(
     :param use_rep: Column in adata.obsm with the embedding.
     :param metric: See `sklearn.silhouette_score <https://scikit-learn.org/stable/modules/generated/sklearn.metrics.silhouette_score.html>`_
     :param scale: If set to `True`, scale the values between 0 and 1
-    :param get_all: If set to `True` returns the silhouette score, the average silhouette score per cluster and all
-                    the silhouette scores.
-    :return: Returns 1) the average width silhouette  2) the average silhouette score per cluster and 3) all silhouette scores
-    if `get_all` is set to `True`, otherwise returns the average width silhouette (ASW).
+    :param get_all: If set to `True` returns the silhouette score, the average silhouette score per cluster and all the silhouette scores.
+    :return: Returns 1) the average width silhouette  2) the average silhouette score per cluster and 3) all silhouette scores if `get_all` is set to `True`, otherwise returns the average width silhouette (ASW).
 
     Examples
     --------
@@ -300,6 +297,7 @@ def silhouette_batch(
     NK                 0.878482
     T_cells            0.961296
     pDC                0.814496
+
     """
 
     score = scib_silhouette_batch(

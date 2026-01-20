@@ -327,7 +327,7 @@ def integrate_data(
     adata,
     batch_key: str,
     hvg_batch: bool = True,
-    integration_method: Literal["scanorama", "scvi", "cca4", "cca5", "harmony", "pca"] = "cca5",
+    integration_method: Literal["scanorama", "scvi", "cca4", "cca5", "harmony", "pca"] = "scvi",
     bbknn: bool = False,
     resolution: float = 0.3,
     categorical_covariates: list = None,
