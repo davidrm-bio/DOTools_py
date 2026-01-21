@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.sparse.csgraph import connected_components
 from numba import njit
-from dotools_py.utils import check_missing, require_dependencies, iterase_input, make_grid_spec, convert_path
+from dotools_py.utils import check_missing, require_dependencies, iterase_input, make_grid_spec, convert_path, return_axis, save_plot
 from dotools_py.utility._plotting import get_hex_colormaps
 from dotools_py.get import subset as get_subset
 from typing import Literal
@@ -462,10 +462,10 @@ def eval_integration(
         axis="both", left=False, labelleft=False, labelright=False, bottom=False, labelbottom=False)
     legend_axis.spines[["right", "left", "top", "bottom"]].set_visible(False)
     legend_axis.grid(visible=False)
-    if path:
-        plt.savefig(convert_path(path) / filename, bbox_inches="tight")
-
+    save_plot(path, filename)
     if show:
+        plt.tight_layout()
+        plt.show()
         return database
     else:
-        return database, {"main_ax": main_axis, "legend_ax": legend_axis}
+        return database, return_axis(show, {"main_ax": main_axis, "legend_ax": legend_axis})
