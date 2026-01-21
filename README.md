@@ -18,7 +18,7 @@
 
 
 Convenient and user-friendly package to streamline common workflows in single-cell RNA sequencing data analysis using
-the scverse ecosystem. It provides high-level wrappers and visualisation functions to help efficiently preprocess,
+the scverse ecosystem. It provides high-level wrappers and visualization functions to help efficiently preprocess,
 analyze, and interpret single-cell data.
 
 ## Getting started
@@ -57,7 +57,7 @@ python -m ipykernel install --user --name=scrna_py11 --display-name=scrna_py11
 
 ## Requirements
 
-This package has been tested on MacOs and Linux System. For a standard dataset (e.g., 6 samples with 10k cells each)
+This package has been tested on macOS and Linux System. For a standard dataset (e.g., 6 samples with 10k cells each)
 we suggest 16GB of RAM and at least 5 CPUs.
 
 Some methods are run through R and require additional dependencies
@@ -84,12 +84,23 @@ when importing the package. In this case run
 pip install --no-cache polars-lts-cpu
 ```
 
-We also have an R implementation of the  [DOTools](https://github.com/MarianoRuzJurado/DOtools). This can be
-installed with `devtools`:
-
 ## R version
+
+We also have an R implementation of the  [DOTools](https://github.com/MarianoRuzJurado/DOtools). This can be
+installed from Bioconductor:
+
 ```R
+if (!requireNamespace("BiocManager", quietly=TRUE)) {
+    install.packages("BiocManager")
+}
+BiocManager::install("DOtools")
 devtools::install_github("MarianoRuzJurado/DOtools")
+```
+
+The developmental version can be downloaded using `devtools`:
+
+```R
+devtools::install_github("MarianoRuzJurado/DOtools", ref="devel")
 ```
 
 ## Release notes
