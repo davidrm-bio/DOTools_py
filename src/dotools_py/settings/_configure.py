@@ -81,6 +81,39 @@ def matplotlib_backend(backend: str | Literal["pycharm", "jupyter"] = "tkagg") -
     return None
 
 
+def set_random_state(random_state: int = 0, verbosity: bool = True)-> None:
+    """Set random state.
+
+    This function set the global seed for random number generator, specifically for
+    NumPy, random, torch and tensorflow.
+
+    :param random_state: seed.
+    :param verbosity: show a message indicating the random_state that has been set.
+    :return: Returns None
+    """
+    import random
+    import numpy as np
+
+
+    random.seed(random_state)
+    np.random.seed(random_state)
+
+    try:
+        import torch
+        torch.manual_seed(random_state)
+        torch.cuda.manual_seed_all(random_state)
+    except ImportError:
+        pass
+    try:
+        import tensorflow as tf
+        tf.random.set_seed(random_state)
+    except ImportError:
+        pass
+
+    if verbosity:
+        logger.info(f"Setting random state to: {random_state}")
+    return None
+
 
 def session_settings(
     verbosity: int = 2,
@@ -101,6 +134,7 @@ def session_settings(
     top_spine: bool = False,
     right_spine: bool = False,
     grid: bool = False,
+    random_state: int = 0,
 ) -> None:
     """Set general settings.
 
@@ -123,14 +157,16 @@ def session_settings(
     :param top_spine: remove the top spine.
     :param right_spine: remove the right spine.
     :param grid: show the grid lines.
+    :param random_state: seed for random number generator.
     :return:
     """
     import matplotlib.font_manager as fm
+
     available_fonts = sorted({f.name for f in fm.fontManager.ttflist})
     font_family = "Helvetica" if "Helvetica" in available_fonts else "sans-serif"
 
     # Scanpy Settings
-    set_verbosity(verbosity)
+    set_random_state(random_state, verbosity=False)
     interactive_session(interactive)
     logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 

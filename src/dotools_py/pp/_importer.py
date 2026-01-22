@@ -126,6 +126,7 @@ def find_doublets(
     method: Literal["scDblFinder", "DoubletDetection", "Scrublet", "Ovrlpy"] = "scDblFinder",
     ovrlpy_keys: Dict = None,
     ovrlpy_report_path: str | Path = None,
+    random_state: int = 0,
 ) -> None:
     """Detect doublets in scRNAseq and iST.
 
@@ -158,6 +159,8 @@ def find_doublets(
         in the dataframe with the gene names and the x, y and z coordinate.
     ovrlpy_report_path
         Directory where the quality control plots and the ovrlpy object will be saved.
+    random_state
+        Seed for random number generator
 
     Returns
     -------
@@ -202,12 +205,14 @@ def find_doublets(
             r.assign("cluster", cluster_key)
             r.assign("dbr", doublet_rate)
             r.assign("metric", scdblfinder_metric)
+            r.assign("random_state", random_state)
             r(
                 """
                 library(scDblFinder)
                 if (!suppressPackageStartupMessages(require(SingleCellExperiment))) {
                     stop("R dependecy SingleCellExperiment not found.")
                 }
+                set.seed(random_state)
                 sce <- as(adata, "SingleCellExperiment")
                 sce <- scDblFinder(sce, samples = batch, clusters=cluster, dbr=dbr, metric=metric, verbose = F)
                 df <- data.frame(
@@ -224,7 +229,7 @@ def find_doublets(
         import doubletdetection
         clf = doubletdetection.BoostClassifier(
             n_iters=15, clustering_algorithm="leiden", standard_scaling=True, verbose=False, n_jobs=-1,
-            random_state=42,
+            random_state=random_state,
         )
         doublets = clf.fit(adata.X).predict()
         doublet_score = clf.doublet_score()
@@ -235,7 +240,7 @@ def find_doublets(
     elif method == "Scrublet":
         from scanpy.preprocessing import scrublet
         expected_doublet_rate = doublet_rate if doublet_rate is not None else 0.05
-        scrublet(adata, expected_doublet_rate=expected_doublet_rate)
+        scrublet(adata, expected_doublet_rate=expected_doublet_rate, random_state=random_state)
         adata.obs["doublet_class"] = adata.obs["predicted_doublet"].map({False: "singlet", True: "doublet"})
         del adata.obs["predicted_doublet"]
     elif method == "Ovrlpy":
@@ -253,7 +258,8 @@ def find_doublets(
                                          ovrlpy_keys.get("z_key", "z_location"))
 
         data = ovrlpy.Ovrlp(
-            adata, n_workers=available_cores, random_state=42, gene_key=gene_key, coordinate_keys=(x_key, y_key, z_key)
+            adata, n_workers=available_cores, random_state=random_state, gene_key=gene_key,
+            coordinate_keys=(x_key, y_key, z_key),
         )
         data.analyse()
 
@@ -365,6 +371,7 @@ def _qc_scrna(
     remove_doublets: bool = False,
     doublet_tool: Literal["scDblFinder", "DoubletDetection", "Scrublet"] = "scDblFinder",
     metrics: bool = True,
+    random_state: int = 0,
 ) -> ad.AnnData:
     """Basic QC.
 
@@ -385,6 +392,7 @@ def _qc_scrna(
     :param remove_doublets: remove doublets.
     :param doublet_tool: doublet tool to use. Available scDblFinder, Scrublet and DoubletDetection.
     :param metrics: whether to generate a metrics file or not.
+    :param random_state: Seed for random number generator.
     :return: annotated dt matrix
     """
     import scanpy as sc
@@ -458,7 +466,7 @@ def _qc_scrna(
 
     # Step 5 -
     if remove_doublets:
-        find_doublets(adata, batch_key=batch_key, method=doublet_tool)
+        find_doublets(adata, batch_key=batch_key, method=doublet_tool, random_state=random_state)
 
         # if doublet_tool == "scDblFinder":
         #     adata.layers["counts"] = adata.X.copy()  # needed for scDblFinder
@@ -554,6 +562,7 @@ def quality_control(
     doublet_tool: Literal["scDblFinder", "DoubletDetection", "Scrublet"] = "scDblFinder",
     metrics: bool = True,
     qc_path: str | Path | None = None,
+    random_state: int = 0,
 ) -> ad.AnnData:
     """Basic quality control for sc/snRNA-seq.
 
@@ -609,6 +618,8 @@ def quality_control(
         Whether to compute statistics of how many cells and genes are remove in each step.
     qc_path
         Directory where the quality control plots and metrics are saved.
+    random_state
+        Seed for random number generator,
 
     Returns
     -------
@@ -645,6 +656,7 @@ def quality_control(
             doublet_tool=doublet_tool,
             metrics=metrics,
             qc_path=qc_path,
+            random_state=random_state
 
         )
         database[batch_name] = adata_batch
@@ -672,6 +684,7 @@ def importer_py(
     max_genes: int | None = None,
     low_quantile: int | None = None,
     high_quantile: int | None = None,
+    random_state: int = 0,
 ) -> ad.AnnData:
     """Quality control analysis for sc/snRNA.
 
@@ -714,6 +727,7 @@ def importer_py(
     :param max_genes: maximum number of genes per cell.
     :param low_quantile: low quantile to filter cells based on counts.
     :param high_quantile: upper quantile to filter cells based on counts.
+    :param random_state: seed for random number generator.
     :return: Returns an Annotated data matrix of shape `n_obs` x `n_vars` with all the samples concatenated.
 
     Example
@@ -783,6 +797,7 @@ def importer_py(
             include_rbs=True,
             remove_doublets=remove_doublets,
             doublet_tool=doublet_tool,
+            random_state=random_state
         )
 
         # Vln Plots showing Metrics before qc
@@ -803,7 +818,7 @@ def importer_py(
     logger.info("Run PCA")
     hvg = adata_concat[:, adata_concat.var.highly_variable].copy()
     sc.pp.scale(hvg, zero_center=True)  # Scale only on HVGs to replicate Seurat Approach
-    sc.pp.pca(hvg)  # PCA on Scaled HVGs
+    sc.pp.pca(hvg, random_state=random_state)  # PCA on Scaled HVGs
     adata_concat.obsm["X_pca"] = hvg.obsm["X_pca"].copy()  # Save in original object
 
     return adata_concat

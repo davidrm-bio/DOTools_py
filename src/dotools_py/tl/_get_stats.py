@@ -453,6 +453,7 @@ def rank_genes_pseudobulk(
     filename: str = "DEA_Pseudobulk.xlsx",
     get_results: bool = True,
     key_added: str = "rank_genes_pseudobulk",
+    random_state: int = 0,
 ) -> None | pd.DataFrame:
     """Running DEA using pseudobulk approach.
 
@@ -479,6 +480,7 @@ def rank_genes_pseudobulk(
     :param filename: Name of the file.
     :param get_results: Get dataframe with DEA results.
     :param key_added: Name of the uns attribute with the results.
+    :param random_state: seed for random number generator.
     :return: Returns a `DataFrame` with DEA results if `get_results` is set to True. The following field will also be set:
 
              `adata.uns['rank_genes_pseudobulk' | key_added]`
@@ -507,7 +509,8 @@ def rank_genes_pseudobulk(
         min_counts=min_counts,
         layer=layer,
         keep_metadata=[condition_key],
-        workers=workers
+        workers=workers,
+        random_state=random_state
     )
 
     sanitize_anndata(pdata_cts)
@@ -602,6 +605,7 @@ def rank_genes_consensus(
     pval_cutoff: float = 0.05,
     get_results: bool = True,
     key_added: str = "rank_genes_consensus",
+    random_state: int = 0,
 ) -> None | pd.DataFrame :
     """Run single-cell and pseudo-bulk differential expression analysis.
 
@@ -637,6 +641,7 @@ def rank_genes_consensus(
     :param pval_cutoff: Cutoff for considering a gene significant.
     :param get_results: Get a dataframe with the consensus results
     :param key_added: Name of the uns attribute with the results
+    :param random_state: seed for random number generator
     :return: Returns a `DataFrame` with DEA results if `get_results` is set to True. The following field will also be set:
 
             `adata.uns['rank_genes_consensus' | key_added]`
@@ -679,6 +684,7 @@ def rank_genes_consensus(
         pseudobulk_approach=pseudobulk_approach,
         technical_replicates=technical_replicates,
         workers=workers,
+        random_state=random_state,
     )
     logger.info("Generating consensus DataFrame")
 

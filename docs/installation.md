@@ -56,6 +56,8 @@ when importing the package. In this case run
 pip install --no-cache polars-lts-cpu
 ```
 
+# R version
+
 We also have an R implementation of the  [DOTools](https://github.com/MarianoRuzJurado/DOtools). This can be
 installed from Bioconductor:
 

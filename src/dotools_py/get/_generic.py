@@ -500,6 +500,7 @@ def pseudobulk(
     min_counts: int = 10,
     layer: str = None,
     workers: int = 5,
+    random_state: int = 0,
 ) -> ad.AnnData:
     """Generate pseudobulk AnnData of clusters.
 
@@ -518,6 +519,7 @@ def pseudobulk(
     :param min_counts: Minimum number of counts for a gene to be included.
     :param layer: Layer to use.
     :param workers: Number of theads to use to parallelize the pseudo-bulking
+    :param random_state: Seed for random number generator.
     :return: AnnData with pseudobulk counts for each cluster.
 
     Example
@@ -544,6 +546,7 @@ def pseudobulk(
     import scanpy as sc
     from tqdm import tqdm
     import random
+    random.seed(random_state)
 
     keep_metadata = [] if keep_metadata is None else keep_metadata
     keep_metadata = [keep_metadata] if isinstance(keep_metadata, str) else keep_metadata

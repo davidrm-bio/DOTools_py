@@ -241,6 +241,7 @@ def cell_composition(
     linewidth: float = 0.9,
     add_total_ncell: bool = True,
     get_props: bool = False,
+    random_state: int = 0,
     **kwargs,
 ) -> None | pd.DataFrame | plt.Axes:
     """Stacked barplot showing changes in cell-type proportions.
@@ -275,6 +276,7 @@ def cell_composition(
     :param linewidth: Thickness of the lines connecting significant bars.
     :param add_total_ncell: Add the total number of cells in the dataset.
     :param get_props: If set to `True`, returns a dataframe with the cell proportions.
+    :param random_state: seed for random number generator.
     :param kwargs: Additional arguments pass to `scanpro() <https://scanpro.readthedocs.io/en/latest/API.html#scanpro.scanpro.scanpro>`_.
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
 
@@ -317,6 +319,7 @@ def cell_composition(
         samples_col=batch_key,
         covariates=covariates,
         transform=transform,
+        seed=random_state,
         **kwargs,
     )
 

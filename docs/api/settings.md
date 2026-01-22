@@ -14,4 +14,5 @@ the pipeline.
     settings.matplotlib_backend
     settings.set_kernel_logger
     settings.toogle_kernel_logger
+    settings.set_random_state
 ```

@@ -333,6 +333,7 @@ def integrate_data(
     categorical_covariates: list = None,
     continuous_covariates: list = None,
     get_model: bool = False,
+    random_state: int = 0,
     **kwargs,
 ) -> "SCVI | None":
     """Integrate a concatenated AnnData.
@@ -359,6 +360,7 @@ def integrate_data(
     :param categorical_covariates: Categorical covariates for scVI.
     :param continuous_covariates: Continuous covariates for scVI.
     :param get_model: Set to True to Return the scVI model.
+    :param random_state: seed for random number generator.
     :param kwargs: Additional arguments for
                   `scVI model <https://docs.scvi-tools.org/en/stable/api/reference/scvi.model.SCVI.html>`_.
     :return: Returns `None` or the scVI model if `get_model` is `True`. The following fields will be set:
@@ -418,7 +420,7 @@ def integrate_data(
     sc.pp.highly_variable_genes(adata, batch_key=hvg_batch)
     hvg = adata[:, adata.var.highly_variable].copy()
     sc.pp.scale(hvg)
-    sc.pp.pca(hvg)
+    sc.pp.pca(hvg, random_state=random_state)
 
     dim_reduc = "X_pca"
     model = None
@@ -426,7 +428,7 @@ def integrate_data(
 
     if integration_method == "harmony":
         logger.info("Integration using Harmony")
-        sce.pp.harmony_integrate(hvg, key=batch_key, max_iter_harmony=150)
+        sce.pp.harmony_integrate(hvg, key=batch_key, max_iter_harmony=150, random_state=random_state)
         adata.obsm["X_harmony"] = hvg.obsm["X_pca_harmony"]
         dim_reduc = "X_harmony"
     elif integration_method == "scanorama":
@@ -463,15 +465,15 @@ def integrate_data(
 
     if bbknn:
         logger.info("Computing neighbors with BBKNN")
-        sce.pp.bbknn(adata, use_rep=dim_reduc, neighbors_within_batch=neighbors_within_batch, batch_key=batch_key)
+        sce.pp.bbknn(adata, use_rep=dim_reduc, neighbors_within_batch=neighbors_within_batch, batch_key=batch_key, pynndescent_random_state=random_state)
     else:
         sc.pp.neighbors(adata, use_rep=dim_reduc, random_state=42)
 
     logger.info("Run UMAP")
-    sc.tl.umap(adata)
+    sc.tl.umap(adata, random_state=random_state)
 
     logger.info(f"Clustering cells using Leiden (resolution {resolution})")
-    sc.tl.leiden(adata, resolution=resolution, flavor="igraph", n_iterations=2, directed=False)
+    sc.tl.leiden(adata, resolution=resolution, flavor="igraph", n_iterations=2, directed=False, random_state=random_state)
     return model
 
 
@@ -643,6 +645,7 @@ def reclustering(
     get_subset: bool = False,
     key_added: str = "annotation_recluster",
     key_added_autoannot: str = "autoAnnot_recluster",
+    random_state: int = 0,
 ) -> ad.AnnData | None:
     """Re-clustering of dataset.
 
@@ -685,6 +688,7 @@ def reclustering(
     :param get_subset: if set to `True`, returns an AnnData of `use_clusters` after re-clustering.
     :param key_added: metadata column name in `obs` to save reclustering information.
     :param key_added_autoannot: metadata column name in `obs` to save reclustering information after automatic annotation.
+    :param random_state: seed for random number generator.
     :return: Returns `None` if `get_subset` is set to False, otherwise a subsetted AnnData after the re-clustering is
              returned. Additionally, the following fields will be set:
 
@@ -752,7 +756,7 @@ def reclustering(
         except AttributeError:
             adata_tmp = ad.AnnData(adata_subset.obsm[use_rep], obs=pd.DataFrame(index=adata_subset.obs_names))
         sc.pp.scale(adata_tmp)
-        sc.pp.pca(adata_tmp)
+        sc.pp.pca(adata_tmp, random_state=random_state)
         representation = "X_pca"
         adata_subset.obsm[representation] = adata_tmp.obsm[representation]
     elif recluster_approach.lower() == "cca5":
@@ -769,8 +773,8 @@ def reclustering(
         adata_tmp = adata_subset.copy()
         sc.pp.highly_variable_genes(adata_tmp, batch_key=hvg_key)
         sc.pp.scale(adata_tmp)
-        sc.pp.pca(adata_tmp)
-        sce.pp.harmony_integrate(adata_tmp, key=batch_key, max_iter_harmony=25)
+        sc.pp.pca(adata_tmp, random_state=random_state)
+        sce.pp.harmony_integrate(adata_tmp, key=batch_key, max_iter_harmony=25, random_state=random_state)
         representation = "X_pca_harmony"
         adata_subset.obsm[representation] = adata_tmp.obsm[representation]
     # If bbknn was used, redo PCA
@@ -779,7 +783,7 @@ def reclustering(
         adata_tmp = adata_subset.copy()
         sc.pp.highly_variable_genes(adata_tmp, batch_key=hvg_key)
         sc.pp.scale(adata_tmp)
-        sc.pp.pca(adata_tmp)
+        sc.pp.pca(adata_tmp, random_state=random_state)
         representation = "X_pca"
         adata_subset.obsm[representation] = adata_tmp.obsm[representation]
     # If scvi was used, take the scvi latent space
@@ -791,7 +795,7 @@ def reclustering(
         adata_tmp = adata_subset.copy()
         sc.pp.highly_variable_genes(adata_tmp, batch_key=hvg_key)
         sc.pp.scale(adata_tmp)
-        sc.pp.pca(adata_tmp)
+        sc.pp.pca(adata_tmp, random_state=random_state)
         representation = "X_pca"
         adata_subset.obsm["X_pca"] = adata_tmp.obsm["X_pca"]
     else:
@@ -799,12 +803,12 @@ def reclustering(
 
     # Calculate neighbors, UMAP and leiden
     if bbknn:
-        sce.pp.bbknn(adata_subset, use_rep=representation, batch_key=batch_key, neighbors_within_batch=neighbors_batch)
+        sce.pp.bbknn(adata_subset, use_rep=representation, batch_key=batch_key, neighbors_within_batch=neighbors_batch, pynndescent_random_state=random_state)
     else:
-        sc.pp.neighbors(adata_subset, use_rep=representation, random_state=42)
+        sc.pp.neighbors(adata_subset, use_rep=representation, random_state=random_state)
 
-    sc.tl.umap(adata_subset)
-    sc.tl.leiden(adata_subset, resolution=resolution, flavor="igraph", n_iterations=2, directed=False)
+    sc.tl.umap(adata_subset, random_state=random_state)
+    sc.tl.leiden(adata_subset, resolution=resolution, flavor="igraph", n_iterations=2, directed=False, random_state=random_state)
     adata.obs[key_added] = adata.obs[cluster_key].copy()
 
     if automatic_annot:
