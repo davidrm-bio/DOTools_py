@@ -169,6 +169,7 @@ def session_settings(
     set_random_state(random_state, verbosity=False)
     interactive_session(interactive)
     logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
+    set_verbosity(verbosity)
 
     plt.rcParams.update(
         {
