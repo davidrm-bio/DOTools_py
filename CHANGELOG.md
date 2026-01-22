@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning][].
 - Add ``dotools_py.bm`` module that contain metrics for the evaluation of quality control steps.
 - Add ``dotools_py.pl.density`` to visualize density of features in embeddings.
 - Add ``random_state`` parameters to the methods.
+- Add ``dotools_py.utlity.create_report``
 
 ### Bug fixes
 

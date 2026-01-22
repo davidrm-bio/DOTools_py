@@ -12,6 +12,7 @@ the analysis.
     :toctree: generated
 
     utility.free_memory
+    utility.create_report
     utility.transfer_labels
     utility.add_gene_metadata
 ```
