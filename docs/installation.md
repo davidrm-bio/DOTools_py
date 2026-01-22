@@ -29,7 +29,7 @@ python -m ipykernel install --user --name=scrna_py11 --display-name=scrna_py11
 
 ## Requirements
 
-This package has been tested on macOS and Linux System. For a standard dataset (e.g., 6 samples with 10k cells each)
+This package has been tested on macOS, Linux and Windows System. For a standard dataset (e.g., 6 samples with 10k cells each)
 we suggest 16GB of RAM and at least 5 CPUs.
 
 Some methods are run through R and require additional dependencies
