@@ -68,6 +68,9 @@ the output of these commands. To activate it run at the beginning of the session
 import dotools_py as do
 
 do.settings.set_kernel_logger("History.log")
+
+# Run at the end to add Session Information.
+do.utility.create_report("History.log")
 ```
 
 ## Citation
