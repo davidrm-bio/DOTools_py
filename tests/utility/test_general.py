@@ -1,5 +1,4 @@
 import dotools_py as do
-import shutil
 import os
 
 def test_gc():
