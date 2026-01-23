@@ -31,7 +31,7 @@ def test_transferLabels():
     adata = do.dt.example_10x_processed()
     adata_subset = do.get.subset(adata, obs_key="annotation", obs_groups="B_cells", copy=True)
     adata_subset.obs["news"] = "testing"
-    do.utility.transfer_labels(adata,
+    adata = do.utility.transfer_labels(adata,
                                adata_subset,
                                original_key="annotation",
                                subset_key="news",

@@ -58,7 +58,7 @@ def test_autoannot():
     os.makedirs("./tmp", exist_ok=True)
 
     del adata.obs["autoAnnot"]
-    do.tl.auto_annot(adata, "leiden", convert=True, pl_cell_prob=True,
+    do.tl.auto_annot(adata, "leiden", convert=False, pl_cell_prob=True,
                      path="./tmp", filename="test.svg")
     plt.close()
     assert "autoAnnot" in adata.obs.columns
