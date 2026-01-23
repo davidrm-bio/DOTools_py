@@ -65,7 +65,7 @@ def test_spatial():
 
 def test_report():
     do.settings.set_kernel_logger("./history.log")
-    os.path.exists("./history.log")
+    os.path.isfile("./history.log")
     do.settings.toogle_kernel_logger(False)
     # do.utility.create_report("./history.log")
     shutil.rmtree("./history.log")

@@ -356,6 +356,7 @@ def run_harmony(
     >>> do.tl.run_harmony(adata, batch_key="batch")
     >>> adata.obsm_keys()
     ['X_CCA', 'X_pca', 'X_umap', 'X_harmony']
+
     """
 
 
