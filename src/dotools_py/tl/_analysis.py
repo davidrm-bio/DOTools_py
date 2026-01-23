@@ -347,6 +347,7 @@ def run_harmony(
     :param kwargs:Additional arguments pass to `harmony.harmonize <https://github.com/lilab-bcb/harmony-pytorch/blob/main/harmony/harmony.py>`_.
     :return: Returns None. A new slot will be set in ``adata.obsm[rep_added]``.
 
+
     Example
     -------
     >>> import dotools_py as do
@@ -358,7 +359,6 @@ def run_harmony(
     ['X_CCA', 'X_pca', 'X_umap', 'X_harmony']
 
     """
-
 
     try:
         from harmony import harmonize
