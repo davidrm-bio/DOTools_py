@@ -344,8 +344,8 @@ def run_harmony(
     :param random_state: Seed for random number generator.
     :param use_gpu: If set to `True` will use GPU if available.
     :param max_iter_harmony: Maximum number of iterations for harmony.
-    :param kwargs:Additional arguments pass to `harmony.harmonize <https://github.com/lilab-bcb/harmony-pytorch/blob/main/harmony/harmony.py>`_
-    :return: Returns None. A new slot will be set in adata.obsm[rep_added].
+    :param kwargs:Additional arguments pass to `harmony.harmonize <https://github.com/lilab-bcb/harmony-pytorch/blob/main/harmony/harmony.py>`_.
+    :return: Returns None. A new slot will be set in ``adata.obsm[rep_added]``.
 
     Example
     -------
@@ -356,7 +356,6 @@ def run_harmony(
     >>> do.tl.run_harmony(adata, batch_key="batch")
     >>> adata.obsm_keys()
     ['X_CCA', 'X_pca', 'X_umap', 'X_harmony']
-
     """
 
 
