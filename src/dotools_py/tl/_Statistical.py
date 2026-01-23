@@ -33,22 +33,15 @@ class DGEAnalysis:
     To perform DGE analysis at the sample level, the available methods are: EdgeR, DESeq2 and T-test. For DGE analysis
     at the single cell level, the available methods are: wilcoxon, MAST, t-test and logreg.
 
-    Parameters
-    ----------
-    data (ad.AnnData)
-        Annotated data matrix.
-    groupby (str)
-        Column in `obs` to use for testing.
-    batch_key (str)
-        Column in `obs` with batch information.
-    pseudobulk_mode Literal["sum", "mean"]
-        Method to generated pseudobulk counts.
-    pseudobulk_groups (str)
-        Column in `obs` to additionally group_by when generating pseudobulk profiles (e.g., cell type annotation).
-        Differential gene expression will be performed for the groups (e.g., conditions) in `groupby` for each
-        category (e.g., cell type) in `pseudobulk_groups`.
-    technical_replicates (int)
-        Number of technical replicates to generate for each sample (Experimental).
+    :param adata: Annotated data matrix.
+    :param group_by:  Column in `adata.obs` to use for testing.
+    :param batch_key: Column in `adata.obs` with batch information.
+    :param pseudobulk_mode: Method to generated pseudobulk counts.
+    :param pseudobulk_groups: Column in `adata.obs` to additionally group_by when generating pseudobulk profiles
+                              (e.g., cell type annotation). Differential gene expression will be performed for
+                              the groups (e.g., conditions) in `groupby` for each category (e.g., cell type)
+                              in `pseudobulk_groups`.
+    :param technical_replicates: Number of technical replicates to generate for each sample (Experimental).
 
     Methods
     -------
@@ -103,7 +96,7 @@ class DGEAnalysis:
     """
 
     def __init__(self,
-                 data: ad.AnnData | pd.DataFrame,
+                 adata: ad.AnnData,
                  group_by: str,
                  batch_key: str = "batch",
                  pseudobulk_mode: Literal["sum", "mean"] = "sum",
@@ -113,7 +106,7 @@ class DGEAnalysis:
                  ):
         """Initialize class.
 
-        :param data: AnnData.
+        :param adata: AnnData.
         :param group_by: Column in `obs` to use for testing.
         :param batch_key: Column in `obs` with sample information.
         :param pseudobulk_mode: Method to generated pseudobulk counts.
@@ -125,14 +118,14 @@ class DGEAnalysis:
         """
 
         # Checks
-        self._is_numeric_counts(data, numeric=True, integers=False)
-        if isinstance(data, ad.AnnData):
-            sanitize_anndata(data)
-            check_missing(data, groups=[group_by, batch_key] + iterase_input(pseudobulk_groups))
-        if isinstance(data, pd.DataFrame):
+        self._is_numeric_counts(adata, numeric=True, integers=False)
+        if isinstance(adata, ad.AnnData):
+            sanitize_anndata(adata)
+            check_missing(adata, groups=[group_by, batch_key] + iterase_input(pseudobulk_groups))
+        if isinstance(adata, pd.DataFrame):
             raise NotImplementedError("DataFrame Input not Implemented")
 
-        self.adata = data
+        self.adata = adata
         self.groupby = group_by
         self.batch_key = batch_key
         self.pseudobulk_mode = pseudobulk_mode
