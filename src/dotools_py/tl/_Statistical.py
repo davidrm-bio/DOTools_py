@@ -36,7 +36,7 @@ class DGEAnalysis:
     and t-test. At the single-cell level, the available methods are wilcoxon,
     MAST, t-test, t-test with overestimated variance, and logistic regression.
 
-    Parameters
+    Attributes
     ----------
     adata : ad.AnnData
         Annotated data matrix.
@@ -89,20 +89,12 @@ class DGEAnalysis:
     ['logreg', 'mast', 'ttest', 'ttest_overtim_var', 'wilcoxon']
     >>> tester.find_methods("pseudobulk")
     ['cluster_ttest', 'deseq', 'edger']
-    >>> tester.wilcoxon(reference="healthy", groups="disease")
-    >>> tester.get_dge["wilcoxon"].head(5)
-              GeneName  statistic    log2fc  ...  pts_group   pts_ref    group
-    0   ZNF331  15.936105  4.125951  ...   0.650000  0.096154  disease
-    1      EZR  15.871257  3.097546  ...   0.866667  0.367308  disease
-    2     EIF1  14.823599  0.907127  ...   0.994444  0.994231  disease
-    3     SRGN  14.721976  2.527285  ...   0.922222  0.636538  disease
-    4     EGR1  12.330428  5.300842  ...   0.316667  0.011538  disease
-    [5 rows x 8 columns]
+
     """
 
     def __init__(self,
                  adata: ad.AnnData,
-                 group_by: str,
+                 groupby: str,
                  batch_key: str = "batch",
                  pseudobulk_mode: Literal["sum", "mean"] = "sum",
                  pseudobulk_groups: str | None = None,
@@ -112,7 +104,7 @@ class DGEAnalysis:
         """Initialize class.
 
         :param adata: AnnData.
-        :param group_by: Column in `obs` to use for testing.
+        :param groupby: Column in `obs` to use for testing.
         :param batch_key: Column in `obs` with sample information.
         :param pseudobulk_mode: Method to generated pseudobulk counts.
         :param pseudobulk_groups: Column in `obs` to additionally group_by when generating pseudobulk profiles
@@ -126,12 +118,12 @@ class DGEAnalysis:
         self._is_numeric_counts(adata, numeric=True, integers=False)
         if isinstance(adata, ad.AnnData):
             sanitize_anndata(adata)
-            check_missing(adata, groups=[group_by, batch_key] + iterase_input(pseudobulk_groups))
+            check_missing(adata, groups=[groupby, batch_key] + iterase_input(pseudobulk_groups))
         if isinstance(adata, pd.DataFrame):
             raise NotImplementedError("DataFrame Input not Implemented")
 
         self.adata = adata
-        self.groupby = group_by
+        self.groupby = groupby
         self.batch_key = batch_key
         self.pseudobulk_mode = pseudobulk_mode
         self.pseudobulk_groups = pseudobulk_groups

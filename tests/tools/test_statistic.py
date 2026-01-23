@@ -91,7 +91,7 @@ def test_run():
 
 def test_DGEClass():
     adata = do.dt.example_10x_processed()
-    tester = do.tl.DGEAnalysis(adata=adata, group_by="condition", batch_key="batch")
+    tester = do.tl.DGEAnalysis(adata=adata, groupby="condition", batch_key="batch")
 
     # tester._get_pseudobulk()
 
