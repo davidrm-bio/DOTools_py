@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning][].
 - Add ``dotools_py.pl.density`` to visualize density of features in embeddings.
 - Add ``random_state`` parameters to the methods.
 - Add ``dotools_py.utlity.create_report``
+- Add ``dotools_py.tl.DGEAnalysis``, a class with DGE analysis methods.
 
 ### Bug fixes
 
@@ -29,6 +30,7 @@ and this project adheres to [Semantic Versioning][].
 were not correctly display when `hue` was set but `hue_order` was not set.
 - Embedding plots will be saved using a ``vector_friendly`` (scatter plots will use png backend even when exporting as PDF or SVG).
 - Internal bug fixes in several other methods
+- Harmony runs through the pytorch implementation.
 
 ## Version 0.0.2 {small}`2025-11-25`
 
