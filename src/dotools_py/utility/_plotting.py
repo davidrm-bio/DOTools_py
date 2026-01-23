@@ -99,3 +99,41 @@ def spine_format(axis: plt.Axes, txt: str = "UMAP", fontsize: int = 12) -> None:
     axis.set_xlabel(txt + "1", loc="left", fontsize=fontsize, fontweight="bold")
     axis.set_ylabel(txt + "2", loc="bottom", fontsize=fontsize, fontweight="bold")
     return None
+
+
+def _get_ticks_defaults(properties: dict) -> tuple:
+    properties = {} if properties is None else properties
+    size, weight, rotation = (properties.get("size", 12),
+                              properties.get("weight", "bold"),
+                              properties.get("rotation", None))
+    ha, va = ("center", "top") if rotation is None else ("right", "top")
+    return size, weight, rotation, ha, va
+
+
+def set_plot_layout(ax: plt.Axes,
+                    show_spines: tuple[bool, bool, bool, bool] = (True, True, False, False),
+                    xticks_fontproperties: dict = None,
+                    yticks_fontproperties: dict = None,
+                    title_fontproperties: dict = None,
+                    legend_fontproperties: dict = None,
+                    legend_location: str = None,
+                    ):
+    # Set the Spines
+    ax.spines["bottom"].set_visible(show_spines[0])
+    ax.spines["left"].set_visible(show_spines[1])
+    ax.spines["top"].set_visible(show_spines[2])
+    ax.spines["right"].set_visible(show_spines[3])
+
+    # Set X-ticks properties
+    x_size, x_weight, x_rotation, x_ha, x_va = _get_ticks_defaults(xticks_fontproperties)
+    ax.set_xticklabels(
+        ax.get_xticklabels(), fontsize=x_size, fontweight=x_weight, rotation=x_rotation, ha=x_ha, va=x_va
+    )
+
+    # Set Y-ticks properties
+    y_size, y_weight, y_rotation, y_ha, y_va = _get_ticks_defaults(yticks_fontproperties)
+    ax.set_yticklabels(
+        ax.get_yticklabels(), fontsize=y_size, fontweight=y_weight, rotation=y_rotation, ha=y_ha, va=y_va
+    )
+
+
