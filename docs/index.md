@@ -4,7 +4,7 @@ DoTools is a convenient and user-friendly package to streamline common workflows
 analysis using the scverse ecosystem. It provides high-level wrappers and visualisation functions to help efficiently
 preprocess, analyze, and interpret single-cell data.
 
-![Overview](https://github.com/davidrm-bio/DOTools_py/blob/b7af406cd0ea28184c6d999372f077d825732c09/docs/_static/figures/DoTools_Overview.png?raw=1)
+![Overview](https://github.com/davidrm-bio/DOTools_py/blob/0d6c4cf0cd7ce06f9511bde85b92f73befd575a8/docs/_static/figures/DoTools_Overview.png?raw=1)
 
 ```{eval-rst}
 .. card:: Installation :octicon:`plug;1em;`

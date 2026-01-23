@@ -54,32 +54,6 @@ class DGEAnalysis:
     technical_replicates
         Number of technical replicates to generate for each sample (experimental).
 
-    Methods
-    -------
-    edger():
-        Run EdgeR. Differential gene expression at the sample level.
-    deseq():
-        Run DESeq2. Differential gene expression at the sample level.
-    cluster_ttest():
-        Run t-test. Differential gene expression at the sample level.
-    wilcoxon():
-        Run Wilcoxon test. Differential gene expression at the single-cell level.
-    ttest():
-        Run t-test. Differential gene expression at the single-cell level.
-    ttest_overtim_var():
-        Run t-test with overestimated variance. Differential gene expression at
-        the single-cell level.
-    logreg():
-        Run logistic regression. Differential gene expression at the single-cell
-        level.
-    mast():
-        Run MAST. Differential gene expression at the single-cell level.
-    find_methods():
-        Return the list of available DGE methods for single-cell or pseudobulk
-        analysis.
-    get_dge():
-        Return a dictionary containing DGE results for each method.
-
     Examples
     --------
     >>> import dotools_py as do
