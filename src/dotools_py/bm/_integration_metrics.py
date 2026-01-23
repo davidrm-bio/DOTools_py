@@ -65,71 +65,71 @@ def graph_connectivity(
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-def ilisi_graph(
-    adata: ad.AnnData,
-    batch_key: str = "batch",
-    integration_type: Literal["embedding", "knn", "full"] = "knn",
-    use_rep: str = None,
-    n_neighbors: int = 90,
-    subsample: int = None,
-    scale: bool = True,
-    threads: int = 1,
-) -> float:
-    """Integration LISI (iLISI) score.
-
-    Parameters
-    ----------
-    adata
-        Annotated data matrix.
-    batch_key
-        Column in adata.obs with batch information.
-    integration_type
-        Type of data integration. If set to `knn` it will take the neighborhood present in the object. If
-        set to `embedding` it will recompute the neighborhood based on `use_rep` and if set to `full` it will
-        recompute PCA use the PCA embedding for the neighborhood graph.
-    use_rep
-        Representation to use to compute neighborhood when `integration_type` is set to `embedding`.
-    n_neighbors
-        Number of nearest neighbors to compute lisi score. The initial neighborhood size that is used to compute
-        the shortest paths is 15.
-    subsample
-        Percentage of observations (integer between 0 and 100) to which lisi scoring should be subsampled.
-    scale
-        Re-scale output values between 0 and 1 (True/False)
-    threads
-        Number of cores to use for computation. If not specify will use half of the available cores.
-
-    Returns
-    -------
-    Returns the median iLISI scores per batch.
-
-    Examples
-    --------
-    >>> import dotools_py as do
-    >>> adata = do.dt.example_10x_processed()
-    >>> ilisi_graph(adata, batch_key="batch", integration_type="embedding", use_rep="X_CCA")
-
-    """
-    import scib
-    import multiprocessing
-
-    check_missing(adata, groups=batch_key)
-    threads = int(multiprocessing.cpu_count() / 2) if threads is None else int(threads)
-    integration_type = {"embedding": "emb", "knn": "knn", "full": "full"}[integration_type]
-
-    score = scib.metrics.ilisi_graph(
-        adata=adata,
-        batch_key=batch_key,
-        type_=integration_type,
-        use_rep=use_rep,
-        k0=n_neighbors,
-        subsample=subsample,
-        scale=scale,
-        n_cores=threads,
-        verbose=True
-    )
-
-    return score
+# def ilisi_graph(
+#     adata: ad.AnnData,
+#     batch_key: str = "batch",
+#     integration_type: Literal["embedding", "knn", "full"] = "knn",
+#     use_rep: str = None,
+#     n_neighbors: int = 90,
+#     subsample: int = None,
+#     scale: bool = True,
+#     threads: int = 1,
+# ) -> float:
+#     """Integration LISI (iLISI) score.
+#
+#     Parameters
+#     ----------
+#     adata
+#         Annotated data matrix.
+#     batch_key
+#         Column in adata.obs with batch information.
+#     integration_type
+#         Type of data integration. If set to `knn` it will take the neighborhood present in the object. If
+#         set to `embedding` it will recompute the neighborhood based on `use_rep` and if set to `full` it will
+#         recompute PCA use the PCA embedding for the neighborhood graph.
+#     use_rep
+#         Representation to use to compute neighborhood when `integration_type` is set to `embedding`.
+#     n_neighbors
+#         Number of nearest neighbors to compute lisi score. The initial neighborhood size that is used to compute
+#         the shortest paths is 15.
+#     subsample
+#         Percentage of observations (integer between 0 and 100) to which lisi scoring should be subsampled.
+#     scale
+#         Re-scale output values between 0 and 1 (True/False)
+#     threads
+#         Number of cores to use for computation. If not specify will use half of the available cores.
+#
+#     Returns
+#     -------
+#     Returns the median iLISI scores per batch.
+#
+#     Examples
+#     --------
+#     >>> import dotools_py as do
+#     >>> adata = do.dt.example_10x_processed()
+#     >>> ilisi_graph(adata, batch_key="batch", integration_type="embedding", use_rep="X_CCA")
+#
+#     """
+#     import scib
+#     import multiprocessing
+#
+#     check_missing(adata, groups=batch_key)
+#     threads = int(multiprocessing.cpu_count() / 2) if threads is None else int(threads)
+#     integration_type = {"embedding": "emb", "knn": "knn", "full": "full"}[integration_type]
+#
+#     score = scib.metrics.ilisi_graph(
+#         adata=adata,
+#         batch_key=batch_key,
+#         type_=integration_type,
+#         use_rep=use_rep,
+#         k0=n_neighbors,
+#         subsample=subsample,
+#         scale=scale,
+#         n_cores=threads,
+#         verbose=True
+#     )
+#
+#     return score
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
