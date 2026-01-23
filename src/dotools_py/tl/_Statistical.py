@@ -36,11 +36,11 @@ class DGEAnalysis:
     and t-test. At the single-cell level, the available methods are wilcoxon,
     MAST, t-test, t-test with overestimated variance, and logistic regression.
 
-    Attributes
+    Parameters
     ----------
     adata
         Annotated data matrix.
-    group_by
+    groupby
         Column in ``adata.obs`` to use for testing.
     batch_key
         Column in ``adata.obs`` containing batch information.
