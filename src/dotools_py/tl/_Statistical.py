@@ -38,46 +38,46 @@ class DGEAnalysis:
 
     Attributes
     ----------
-    adata : ad.AnnData
+    adata
         Annotated data matrix.
-    group_by : str
+    group_by
         Column in ``adata.obs`` to use for testing.
-    batch_key : str
+    batch_key
         Column in ``adata.obs`` containing batch information.
-    pseudobulk_mode : Literal["sum", "mean"]
+    pseudobulk_mode
         Method used to generate pseudobulk counts.
-    pseudobulk_groups : str
+    pseudobulk_groups
         Column in ``adata.obs`` used to additionally group observations when
         generating pseudobulk profiles (e.g. cell type annotation). Differential
         gene expression is performed for the groups in ``group_by`` within each
         category of ``pseudobulk_groups``.
-    technical_replicates : int
+    technical_replicates
         Number of technical replicates to generate for each sample (experimental).
 
     Methods
     -------
-    edger
+    edger():
         Run EdgeR. Differential gene expression at the sample level.
-    deseq
+    deseq():
         Run DESeq2. Differential gene expression at the sample level.
-    cluster_ttest
+    cluster_ttest():
         Run t-test. Differential gene expression at the sample level.
-    wilcoxon
+    wilcoxon():
         Run Wilcoxon test. Differential gene expression at the single-cell level.
-    ttest
+    ttest():
         Run t-test. Differential gene expression at the single-cell level.
-    ttest_overtim_var
+    ttest_overtim_var():
         Run t-test with overestimated variance. Differential gene expression at
         the single-cell level.
-    logreg
+    logreg():
         Run logistic regression. Differential gene expression at the single-cell
         level.
-    mast
+    mast():
         Run MAST. Differential gene expression at the single-cell level.
-    find_methods
+    find_methods():
         Return the list of available DGE methods for single-cell or pseudobulk
         analysis.
-    get_dge
+    get_dge():
         Return a dictionary containing DGE results for each method.
 
     Examples
@@ -650,7 +650,7 @@ class DGEAnalysis:
         :param groups: Alternative conditions to test against.
         :param equal_var: Assume equal variance.
         :param layer: Layer in the AnnData to use.
-        :return:
+        :return: Returns None.
         """
         groups = iterase_input(groups)
         df_expr = get_mean_expr(
@@ -698,6 +698,14 @@ class DGEAnalysis:
         logcounts: bool = True,
         layer: str = None,
     ) -> None:
+        """Differential Gene Expression Analysis with Wilcoxon.
+
+        :param reference: reference condition
+        :param groups: alternative conditions
+        :param logcounts: Whether the data is log-normalized or not.
+        :param layer: Layer in adata.layers to use.
+        :return: Returns None
+        """
         self._dge["wilcoxon"] = self._run_sc(
             reference=reference, groups=groups, method="wilcoxon", logcounts=logcounts, layer=layer
         )
@@ -711,6 +719,14 @@ class DGEAnalysis:
         logcounts: bool = True,
         layer: str = None
     ) -> None:
+        """Differential Gene Expression Analysis with Wilcoxon.
+
+        :param reference: reference condition.
+        :param groups: alternative condition.
+        :param logcounts: whether the data is log-normalized or not.
+        :param layer: layer in adata.layers.
+        :return: Returns None.
+        """
         self._dge["ttest"] = self._run_sc(
             reference=reference, groups=groups, method="t-test", logcounts=logcounts, layer=layer
         )
@@ -724,6 +740,14 @@ class DGEAnalysis:
         logcounts: bool = True,
         layer: str = None
     ) -> None:
+        """Differential Gene Expression Analysis with t-test with overestimated variance.
+
+        :param reference: reference condition.
+        :param groups: alternative condition.
+        :param logcounts: whether the data is log-normalized.
+        :param layer: layer in adata.layers to use.
+        :return: Returns None.
+        """
         self._dge["ttest_overtim_var"] = self._run_sc(
             reference=reference, groups=groups, method="t-test_overestim_var", logcounts=logcounts, layer=layer
         )
@@ -737,6 +761,14 @@ class DGEAnalysis:
         logcounts: bool = True,
         layer: str = None
     ) -> None:
+        """Differential Gene Expression Analysis with logistic regression.
+
+        :param reference: reference condition.
+        :param groups: alternative condition.
+        :param logcounts: whether the data is log-normalized.
+        :param layer: layer in adata.layers to use.
+        :return: Returns None.
+        """
         self._dge["logreg"] = self._run_sc(
             reference=reference, groups=groups, method="logreg", logcounts=logcounts, layer=layer
         )
@@ -752,21 +784,13 @@ class DGEAnalysis:
     ) -> None:
         """Run the Mast Test.
 
-        Parameters
-        ----------
-        reference
-            Name of the reference condition in `adata.obs[groupby]`.
-        groups
-            Name of the alternative conditions in `adata.obs[groupby]`
-        covariates
-            Additional columns in `adata.obs`, written in the format of "covariate1+covariate2".
-        layer
-            Layer in `adata.layers` to use.
-
-        Returns
-        -------
-
+        :param reference: reference condition.
+        :param groups: alternative condition.
+        :param covariates: covariates to correct for.
+        :param layer: layer in adata.layers to use.
+        :return: Returns None.
         """
+
         self._dge["mast"] = self._run_sc(
             reference=reference, groups=groups, method="mast", logcounts=True, covariates=covariates, layer=layer
         )
@@ -791,5 +815,9 @@ class DGEAnalysis:
         ]
 
     @property
-    def get_dge(self):
+    def get_dge(self) -> dict:
+        """Get DGE results.
+
+        :return: Returns a dictionary with the results.
+        """
         return self._dge
