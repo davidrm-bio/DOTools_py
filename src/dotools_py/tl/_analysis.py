@@ -323,8 +323,58 @@ def run_scanvi(
         return None
 
 
+def run_harmony(
+    adata: ad.AnnData,
+    batch_key: str,
+    use_rep: str = "X_pca",
+    rep_added: str = "X_harmony",
+    random_state: int = 0,
+    use_gpu: bool = True,
+    max_iter_harmony: int = 150,
+    **kwargs,
+) -> None:
+    """Run Harmony integration.
+
+    This functions runs the Pytorch implementation of Harmony.
+
+    :param adata: Annotated data matrix.
+    :param batch_key: Key in adata.obs with batch information.
+    :param use_rep: Representation in adata.obsm that represents the input embedding with rows for cells and columns for embedding coordinates.
+    :param rep_added: Name of the adjusted embedding.
+    :param random_state: Seed for random number generator.
+    :param use_gpu: If set to `True` will use GPU if available.
+    :param max_iter_harmony: Maximum number of iterations for harmony.
+    :param kwargs:Additional arguments pass to `harmony.harmonize <https://github.com/lilab-bcb/harmony-pytorch/blob/main/harmony/harmony.py>`_
+    :return: Returns None. A new slot will be set in adata.obsm[rep_added].
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> adata.obsm_keys()
+    ['X_CCA', 'X_pca', 'X_umap']
+    >>> do.tl.run_harmony(adata, batch_key="batch")
+    >>> adata.obsm_keys()
+    ['X_CCA', 'X_pca', 'X_umap', 'X_harmony']
+
+    """
+
+
+    try:
+        from harmony import harmonize
+    except ImportError as e:
+        msg = "\nplease install harmony-pytorch:\n\n\tpip install harmony-pytorch"
+        raise ImportError(msg) from e
+
+    x = adata.obsm[use_rep].astype(np.float64)
+    z = harmonize(x, adata.obs, batch_key, use_gpu=use_gpu, verbose=True, random_state=random_state, max_iter_harmony=max_iter_harmony, **kwargs)
+    try:
+        adata.obsm[rep_added] = z
+    except Exception as e:
+        adata.obsm[rep_added] = z.T
+
 def integrate_data(
-    adata,
+    adata: ad.AnnData,
     batch_key: str,
     hvg_batch: bool = True,
     integration_method: Literal["scanorama", "scvi", "cca4", "cca5", "harmony", "pca"] = "scvi",
@@ -355,7 +405,7 @@ def integrate_data(
     :param hvg_batch: If set to `True`, the highly variable genes shared across samples will be used for the
                      integration.
     :param integration_method: Method to use for the integration.
-    :param bbknn: Use BBKNN to compute neighbors.
+    :param bbknn: Use BBKNN to compute neighbors instead of sc.pp.neighbors().
     :param resolution: Resolution for the leiden clustering.
     :param categorical_covariates: Categorical covariates for scVI.
     :param continuous_covariates: Continuous covariates for scVI.
@@ -428,8 +478,8 @@ def integrate_data(
 
     if integration_method == "harmony":
         logger.info("Integration using Harmony")
-        sce.pp.harmony_integrate(hvg, key=batch_key, max_iter_harmony=150, random_state=random_state)
-        adata.obsm["X_harmony"] = hvg.obsm["X_pca_harmony"]
+        run_harmony(hvg, batch_key=batch_key, max_iter_harmony=150, random_state=random_state)
+        adata.obsm["X_harmony"] = hvg.obsm["X_harmony"]
         dim_reduc = "X_harmony"
     elif integration_method == "scanorama":
         logger.info("Integration using Scanorama")
@@ -465,7 +515,8 @@ def integrate_data(
 
     if bbknn:
         logger.info("Computing neighbors with BBKNN")
-        sce.pp.bbknn(adata, use_rep=dim_reduc, neighbors_within_batch=neighbors_within_batch, batch_key=batch_key, pynndescent_random_state=random_state)
+        sce.pp.bbknn(adata, use_rep=dim_reduc, neighbors_within_batch=neighbors_within_batch, batch_key=batch_key,
+                     pynndescent_random_state=random_state)
     else:
         sc.pp.neighbors(adata, use_rep=dim_reduc, random_state=42)
 
@@ -473,7 +524,8 @@ def integrate_data(
     sc.tl.umap(adata, random_state=random_state)
 
     logger.info(f"Clustering cells using Leiden (resolution {resolution})")
-    sc.tl.leiden(adata, resolution=resolution, flavor="igraph", n_iterations=2, directed=False, random_state=random_state)
+    sc.tl.leiden(adata, resolution=resolution, flavor="igraph", n_iterations=2, directed=False,
+                 random_state=random_state)
     return model
 
 
@@ -627,6 +679,7 @@ def auto_annot(
 
     return None
 
+
 def reclustering(
     adata: ad.AnnData,
     cluster_key: str,
@@ -774,12 +827,12 @@ def reclustering(
         sc.pp.highly_variable_genes(adata_tmp, batch_key=hvg_key)
         sc.pp.scale(adata_tmp)
         sc.pp.pca(adata_tmp, random_state=random_state)
-        sce.pp.harmony_integrate(adata_tmp, key=batch_key, max_iter_harmony=25, random_state=random_state)
-        representation = "X_pca_harmony"
+        run_harmony(adata_tmp, batch_key=batch_key, max_iter_harmony=150, random_state=random_state)
+        representation = "X_harmony"
         adata_subset.obsm[representation] = adata_tmp.obsm[representation]
     # If bbknn was used, redo PCA
     elif recluster_approach.lower() == "pca":
-        logger.info("Reclustering using BBKNN approach")
+        logger.info("Reclustering using PCA approach")
         adata_tmp = adata_subset.copy()
         sc.pp.highly_variable_genes(adata_tmp, batch_key=hvg_key)
         sc.pp.scale(adata_tmp)
@@ -791,24 +844,19 @@ def reclustering(
         logger.info("Reclustering using scVI approach")
         assert use_rep is not None, "Specify obsm key with integrated matrix"
         representation = use_rep
-    elif recluster_approach.lower() == "pca":
-        adata_tmp = adata_subset.copy()
-        sc.pp.highly_variable_genes(adata_tmp, batch_key=hvg_key)
-        sc.pp.scale(adata_tmp)
-        sc.pp.pca(adata_tmp, random_state=random_state)
-        representation = "X_pca"
-        adata_subset.obsm["X_pca"] = adata_tmp.obsm["X_pca"]
     else:
-        raise NotImplementedError(f"{recluster_approach} not implemented, use: CCA4, CCA5, harmony, bbknn or scvi")
+        raise NotImplementedError(f"{recluster_approach} not implemented, use: cca4, cca5, scanorama, harmony, pca or scvi")
 
     # Calculate neighbors, UMAP and leiden
     if bbknn:
-        sce.pp.bbknn(adata_subset, use_rep=representation, batch_key=batch_key, neighbors_within_batch=neighbors_batch, pynndescent_random_state=random_state)
+        sce.pp.bbknn(adata_subset, use_rep=representation, batch_key=batch_key, neighbors_within_batch=neighbors_batch,
+                     pynndescent_random_state=random_state)
     else:
         sc.pp.neighbors(adata_subset, use_rep=representation, random_state=random_state)
 
     sc.tl.umap(adata_subset, random_state=random_state)
-    sc.tl.leiden(adata_subset, resolution=resolution, flavor="igraph", n_iterations=2, directed=False, random_state=random_state)
+    sc.tl.leiden(adata_subset, resolution=resolution, flavor="igraph", n_iterations=2, directed=False,
+                 random_state=random_state)
     adata.obs[key_added] = adata.obs[cluster_key].copy()
 
     if automatic_annot:
@@ -854,7 +902,7 @@ def full_recluster(
     adata: ad.AnnData,
     cluster_key: str,
     batch_key: str,
-    recluster_approach: Literal["cca4", "cca5", "harmony","scanorama","pca", "scvi"],
+    recluster_approach: Literal["cca4", "cca5", "harmony", "scanorama", "pca", "scvi"],
     hvg_batch: bool = False,
     use_rep: str = None,
     bbknn: bool = False,

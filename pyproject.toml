@@ -58,7 +58,8 @@ dependencies = [
   "numba",
   "beartype",
   "fastexcel",
-  "scib"
+  "scib",
+  "harmony-pytorch",
 ]
 
 # scanpro missing and failts if added here
