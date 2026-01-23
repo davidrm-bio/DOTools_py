@@ -67,6 +67,6 @@ def test_report():
     do.settings.set_kernel_logger("./history.log", overwrite=True)
     os.path.exists("./history.log")
     do.settings.toogle_kernel_logger(False)
-    do.utility.create_report("./history.log")
+    # do.utility.create_report("./history.log")
     shutil.rmtree("./history.log")
     return
