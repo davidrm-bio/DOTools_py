@@ -29,42 +29,56 @@ def tag(tag_name):
 
 class DGEAnalysis:
     """
-    Class to perform differential gene expression (DGE) at the single-cell or sample-level for AnnData objects.
-    To perform DGE analysis at the sample level, the available methods are: EdgeR, DESeq2 and T-test. For DGE analysis
-    at the single cell level, the available methods are: wilcoxon, MAST, t-test and logreg.
+    Class to perform differential gene expression (DGE) at the single-cell or
+    sample level for AnnData objects.
 
-    :param adata: Annotated data matrix.
-    :param group_by:  Column in `adata.obs` to use for testing.
-    :param batch_key: Column in `adata.obs` with batch information.
-    :param pseudobulk_mode: Method to generated pseudobulk counts.
-    :param pseudobulk_groups: Column in `adata.obs` to additionally group_by when generating pseudobulk profiles
-                              (e.g., cell type annotation). Differential gene expression will be performed for
-                              the groups (e.g., conditions) in `groupby` for each category (e.g., cell type)
-                              in `pseudobulk_groups`.
-    :param technical_replicates: Number of technical replicates to generate for each sample (Experimental).
+    At the sample (pseudobulk) level, the available methods are EdgeR, DESeq2,
+    and t-test. At the single-cell level, the available methods are wilcoxon,
+    MAST, t-test, t-test with overestimated variance, and logistic regression.
+
+    Parameters
+    ----------
+    adata : ad.AnnData
+        Annotated data matrix.
+    group_by : str
+        Column in ``adata.obs`` to use for testing.
+    batch_key : str
+        Column in ``adata.obs`` containing batch information.
+    pseudobulk_mode : Literal["sum", "mean"]
+        Method used to generate pseudobulk counts.
+    pseudobulk_groups : str
+        Column in ``adata.obs`` used to additionally group observations when
+        generating pseudobulk profiles (e.g. cell type annotation). Differential
+        gene expression is performed for the groups in ``group_by`` within each
+        category of ``pseudobulk_groups``.
+    technical_replicates : int
+        Number of technical replicates to generate for each sample (experimental).
 
     Methods
     -------
     edger
-        Run EdgeR. DGE over the sample level.
+        Run EdgeR. Differential gene expression at the sample level.
     deseq
-        Run DESeq2. DGE over the sample level.
+        Run DESeq2. Differential gene expression at the sample level.
     cluster_ttest
-        Run t-test. DGE over the sample level.
+        Run t-test. Differential gene expression at the sample level.
     wilcoxon
-        Run wilcoxon. DGE over the single-cell level.
+        Run Wilcoxon test. Differential gene expression at the single-cell level.
     ttest
-        Run t-test. DGE over the single-cell level.
+        Run t-test. Differential gene expression at the single-cell level.
     ttest_overtim_var
-        Run t-test overtimating variance. DGE over the single-cell level.
+        Run t-test with overestimated variance. Differential gene expression at
+        the single-cell level.
     logreg
-        Run logistic regression. DGE over the single-cell level.
+        Run logistic regression. Differential gene expression at the single-cell
+        level.
     mast
-        Run MAST. DGE over the single-cell level.
+        Run MAST. Differential gene expression at the single-cell level.
     find_methods
-        Returns a list with the name of methods to perform DGE at the single-cell or sample level.
+        Return the list of available DGE methods for single-cell or pseudobulk
+        analysis.
     get_dge
-        Returns a dictionary with DGEs for each method.
+        Return a dictionary containing DGE results for each method.
 
     Examples
     --------
@@ -76,23 +90,14 @@ class DGEAnalysis:
     >>> tester.find_methods("pseudobulk")
     ['cluster_ttest', 'deseq', 'edger']
     >>> tester.wilcoxon(reference="healthy", groups="disease")
-    2026-01-23 11:00:40,414 - Running wilcoxon test.
-    ranking genes
-        finished: added to `.uns['rank_genes_groups']`
-        'names', sorted np.recarray to be indexed by group ids
-        'scores', sorted np.recarray to be indexed by group ids
-        'logfoldchanges', sorted np.recarray to be indexed by group ids
-        'pvals', sorted np.recarray to be indexed by group ids
-        'pvals_adj', sorted np.recarray to be indexed by group ids (0:00:01)
     >>> tester.get_dge["wilcoxon"].head(5)
-          GeneName  statistic    log2fc  ...  pts_group   pts_ref    group
+              GeneName  statistic    log2fc  ...  pts_group   pts_ref    group
     0   ZNF331  15.936105  4.125951  ...   0.650000  0.096154  disease
     1      EZR  15.871257  3.097546  ...   0.866667  0.367308  disease
     2     EIF1  14.823599  0.907127  ...   0.994444  0.994231  disease
     3     SRGN  14.721976  2.527285  ...   0.922222  0.636538  disease
     4     EGR1  12.330428  5.300842  ...   0.316667  0.011538  disease
     [5 rows x 8 columns]
-
     """
 
     def __init__(self,
