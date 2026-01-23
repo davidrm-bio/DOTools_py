@@ -9,7 +9,6 @@ import anndata as ad
 import numpy as np
 import pandas as pd
 
-from dotools_py.get import pseudobulk as get_pseudobulk
 from dotools_py.get import mean_expr as get_mean_expr
 from dotools_py.get import dge_results as get_dge_results
 from dotools_py.get import pcts_cells as get_pcts_cells
@@ -74,7 +73,32 @@ class DGEAnalysis:
     get_dge
         Returns a dictionary with DGEs for each method.
 
-
+    Examples
+    --------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> tester = do.tl.DGEAnalysis(adata, group_by="condition")
+    >>> tester.find_methods("single-cell")
+    ['logreg', 'mast', 'ttest', 'ttest_overtim_var', 'wilcoxon']
+    >>> tester.find_methods("pseudobulk")
+    ['cluster_ttest', 'deseq', 'edger']
+    >>> tester.wilcoxon(reference="healthy", groups="disease")
+    2026-01-23 11:00:40,414 - Running wilcoxon test.
+    ranking genes
+        finished: added to `.uns['rank_genes_groups']`
+        'names', sorted np.recarray to be indexed by group ids
+        'scores', sorted np.recarray to be indexed by group ids
+        'logfoldchanges', sorted np.recarray to be indexed by group ids
+        'pvals', sorted np.recarray to be indexed by group ids
+        'pvals_adj', sorted np.recarray to be indexed by group ids (0:00:01)
+    >>> tester.get_dge["wilcoxon"].head(5)
+          GeneName  statistic    log2fc  ...  pts_group   pts_ref    group
+    0   ZNF331  15.936105  4.125951  ...   0.650000  0.096154  disease
+    1      EZR  15.871257  3.097546  ...   0.866667  0.367308  disease
+    2     EIF1  14.823599  0.907127  ...   0.994444  0.994231  disease
+    3     SRGN  14.721976  2.527285  ...   0.922222  0.636538  disease
+    4     EGR1  12.330428  5.300842  ...   0.316667  0.011538  disease
+    [5 rows x 8 columns]
 
     """
 
@@ -101,7 +125,6 @@ class DGEAnalysis:
         """
 
         # Checks
-        check_r_package(["MAST", "optparse", "zellkonverter", "glmGamPoi"])
         self._is_numeric_counts(data, numeric=True, integers=False)
         if isinstance(data, ad.AnnData):
             sanitize_anndata(data)
@@ -132,7 +155,9 @@ class DGEAnalysis:
         :return: Returns None. The pseudo-bulked object is saved in the attribute `pdata`
         """
         import decoupler as dc
-        import multiprocessing
+        # import multiprocessing
+
+        logger.warn("The pseudobulk mode is currently experimental")
 
         if self.is_pseudobulk:
             self.pdata = self.adata
@@ -160,22 +185,23 @@ class DGEAnalysis:
                     logger.info(f"Removed {n_obs - pdata.n_obs} samples and "
                                 f"{n_vars - pdata.n_vars} genes that did not pass the filtering process")
                 else:
-                    raise NotImplemented("Not a valid decoupler version")
+                    raise NotImplemented("Not a valid decoupler version, run: \npip install decoupler>=2")
             else:
-                n_cores = int(multiprocessing.cpu_count() / 2)
-                pdata = get_pseudobulk(
-                    self.adata,
-                    batch_key=self.batch_key,
-                    cluster_key=self.pseudobulk_groups,
-                    keep_metadata=[self.groupby],
-                    pseudobulk_approach=self.pseudobulk_mode,
-                    technical_replicates=self.technical_replicates,
-                    min_cells=sample_min_cells,
-                    min_counts=sample_min_counts,
-                    workers=n_cores,
-                    layer=layer
-                )
-                pdata.X = pdata.X.toarray()
+                raise NotImplementedError("technical_replicates is experimental and therefore is not recommended")
+                #n_cores = int(multiprocessing.cpu_count() / 2)
+                #pdata = get_pseudobulk(
+                #    self.adata,
+                #    batch_key=self.batch_key,
+                #    cluster_key=self.pseudobulk_groups,
+                #    keep_metadata=[self.groupby],
+                #    pseudobulk_approach=self.pseudobulk_mode,
+                #    technical_replicates=self.technical_replicates,
+                #    min_cells=sample_min_cells,
+                #    min_counts=sample_min_counts,
+                #    workers=n_cores,
+                #    layer=layer
+                #)
+                #pdata.X = pdata.X.toarray()
 
             self.pdata = pdata
 
@@ -325,6 +351,8 @@ class DGEAnalysis:
         :param covariates: Extra covariates to account for.
         :return: Returns a DataFrame.
         """
+        check_r_package(["MAST", "optparse", "zellkonverter", "glmGamPoi"])
+
         rscript = get_paths_utils("_Run_MAST.R")
 
         tmpdir_path = Path("/tmp") / f"MAST_Test_{uuid.uuid4().hex}"
@@ -775,74 +803,3 @@ class DGEAnalysis:
     @property
     def get_dge(self):
         return self._dge
-
-
-
-
-import dotools_py as do
-
-
-def test_DGEClass():
-    adata = do.dt.example_10x_processed()
-    tester = DGEAnalysis(data=adata, group_by="condition", batch_key="batch", pseudobulk_mode="sum",
-                         pseudobulk_groups="annotation", technical_replicates=3)
-
-    tester._get_pseudobulk()
-
-    tester.cluster_ttest(
-        reference="healthy",
-        groups="disease"
-    )
-
-    tester.deseq(
-        design="~condition",
-        reference="healthy",
-        groups="disease",
-        layer="counts"
-    )
-    tester.edger(
-        design="~condition",
-        reference="healthy",
-        groups="disease",
-    )
-    tester.logreg(
-        reference="healthy",
-        groups="disease",
-    )
-    tester.mast(
-        reference="healthy",
-        groups="disease"
-    )
-    tester.ttest(
-        reference="healthy",
-        groups="disease"
-    )
-    tester.ttest_overtim_var(
-        reference="healthy",
-        groups="disease"
-    )
-    tester.wilcoxon(
-        reference="healthy",
-        groups="disease"
-    )
-
-    checks = {
-        "logreg": {"GeneName", "statistic", "group", "annotation"},
-        "mast": {'GeneName', 'pvals', 'padj', 'groups', 'log2fc', 'pts_group', 'pts_ref', 'annotation'},
-        "ttest": {'GeneName', 'statistic', 'log2fc', 'pvals', 'padj', 'pts_group', 'pts_ref', 'group', 'annotation'},
-        "ttest_overtim_var":{'GeneName', 'statistic', 'log2fc', 'pvals', 'padj', 'pts_group', 'pts_ref', 'group', 'annotation'},
-        "wilcoxon":{'GeneName', 'statistic', 'log2fc', 'pvals', 'padj', 'pts_group', 'pts_ref', 'group', 'annotation'},
-        "Cluster_ttest":{'gene', 'statistic', 'pval', 'condition', 'annotation'},
-        "DESeq2":{'GeneName', 'statistic', 'log2fc', 'log2fcSE', 'pval', 'padj', 'group'},
-        "EdgeR":{'GeneName', 'statistic', 'log2fc', 'pval', 'padj', 'group'},
-    }
-    for method in tester.find_methods("single-cell"):
-        assert checks[method].issubset(tester.dge[method])
-    for method in tester.find_methods("pseudobulk"):
-        assert checks[method].issubset(tester.dge[method])
-
-    assert len( tester.find_methods("single-cell")) == 5
-    assert len( tester.find_methods("pseudobulk")) == 3
-
-# TODO edgeR problem generating pseudobulk if the condition is not maintain groupby AnatomicRegion check last request from Leonie
-

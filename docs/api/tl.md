@@ -15,6 +15,7 @@ analysis and statistical methods.
     tl.integrate_data
     tl.run_scvi
     tl.run_scanvi
+    tl.run_harmony
     tl.auto_annot
     tl.reclustering
     tl.full_recluster
@@ -27,6 +28,7 @@ analysis and statistical methods.
 .. autosummary::
     :toctree: generated
 
+    tl.DGEAnalysis
     tl.rank_genes_groups
     tl.rank_genes_condition
     tl.rank_genes_pseudobulk
