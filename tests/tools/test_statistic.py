@@ -87,3 +87,71 @@ def test_run():
         do.tl.run_mast(adata, "condition", "healthy", "disease")
     except Exception:
         pass
+
+
+def test_DGEClass():
+    adata = do.dt.example_10x_processed()
+    tester = do.tl.DGEAnalysis(data=adata, group_by="condition", batch_key="batch")
+
+    # tester._get_pseudobulk()
+
+    tester.cluster_ttest(
+        reference="healthy",
+        groups="disease"
+    )
+
+    #tester.deseq(
+    #    design="~condition",
+    #    reference="healthy",
+    #    groups="disease",
+    #    layer="counts"
+    #)
+    #tester.edger(
+    #    design="~condition",
+    #    reference="healthy",
+    #    groups="disease",
+    #)
+    tester.logreg(
+        reference="healthy",
+        groups="disease",
+    )
+    #tester.mast(
+    #    reference="healthy",
+    #    groups="disease"
+    #)
+    tester.ttest(
+        reference="healthy",
+        groups="disease"
+    )
+    tester.ttest_overtim_var(
+        reference="healthy",
+        groups="disease"
+    )
+    tester.wilcoxon(
+        reference="healthy",
+        groups="disease"
+    )
+
+    checks = {
+        "logreg": {"GeneName", "statistic", "group"},
+        #"mast": {'GeneName', 'pvals', 'padj', 'groups', 'log2fc', 'pts_group', 'pts_ref''},
+        "ttest": {'GeneName', 'statistic', 'log2fc', 'pvals', 'padj', 'pts_group', 'pts_ref', 'group'},
+        "ttest_overtim_var":{'GeneName', 'statistic', 'log2fc', 'pvals', 'padj', 'pts_group', 'pts_ref', 'group'},
+        "wilcoxon":{'GeneName', 'statistic', 'log2fc', 'pvals', 'padj', 'pts_group', 'pts_ref', 'group'},
+        "Cluster_ttest":{'gene', 'statistic', 'pval', 'condition'},
+        #"DESeq2":{'GeneName', 'statistic', 'log2fc', 'log2fcSE', 'pval', 'padj', 'group'},
+        #"EdgeR":{'GeneName', 'statistic', 'log2fc', 'pval', 'padj', 'group'},
+    }
+    for method in tester.find_methods("single-cell"):
+        if method == "mast":
+            continue
+        assert checks[method].issubset(tester.get_dge[method])
+    for method in tester.find_methods("pseudobulk"):
+        if method == "Cluster_ttest":
+            assert checks[method].issubset(tester.get_dge[method])
+
+    assert len( tester.find_methods("single-cell")) == 5
+    assert len( tester.find_methods("pseudobulk")) == 3
+
+# TODO edgeR problem generating pseudobulk if the condition is not maintain
+

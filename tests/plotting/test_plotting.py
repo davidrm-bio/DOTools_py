@@ -244,3 +244,21 @@ def test_spatial():
 
 
 
+
+def test_density():
+    adata = do.dt.example_10x_processed()
+    axs = do.pl.density(adata, "CD4", basis="X_umap", show=False)
+    plt.close()
+    assert isinstance(axs, dict)
+    assert "mainplot_ax" in axs
+    assert "density_legend_ax" in axs
+    assert "color_legend_ax" in axs
+
+    axs = do.pl.density(adata, "annotation", basis="X_umap", show=False, show_basis=False)
+    plt.close()
+    assert isinstance(axs, dict)
+    assert "mainplot_ax" in axs
+    assert "density_legend_ax" in axs
+    assert "color_legend_ax" in axs
+
+

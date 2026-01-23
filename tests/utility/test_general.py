@@ -1,6 +1,6 @@
-
-
 import dotools_py as do
+import shutil
+import os
 
 def test_gc():
     do.utility.free_memory()
@@ -26,6 +26,19 @@ def test_transferLabels():
                                subset_key="news",
                                original_labels=["B_cells"])
     assert "testing" in adata.obs["annotation"].unique()
+
+    # Using copy
+    adata = do.dt.example_10x_processed()
+    adata_subset = do.get.subset(adata, obs_key="annotation", obs_groups="B_cells", copy=True)
+    adata_subset.obs["news"] = "testing"
+    do.utility.transfer_labels(adata,
+                               adata_subset,
+                               original_key="annotation",
+                               subset_key="news",
+                               original_labels=["B_cells"],
+                               copy=True)
+    assert "testing" in adata.obs["annotation"].unique()
+
     return  None
 
 
@@ -50,3 +63,10 @@ def test_spatial():
         do.utility.select_slide(adata, "slide1")
 
 
+def test_report():
+    do.settings.set_kernel_logger("./history.log", overwrite=True)
+    os.path.exists("./history.log")
+    do.settings.toogle_kernel_logger(False)
+    do.utility.create_report("./history.log")
+    shutil.rmtree("./history.log")
+    return

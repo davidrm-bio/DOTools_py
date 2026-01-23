@@ -11,7 +11,7 @@ def test_integrate():
 
     # Harmony Integration
     try: # Fails with new version of anndata? Some internal problem in scanpy.external
-        do.tl.integrate_data(adata, batch_key="batch", integration_method="harmony")
+        do.tl.integrate_data(adata, batch_key="batch", integration_method="harmony", bbknn=True)
         assert "X_harmony" in adata.obsm.keys()
         subset = do.tl.reclustering(adata, "annotation", "batch", use_clusters=["NK"],
                                     recluster_approach="harmony", use_rep="X_harmony", get_subset=True)
@@ -58,7 +58,7 @@ def test_autoannot():
     os.makedirs("./tmp", exist_ok=True)
 
     del adata.obs["autoAnnot"]
-    do.tl.auto_annot(adata, "leiden", convert=False, pl_cell_prob=True,
+    do.tl.auto_annot(adata, "leiden", convert=True, pl_cell_prob=True,
                      path="./tmp", filename="test.svg")
     plt.close()
     assert "autoAnnot" in adata.obs.columns
@@ -78,7 +78,7 @@ def test_reclustering():
     assert adata_subset.n_obs == counts["B_cells"]
 
     adata_subset = do.tl.reclustering(adata, "annotation", "batch", "pca",
-                       use_clusters=["B_cells"], get_subset=True)
+                       use_clusters=["B_cells"], get_subset=True, bbknn=True)
     assert isinstance(adata_subset, ad.AnnData)
     assert adata_subset.n_obs == counts["B_cells"]
 
