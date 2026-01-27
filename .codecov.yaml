@@ -4,17 +4,15 @@ codecov:
 
 coverage:
   ignore:
-    - "src/dotools_py/tl/_statistics.py"
-    - "src/dotools_py/_experimental/_deprecated/_language.py"
-    - "src/dotools_py/utility/_convertion.py"  # R code
-    - "src/dotools_py/_experimental/_deprecated/_statistics.py"  # R code
+    - "src/dotools_py/_experimental/_deprecated/_language.py" # Deprecated
+    - "src/dotools_py/_experimental/_deprecated/_statistics.py"  # Deprecated
+    - "src/dotools_py/_experimental/_deprecated/_convertion.py" # Deprecated
+    - "src/dotools_py/_experimental/_deprecated/_expression.py" # Deprecated
     - "src/dotools_py/utility/_spatial.py"  # No example currently
     - "src/dotools_py/pl/_visium.py" # No example currently
-    - "src/dotools_py/_experimental/_deprecated/_expression.py"
-    - "src/dotools_py/tl/_Statistical.py"
-    - "src/dotools_py/_experimental/_deprecated/_convertion.py"
-    - "src/dotools_py/io/_rds.py"
+    - "src/dotools_py/io/_rds.py"  # R code
     - "src/dotools_py/pp/_cellbender.py" # Decrease time for github actions
+    - "src/dotools_py/bm/_helper.py"  # R code
 
   status:
     project:
