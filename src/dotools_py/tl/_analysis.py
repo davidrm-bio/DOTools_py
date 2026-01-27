@@ -104,7 +104,7 @@ def _run_scvi(
 
     logger.info("Run scVI")
     assert layer_counts in adata.layers, "counts layer not in anndata"
-    assert "highly_variable" in list(adata.var.columns), "highly_variable not in adata.var"
+    assert gene_key in list(adata.var.columns), f"{gene_key} not in adata.var"
 
     # Integration using only HVG
     hvg = adata[:, adata.var[gene_key]].copy()
