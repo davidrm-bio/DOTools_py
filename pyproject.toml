@@ -1,6 +1,6 @@
 [build-system]
 build-backend = "hatchling.build"
-requires = [ "hatchling" ]
+requires = ["hatchling"]
 
 [project]
 name = "DOTools_py"
@@ -13,14 +13,16 @@ maintainers = [
 ]
 authors = [
   { name = "David Rodriguez Morales", orcid = "0000-0002-1819-6991" },
-  { name = "Mariano Ruz Jurado", orcid = "0000-0001-5354-5336"},
-  { name = "David John", orcid = "0000-0003-3217-5449"},
+  { name = "Mariano Ruz Jurado", orcid = "0000-0001-5354-5336" },
+  { name = "David John", orcid = "0000-0003-3217-5449" },
 ]
 
 funding = [
-  {name = "Deutsche Forschungsgemeinschaft" , identifier =  "SFB 1366 (B04)", url= "https://www.sfb1366.de/"},
-  {name = "Deutsche Forschungsgemeinschaft" , identifier =  "SFB 1531 (456687919)", url= "https://sfb1531.de/"},
-  # TODO Add Missing
+  { name = "German Centre for Cardiovascular Research", identifier = "81Z0200104 and 81X3200119" },
+  { name = "Hessian Ministry for Science and the Arts Clusterproject ENABLE" },
+  { name = "the European Research Council advanced grant", identifier = "Neuroheart, 101053352" },
+  { name = "German Research Foundation", identifier = "SFB 1366, project number 394046768, B04, SFB 1531–Project Nummer 456687919 and Project-ID 403584255 - TRR 267" },
+  { name = "Dr. Rolf M. Schwiete Stiftung", identifier = "Projekt 08/2018" }
 ]
 
 requires-python = ">=3.10"
@@ -133,44 +135,44 @@ urls.Source = "https://github.com/davidrm-bio/DOTools_py"
 
 [tool.hatch.envs.default]
 installer = "uv"
-features = [ "dev" ]
+features = ["dev"]
 
 [tool.hatch.envs.docs]
-features = [ "doc" ]
+features = ["doc"]
 scripts.build = "sphinx-build -M html docs docs/_build {args}"
 scripts.open = "python -m webbrowser -t docs/_build/html/index.html"
 scripts.clean = "git clean -fdX -- {args:docs}"
 
 # Test the lowest and highest supported Python versions with normal deps
 [[tool.hatch.envs.hatch-test.matrix]]
-deps = [ "stable" ]
-python = [ "3.11", "3.13" ]
+deps = ["stable"]
+python = ["3.11", "3.13"]
 
 # Test the newest supported Python version also with pre-release deps
 #[[tool.hatch.envs.hatch-test.matrix]]
 #python = []
 [tool.hatch.envs.hatch-test]
-features = [ "test" ]
+features = ["test"]
 
 [tool.ruff]
 line-length = 120
-src = [ "src" ]
-extend-include = [ "*.ipynb" ]
+src = ["src"]
+extend-include = ["*.ipynb"]
 
 format.docstring-code-format = true
 
 lint.select = [
-  "B",      # flake8-bugbear
-  "BLE",    # flake8-blind-except
-  "C4",     # flake8-comprehensions
-  "D",      # pydocstyle
-  "E",      # Error detected by Pycodestyle
-  "F",      # Errors detected by Pyflakes
-  "I",      # isort
+  "B", # flake8-bugbear
+  "BLE", # flake8-blind-except
+  "C4", # flake8-comprehensions
+  "D", # pydocstyle
+  "E", # Error detected by Pycodestyle
+  "F", # Errors detected by Pyflakes
+  "I", # isort
   "RUF100", # Report unused noqa directives
-  "TID",    # flake8-tidy-imports
-  "UP",     # pyupgrade
-  "W",      # Warning detected by Pycodestyle
+  "TID", # flake8-tidy-imports
+  "UP", # pyupgrade
+  "W", # Warning detected by Pycodestyle
 ]
 lint.ignore = [
   "B008", # Errors from function calls in argument defaults. These are fine when the result is immutable.
@@ -187,24 +189,24 @@ lint.ignore = [
   "E731", # Do not assign a lambda expression, use a def -> lambda expression assignments are convenient
   "E741", # allow I, O, l as variable names -> I is the identity matrix
 ]
-lint.per-file-ignores."*/__init__.py" = [ "F401" ]
-lint.per-file-ignores."docs/*" = [ "I" ]
-lint.per-file-ignores."tests/*" = [ "D" ]
+lint.per-file-ignores."*/__init__.py" = ["F401"]
+lint.per-file-ignores."docs/*" = ["I"]
+lint.per-file-ignores."tests/*" = ["D"]
 lint.pydocstyle.convention = "numpy"
 
 [tool.pytest.ini_options]
-testpaths = [ "tests" ]
+testpaths = ["tests"]
 xfail_strict = true
 addopts = [
   "--import-mode=importlib", # allow using test files with same name
 ]
 
 [tool.coverage.run]
-source = [ "dotools_py" ]
+source = ["dotools_py"]
 omit = [
   "**/test_*.py",
   "src/_exprimental/*",
-  "src/utility/_language.py",  # R code we dont consider
+  "src/utility/_language.py", # R code we dont consider
   "src/utility/_spatial.py", # Spatial Code Exclude for current release
 ]
 
