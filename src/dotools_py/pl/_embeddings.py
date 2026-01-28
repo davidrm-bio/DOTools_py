@@ -650,11 +650,11 @@ def _density_individual_categorical(
     cbar_kws = kwargs_kde["cbar_kws"] if "cbar_kws" in kwargs_kde else {"orientation": "horizontal"}
 
     palette = dict(zip(adata.obs[color].cat.categories, adata.uns[color + "_colors"])) if palette is None else palette
-    ct_to_code = df_density[["annotation", "codes"]].reset_index(drop=True).drop_duplicates().set_index("annotation").to_dict()["codes"]
+    ct_to_code = df_density[[color, "codes"]].reset_index(drop=True).drop_duplicates().set_index(color).to_dict()["codes"]
     palette_codes = {ct_to_code[ct]:palette[ct] for ct in palette}
 
     density_legend_ax = fig.add_subplot(legend_gs[1])
-    sns.kdeplot(
+    main_ax = sns.kdeplot(
         df_density, x="x", y="y", hue="codes", ax=main_ax, fill=fill, alpha=density_alpha,
         bw_adjust=density_bw_adjust, zorder=2, cbar=True, cbar_ax=density_legend_ax, cbar_kws=cbar_kws,
         palette=palette_codes, legend=False,
@@ -662,6 +662,8 @@ def _density_individual_categorical(
     )
     if not show_basis:
         spine_format(main_ax, basis)
+        main_ax.set_xticks([])
+        main_ax.set_yticks([])
 
     density_legend_ax.set_xticks([np.min(density_legend_ax.get_xticks()), np.max(density_legend_ax.get_xticks())])
     density_legend_ax.set_xticklabels(["Min", "Max"])
