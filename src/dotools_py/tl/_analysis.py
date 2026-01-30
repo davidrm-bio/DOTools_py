@@ -329,8 +329,9 @@ def run_harmony(
     use_rep: str = "X_pca",
     rep_added: str = "X_harmony",
     random_state: int = 0,
-    use_gpu: bool = True,
+    use_gpu: bool = False,
     max_iter_harmony: int = 150,
+    workers: int = 1,
     **kwargs,
 ) -> None:
     """Run Harmony integration.
@@ -345,6 +346,7 @@ def run_harmony(
     :param random_state: Seed for random number generator.
     :param use_gpu: If set to `True` will use GPU if available.
     :param max_iter_harmony: Maximum number of iterations for harmony.
+    :param workers: Number of threads to use.
     :param kwargs: Additional arguments pass to
                    `harmony.harmonize <https://github.com/lilab-bcb/harmony-pytorch/blob/main/harmony/harmony.py>`_.
     :return: Returns `None`.
@@ -369,7 +371,7 @@ def run_harmony(
         raise ImportError(msg) from e
 
     x = adata.obsm[use_rep].astype(np.float64)
-    z = harmonize(x, adata.obs, batch_key, use_gpu=use_gpu, verbose=True, random_state=random_state, max_iter_harmony=max_iter_harmony, **kwargs)
+    z = harmonize(x, adata.obs, batch_key, use_gpu=use_gpu, verbose=True, random_state=random_state, max_iter_harmony=max_iter_harmony, n_jobs=workers, **kwargs)
     try:
         adata.obsm[rep_added] = z
     except Exception as e:
@@ -386,6 +388,7 @@ def integrate_data(
     continuous_covariates: list = None,
     get_model: bool = False,
     random_state: int = 0,
+    workers: int = 1,
     **kwargs,
 ) -> "SCVI | None":
     """Integrate a concatenated AnnData.
@@ -413,6 +416,7 @@ def integrate_data(
     :param continuous_covariates: Continuous covariates for scVI.
     :param get_model: Set to True to Return the scVI model.
     :param random_state: seed for random number generator.
+    :param workers: number of threads to use for harmony.
     :param kwargs: Additional arguments for
                   `scVI model <https://docs.scvi-tools.org/en/stable/api/reference/scvi.model.SCVI.html>`_.
     :return: Returns `None` or the scVI model if `get_model` is `True`. The following fields will be set:
@@ -480,7 +484,7 @@ def integrate_data(
 
     if integration_method == "harmony":
         logger.info("Integration using Harmony")
-        run_harmony(hvg, batch_key=batch_key, max_iter_harmony=150, random_state=random_state)
+        run_harmony(hvg, batch_key=batch_key, max_iter_harmony=150, random_state=random_state, workers=workers)
         adata.obsm["X_harmony"] = hvg.obsm["X_harmony"]
         dim_reduc = "X_harmony"
     elif integration_method == "scanorama":
