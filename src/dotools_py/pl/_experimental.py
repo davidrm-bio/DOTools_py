@@ -263,7 +263,8 @@ def ridgeplot(
 ) -> plt.Axes | dict | None:
     """Ridgeplot for AnnData.
 
-    Represent in a ridgeplot the expression of a feature in `adata.var_names` or a continuous metadata in `adata.obs`.
+    Represent in a ridgeplot the expression of a feature in `adata.var_names` or a
+    continuous metadata in `adata.obs`.
 
     :param adata: Annotated data matrix.
     :param group_by: Column in `adata.obs` to group in the Y axis.
@@ -272,19 +273,15 @@ def ridgeplot(
     :param figsize:  Figure size, the format is (width, height).
     :param ax: Matplotlib axes to use for plotting. If not set, a new figure will be generated.
     :param title:  Title for the figure.
-    :param title_fontproperties: Dictionary which should contain 'size' and 'weight' to define the fontsize and
-                                 fontweight of the title of the figure.
-    :param palette: Can be the name of a valid matplotlib colormap or a dictionary of the groups as keys and the
-                    colors as values. If set to `None` will extract the colors from `adata.uns[group_by_colors]`
-    :param x_linspace:Number of points to generate for the x-axis.
+    :param title_fontproperties: Dictionary which should contain 'size' and 'weight' to define the fontsize and fontweight of the title of the figure.
+    :param palette: Can be the name of a valid matplotlib colormap or a dictionary of the groups as keys and the colors as values. If set to `None` will extract the colors from `adata.uns[group_by_colors]`
+    :param x_linspace: Number of points to generate for the x-axis.
     :param alpha: Transparency level of the object, where 0 is fully transparent and 1 is fully opaque.
     :param x_label: Name of the X axis label.
-    :param add_y_ticks: If set to `True` the groups will be shown in the y-ticks, otherwise the Y-axis is removed and the
-                        labels are displayed inside the plot.
+    :param add_y_ticks: If set to `True` the groups will be shown in the y-ticks, otherwise the Y-axis is removed and the labels are displayed inside the plot.
     :param reference: Reference condition to use when testing for significance.
     :param groups: List of the name of the groups to test against.
-    :param groups_pvals:  If provided, these values will be plotted. If not set, the p-values will be estimated.
-                        The order of the p-values should match the order of the `groups_cond` categories.
+    :param groups_pvals: If provided, these values will be plotted. If not set, the p-values will be estimated. The order of the p-values should match the order of the `groups_cond` categories.
     :param test: Name of the method to test for significance.
     :param corr_method: Correction method for multiple testing.
     :param txt: Text to include before the p-value. If not set, only the p-value is shown.
@@ -292,14 +289,13 @@ def ridgeplot(
     :param path: Path to the folder to save the figure.
     :param filename: Name of file to use when saving the figure.
     :param show: If set to `False`, returns a dictionary with the matplotlib axes.
-    :param bw_adjust: Factor that multiplicatively scales the value chosen using `bw_method`.
-                     Increasing will make the curve smoother.
+    :param bw_adjust: Factor that multiplicatively scales the value chosen using `bw_method`. Increasing will make the curve smoother.
     :param bw_method: Method for determining the smoothing bandwidth to use; passed to `scipy.stats.gaussian_kde <https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.gaussian_kde.html>`_.
     :param ridge_height:  Scaling factor controlling the ridge height.
     :param ridge_spacing: Distance between consecutive ridges.
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
 
-    Examples
+    Example
     --------
     Create a ridgeplot showing the expression of a given gene including the p-value to indicate if there is
     a significant statistical difference between groups.
@@ -318,32 +314,8 @@ def ridgeplot(
 
         do.pl.ridgeplot(adata,'condition','total_counts', reference = 'healthy', groups=['disease'], figsize=(6, 4), x_label="total_counts", title="", palette={"healthy":"sandybrown", "disease":"royalblue"})
 
+
     """
-
-    #adata = do.dt.example_10x_processed()
-    #feature = "CD4"
-    #group_by = "annotation"
-    #figsize = (6, 5)
-    #x_linspace = 500
-    #layer = None
-    #ax = None
-    #bw_adjust = 0.5
-    #bw_method = "scott"
-    #ridge_height = 0.8
-    #alpha = 1
-    #reference = "Monocytes"
-    #groups = ["B_cells", "NK"]
-    #groups_pvals = [0.05, 0.6]
-    #test = "wilcoxon"
-    #corr_method = "benjamini-hochberg"
-    #ridge_spacing = 0.6
-    #add_y_ticks = True
-    #x_label = "Log(nUMI)"
-    #txt = "p ="
-
-    #feature = "total_counts"
-
-
 
     sanitize_anndata(adata)
     catgs = adata.obs[group_by].unique().tolist()
