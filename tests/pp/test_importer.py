@@ -69,7 +69,7 @@ def test_log_normalize():
 def test_quality_control():
     import os
     adata = do.dt.example_10x_processed()
-    os.makedirs(".QC")
+    os.makedirs("./QC", exist_ok=True)
     do.get.layer_swap(adata, "counts")
     adata_new = do.pp.quality_control(
         adata,

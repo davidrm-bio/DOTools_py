@@ -127,9 +127,7 @@ def test_get_dge_table():
 
 def test_pseudobulk():
     adata = do.dt.example_10x_processed()
-
-    pdata = do.get.pseudobulk(adata, "condition", "annotation", min_cells=0, min_counts=0, technical_replicates=2)
-
+    pdata = do.get.pseudobulk(adata, "condition", "annotation", min_cells=0, min_counts=0, technical_replicates=2, workers=1)
     assert isinstance(pdata, ad.AnnData)
     assert pdata.n_obs == 19
     return None
