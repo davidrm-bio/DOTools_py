@@ -15,6 +15,7 @@ functions for enhance visualization of sc/snRNA-seq data.
     pl.violinplot
     pl.boxplot
     pl.lineplot
+    pl.ridgeplot
 ```
 
 ## Embeddings plots

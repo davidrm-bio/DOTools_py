@@ -262,3 +262,19 @@ def test_density():
     assert "color_legend_ax" in axs
 
 
+
+
+def test_ridgeplot():
+    adata = do.dt.example_10x_processed()
+    axs = do.pl.ridgeplot(adata, "annotation", "CD4", show=False)
+    plt.close()
+    assert isinstance(axs, plt.Axes)
+    axs = do.pl.ridgeplot(adata, "annotation", "CD4", show=False, reference="B_cells", groups=["NK"])
+    plt.close()
+    assert isinstance(axs, dict)
+    assert "mainplot_ax" in axs
+    assert "significance_ax" in axs
+
+
+
+

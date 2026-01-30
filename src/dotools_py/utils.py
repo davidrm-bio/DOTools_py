@@ -292,6 +292,19 @@ def draw_bracket(x_start, x_end, y_bottom=0, y_top=1, stem_length=0.2):
     return matplotlib.path.Path(verts, codes)
 
 
+def draw_vertical_bracket(y_start, y_end, x_left=0, x_right=1, stem_length=0.2):
+    import matplotlib.path as mpath
+
+    verts = [
+        (x_left, y_start),  # Start of bracket (bottom-left)
+        (x_right, y_start),  # Horizontal stem right
+        (x_right, y_end - stem_length),  # Vertical part up
+        (x_left, y_end - stem_length)  # Horizontal back left
+    ]
+    codes = [mpath.Path.MOVETO, mpath.Path.LINETO, mpath.Path.LINETO, mpath.Path.LINETO]
+    return mpath.Path(verts, codes)
+
+
 def iterase_input(data: str | float | int | Iterable | None) -> list:
     """Convert input to list.
 

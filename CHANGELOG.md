@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning][].
 - Add ``random_state`` parameters to the methods.
 - Add ``dotools_py.utlity.create_report``
 - Add ``dotools_py.tl.DGEAnalysis``, a class with DGE analysis methods.
+- Add ``dotools_py.pl.ridgeplot``
 
 ### Bug fixes
 
