@@ -13,17 +13,17 @@ and this project adheres to [Semantic Versioning][].
 
 ### Features
 
-- Add ``dotools_py.pl.heatmap_foldchange`` to visualize log2foldchanges between groups across conditions.
+- Add :func:`dotools_py.pl.heatmap_foldchange` to visualize log2foldchanges between groups across conditions.
 - Add ``io`` module for reading/writing. `dotools_py.utility.read_rds` and `dotools_py.utility.save_rds` have been moved to this module.
 - Make internal functions in ``dotools_py.pp`` and ``dotools_py.tl`` public.
-- Add `dotools_py.get.layer_swap` to swap layers.
-- Add ``dotools_py.settings.set_kernel_logger`` and ``dotools_py.settings.toggle_kernel_logger`` to record the kernel history.
+- Add :func:`dotools_py.get.layer_swap` to swap layers.
+- Add :func:`dotools_py.settings.set_kernel_logger` and :func:`dotools_py.settings.toggle_kernel_logger` to record the kernel history.
 - Add ``dotools_py.bm`` module that contain metrics for the evaluation of quality control steps.
-- Add ``dotools_py.pl.density`` to visualize density of features in embeddings.
+- Add :func:`dotools_py.pl.density` to visualize density of features in embeddings.
 - Add ``random_state`` parameters to the methods.
-- Add ``dotools_py.utlity.create_report``
-- Add ``dotools_py.tl.DGEAnalysis``, a class with DGE analysis methods.
-- Add ``dotools_py.pl.ridgeplot``
+- Add :func:`dotools_py.utlity.create_report`
+- Add :class:`dotools_py.tl.DGEAnalysis`, a class with DGE analysis methods.
+- Add :func:`dotools_py.pl.ridgeplot`
 
 ### Bug fixes
 
