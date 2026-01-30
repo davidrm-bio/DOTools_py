@@ -59,7 +59,7 @@ groups:
      List of the name of the groups to test against.
 groups_pvals:
     If provided, these values will be plotted. If not set, the p-values will be estimated. The order of the p-values
-    shoudl match the order of the `groups_cond` categories.
+    should match the order of the `groups_cond` categories.
 test:
     Name of the method to test for significance.
 corr_method:
