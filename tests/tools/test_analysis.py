@@ -11,7 +11,7 @@ def test_integrate():
 
     # Harmony Integration
     try: # Fails with new version of anndata? Some internal problem in scanpy.external
-        do.tl.integrate_data(adata, batch_key="batch", integration_method="harmony", bbknn=False)
+        do.tl.integrate_data(adata, batch_key="batch", integration_method="harmony")
         assert "X_harmony" in adata.obsm.keys()
         subset = do.tl.reclustering(adata, "annotation", "batch", use_clusters=["NK"],
                                     recluster_approach="harmony", use_rep="X_harmony", get_subset=True)
@@ -19,19 +19,6 @@ def test_integrate():
         assert subset.n_obs < adata.n_obs
     except ValueError:
         pass
-
-    # BBKNN Integration
-    keys = list(adata.obsm.keys())
-    for key in keys:
-        if key == "X_pca":
-            continue
-        del adata.obsm[key]
-    do.tl.integrate_data(adata, batch_key="batch", integration_method="pca")
-    assert "X_umap" in adata.obsm.keys()
-    subset = do.tl.reclustering(adata, "annotation", "batch", use_clusters=["NK"],
-                                recluster_approach="pca", get_subset=True)
-    assert isinstance(subset, ad.AnnData)
-    assert subset.n_obs < adata.n_obs
 
     # scVI Integration
     do.tl.integrate_data(adata, batch_key="batch", integration_method="scvi")
@@ -76,12 +63,6 @@ def test_reclustering():
                                        use_rep="X_CCA", use_clusters=["B_cells"], get_subset=True)
     assert isinstance(adata_subset, ad.AnnData)
     assert adata_subset.n_obs == counts["B_cells"]
-
-    adata_subset = do.tl.reclustering(adata, "annotation", "batch", "pca",
-                       use_clusters=["B_cells"], get_subset=True, bbknn=False)
-    assert isinstance(adata_subset, ad.AnnData)
-    assert adata_subset.n_obs == counts["B_cells"]
-
     return None
 
 
