@@ -501,6 +501,7 @@ def _density_individual_continuous(
     density_alpha: float = 0.5,
     density_bw_adjust: float =0.5,
     show_basis: bool = True,
+    gridsize: int = 200,
     **kwargs,
 ) -> dict:
     from matplotlib.colorbar import Colorbar
@@ -539,13 +540,20 @@ def _density_individual_continuous(
         color_legend_ax = fig.add_subplot(legend_gs[2])
         main_ax = embedding(
             adata=adata, color=color, figsize=figsize, ax=main_ax, show=False, basis=basis, cmap=cmap, **kwargs,
-            split_by=None,
+            split_by=None, colorbar_loc = None,
         )
         # Remove UMAP colorbar
-        cbar_ax = [a for a in main_ax.figure.axes if a is not main_ax if a.get_label() == "<colorbar>"][0]
-        cbar_ax.set_visible(False)
-        ticks = [float(tck.get_text()) for tck in cbar_ax.get_yticklabels()]
-        vmin, vmax = np.min(ticks) if vmin is None else vmin, np.max(ticks) if vmax is None else vmax
+        #cbar_ax = [a for a in main_ax.figure.axes if a is not main_ax if a.get_label() == "<colorbar>"][0]
+        #cbar_ax.set_visible(False)
+        #ticks = [float(tck.get_text()) for tck in cbar_ax.get_yticklabels()]
+        if color in adata.var_names:
+            df_tmp = get_expr(adata, color)
+        else:
+            df_tmp = adata.obs[color]
+            df_tmp["expr"] = df_tmp[color]
+
+
+        vmin, vmax = np.min(df_tmp["expr"]) if vmin is None else vmin, np.max(df_tmp["expr"]) if vmax is None else vmax
         colormap = plt.get_cmap(cmap)
         normalize = check_colornorm(vmin=vmin, vmax=vmax, vcenter=vcenter)
         mappable = ScalarMappable(norm=normalize, cmap=colormap)
@@ -568,13 +576,17 @@ def _density_individual_continuous(
     cbar_kws = kwargs_kde["cbar_kws"] if "cbar_kws" in kwargs_kde else {"orientation": "horizontal"}
 
     density_legend_ax = fig.add_subplot(legend_gs[4])
-    sns.kdeplot(
+    main_ax = sns.kdeplot(
         df_density, x="x", y="y", weights=color, ax=main_ax, cmap=cmap, fill=fill, alpha=density_alpha,
         bw_adjust=density_bw_adjust, zorder=2, cbar=True, cbar_ax=density_legend_ax, cbar_kws=cbar_kws,
+        gridsize=gridsize,
         **kwargs_kde
     )
     if not show_basis:
-        spine_format(main_ax, basis)
+        txt = "UMAP" if basis == "X_umap" else basis
+        spine_format(main_ax, txt)
+        main_ax.set_xticks([])
+        main_ax.set_yticks([])
 
     density_legend_ax.set_xticks([np.min(density_legend_ax.get_xticks()), np.max(density_legend_ax.get_xticks())])
     density_legend_ax.set_xticklabels(["Min", "Max"])
@@ -602,6 +614,7 @@ def _density_individual_categorical(
     density_alpha: float = 0.5,
     density_bw_adjust: float =0.5,
     show_basis: bool = True,
+    gridsize: int = 200,
     **kwargs,
 ) -> dict:
 
@@ -657,11 +670,12 @@ def _density_individual_categorical(
     main_ax = sns.kdeplot(
         df_density, x="x", y="y", hue="codes", ax=main_ax, fill=fill, alpha=density_alpha,
         bw_adjust=density_bw_adjust, zorder=2, cbar=True, cbar_ax=density_legend_ax, cbar_kws=cbar_kws,
-        palette=palette_codes, legend=False,
+        palette=palette_codes, legend=False, gridsize=gridsize,
         **kwargs_kde
     )
     if not show_basis:
-        spine_format(main_ax, basis)
+        txt = "UMAP" if basis == "X_umap" else basis
+        spine_format(main_ax, txt)
         main_ax.set_xticks([])
         main_ax.set_yticks([])
 
@@ -707,6 +721,7 @@ def density(
     density_alpha: float = 0.75,
     density_bw_adjust: float = 0.5,
     fill: bool = True,
+    gridsize: int = 200,
     kwargs_kde: dict = None,
     **kwargs,
 )-> plt.Axes | None:
@@ -752,6 +767,8 @@ def density(
         Factor that multiplicatively scales the value chosen using bw_method. Increasing will make the curve smoother.
     fill
         If `True`, fill in the area under univariate density curves or between bivariate contours.
+    gridsize
+        Number of points on each dimension of the evaluation grid. A smaller number mights speed up plot generation.
     kwargs_kde
         Additional arguments pass to `sns.kdeplot <https://seaborn.pydata.org/generated/seaborn.kdeplot.html>`_
     kwargs
@@ -780,6 +797,7 @@ def density(
         do.pl.density(adata, 'CD4', basis="X_umap", density_alpha=.75)
 
     """
+    #TODO Improve speed
     color = iterase_input(color)
     sanitize_anndata(adata)
     if len(color) == 1:
@@ -792,6 +810,7 @@ def density(
                 vmin=vmin, vmax=vmax, vcenter=vcenter, cmap=cmap, kwargs_kde=kwargs_kde,
                 color_legend_title=color_legend_title, density_legend_title=density_legend_title,
                 density_alpha=density_alpha, density_bw_adjust=density_bw_adjust, fill=fill, show_basis=show_basis,
+                gridsize=gridsize,
                 **kwargs
             )
         else:
@@ -803,6 +822,7 @@ def density(
                 palette=palette, kwargs_kde=kwargs_kde,
                 color_legend_title=color_legend_title, density_legend_title=density_legend_title,
                 density_alpha=density_alpha, density_bw_adjust=density_bw_adjust, fill=fill,show_basis=show_basis,
+                gridsize=gridsize,
                 **kwargs,
             )
     else:
@@ -825,6 +845,7 @@ def density(
                     vmin=vmin, vmax=vmax, vcenter=vcenter, cmap=cmap, kwargs_kde=kwargs_kde,
                     color_legend_title=color_legend_title, density_legend_title=density_legend_title,
                     density_alpha=density_alpha, density_bw_adjust=density_bw_adjust, fill=fill, show_basis=show_basis,
+                    gridsize=gridsize,
                     **kwargs
                 )
             else:
@@ -836,9 +857,10 @@ def density(
                     palette=palette, kwargs_kde=kwargs_kde,
                     color_legend_title=color_legend_title, density_legend_title=density_legend_title,
                     density_alpha=density_alpha, density_bw_adjust=density_bw_adjust, fill=fill, show_basis=show_basis,
+                    gridsize=gridsize,
                     **kwargs,
                 )
-            axes_dict[f"subplot_axes_{idx}"] = axes_dict
+            axes_dict[f"subplot_axes_{idx}"] = axes_dict_current
         remove_extra(nExtra, nrows, ncols, ax)
     return return_axis(show, axes_dict)
 

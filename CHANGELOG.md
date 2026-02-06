@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning][].
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
+## Version 0.0.4
+
+### Features
+- Add `gridsize` parameter to ``dotools_py.pl.density`` to control the number of points calculated in each dimension.
+
+
+### Bug Fixes
+- Fix Bug in ``dotools_py.pl.density`` related to axes ticks, colorbar and multiple feature plotting.
+
 
 ## Version 0.0.3 {small}`2026-01-30`
 
