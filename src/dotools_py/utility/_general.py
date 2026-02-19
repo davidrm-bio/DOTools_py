@@ -10,9 +10,9 @@ import pandas as pd
 HERE = Path(__file__).parent
 
 
-def free_memory() -> None:
+def free_memory(cuda: bool = False) -> None:
     """Garbage collector.
-
+    :param cuda: If set to `True` clean the cache of cuda.
     :return:
     """
     import ctypes
@@ -26,6 +26,9 @@ def free_memory() -> None:
         ctypes.CDLL("libc.so.6").malloc_trim(0)
     else:
         pass
+    if cuda:
+        import torch
+        torch.cuda.memory.empty_cache()
     return None
 
 
