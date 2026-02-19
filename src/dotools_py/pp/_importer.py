@@ -121,7 +121,7 @@ def find_doublets(
     adata: ad.AnnData | pd.DataFrame,
     batch_key: str | None = None,
     cluster_key: str | bool | None = None,
-    doublet_rate: int = None,
+    doublet_rate: float = None,
     scdblfinder_metric: Literal['merror', 'logloss', 'auc', 'aucpr'] = "logloss",
     method: Literal["scDblFinder", "DoubletDetection", "Scrublet", "Ovrlpy"] = "scDblFinder",
     ovrlpy_keys: Dict = None,
@@ -294,6 +294,7 @@ def find_doublets(
 def _normalise(
     adata: ad.AnnData,
     n_reads: int = 10_000,
+    log_data: bool = True
 ) -> None:
     """Normalize raw counts.
 
@@ -306,18 +307,24 @@ def _normalise(
 
     :param adata: annData object
     :param n_reads: target number of reads per cell to normalize to. (Default  is **10,000**)
+    :param log_data: Whether to apply logarithm to the normalize data or not.
     :return: log-normalise anndata object
     """
     import scanpy as sc
     adata.layers["counts"] = adata.X.copy()  # Save raw counts
     sc.pp.normalize_total(adata, target_sum=n_reads)
-    sc.pp.log1p(adata)
-    adata.layers["logcounts"] = adata.X.copy()
+    if log_data:
+        sc.pp.log1p(adata)
+        adata.layers["logcounts"] = adata.X.copy()
+    else:
+        adata.layers["norm_counts"] = adata.X.copy()
     return
+
 
 def log_normalize(
     adata: ad.AnnData,
     target_sum: int = 10_000,
+    log_data: bool = True,
 ) -> None:
     """Apply LogNormalization.
 
@@ -326,7 +333,8 @@ def log_normalize(
     The returned anndata object will contain 3 layers:
     * counts: contains the raw un-normalized counts
     * logcounts: contains the log-normalize counts
-    Additionally, the log-normalize counts will also be saved under the X attribute.
+    Additionally, the log-normalize counts will also be saved under the X attribute. If `log_data` is set to `False`,
+    the normalized counts without logarithm transformation are kept and a layer named `norm_counts` will be added.
 
     Parameters
     ----------
@@ -334,6 +342,8 @@ def log_normalize(
         Annotated data matrix.
     target_sum
          Target number of reads per cell to normalize to.
+    log_data
+        If set to `True` logarithm transformation is applied to the data.
     Returns
     -------
     Returns `None`. Changes will be performed inplace.
@@ -348,7 +358,7 @@ def log_normalize(
     if (matrix < 0).any():
         raise ValueError("The count matrix should only contain non-negative values.")
 
-    _normalise(adata, n_reads=target_sum)
+    _normalise(adata, n_reads=target_sum, log_data=log_data)
 
     return None
 
@@ -547,7 +557,7 @@ def _qc_scrna(
 
 def quality_control(
     adata: ad.AnnData,
-    batch_key: str | None = None,
+    batch_key: str,
     min_genes_in_cell: int = 300,
     min_cells_with_genes: int = 5,
     cut_mt: int = 5,
@@ -561,7 +571,6 @@ def quality_control(
     remove_doublets: bool = False,
     doublet_tool: Literal["scDblFinder", "DoubletDetection", "Scrublet"] = "scDblFinder",
     metrics: bool = True,
-    qc_path: str | Path | None = None,
     random_state: int = 0,
 ) -> ad.AnnData:
     """Basic quality control for sc/snRNA-seq.
@@ -616,8 +625,6 @@ def quality_control(
         Method to use for the removal of doublets.
     metrics
         Whether to compute statistics of how many cells and genes are remove in each step.
-    qc_path
-        Directory where the quality control plots and metrics are saved.
     random_state
         Seed for random number generator,
 
@@ -636,7 +643,6 @@ def quality_control(
 
     database = {}
     for batch_name in adata.obs[batch_key].unique():
-        os.makedirs(convert_path(qc_path) / batch_name, exist_ok=True)
         adata_batch = adata[adata.obs[batch_key] == batch_name].copy()
         adata_batch = _qc_scrna(
             adata=adata_batch,
@@ -655,7 +661,7 @@ def quality_control(
             remove_doublets=remove_doublets,
             doublet_tool=doublet_tool,
             metrics=metrics,
-            qc_path=qc_path,
+            qc_path=None,
             random_state=random_state
 
         )
