@@ -102,6 +102,8 @@ def set_random_state(random_state: int = 0, verbosity: bool = True)-> None:
         import torch
         torch.manual_seed(random_state)
         torch.cuda.manual_seed_all(random_state)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
     except ImportError:
         pass
     try:
