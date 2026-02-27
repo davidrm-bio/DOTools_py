@@ -3,13 +3,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from pathlib import Path
 
 from dotools_py.get import expr as get_expr
 from dotools_py.utils import convert_path, get_subplot_shape, remove_extra, sanitize_anndata, spine_format
 
 
 def layers(
-    adata: ad.AnnData, color: str, layers: str, ncols: int = 4, normalise: bool = False, show: bool = True, **kwargs
+    adata: ad.AnnData, color: str, layer: str, ncols: int = 4, normalise: bool = False, show: bool = True, **kwargs
 ) -> None | plt.Axes:
     """Plot several layers.
 
@@ -17,9 +18,9 @@ def layers(
 
     :param adata: annotated data matrix.
     :param color: var_names or obs column to plot.
-    :param layers: layers to plot.
+    :param layer: layers to plot.
     :param ncols:  number of columns in the plot.
-    :param normalise: do log-normalisation on the layers.
+    :param normalise: do log-normalization on the layers.
     :param show: if set to False, return axis.
     :param kwargs: additional arguments for `sc.pl.spatial <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.spatial.html>`_.
     :return:  None or plt.axes.
@@ -28,13 +29,13 @@ def layers(
     adata = adata.copy()
     sanitize_anndata(adata)
     if normalise:
-        for layer in tqdm(layers, desc="Normalised Layers"):
+        for layer in tqdm(layer, desc="Normalised Layers"):
             sc.pp.normalize_total(adata, layer=layer)
             sc.pp.log1p(adata, layer=layer)
-    nrows, ncols, extras = get_subplot_shape(len(layers), ncols)
+    nrows, ncols, extras = get_subplot_shape(len(layer), ncols)
     fig, axs = plt.subplots(nrows, ncols, figsize=(15, 8))
     axs = axs.flatten()
-    for idx, ly in enumerate(layers):
+    for idx, ly in enumerate(layer):
         sc.pl.spatial(adata, color=color, ax=axs[idx], layer=ly, **kwargs)
         axs[idx].set_title(ly + "\n" + color)
         spine_format(axs[idx], "SP")
@@ -51,7 +52,7 @@ def slides(
     batch_key: str = "batch",
     ncols: int = 4,
     sp_size: float = 1.5,
-    path: str = None,
+    path: str | Path = None,
     filename: str = "Spatial.svg",
     common_legend: bool = True,
     order: list = None,
@@ -67,7 +68,7 @@ def slides(
     verbose: bool = True,
     spacing: tuple = (0.3, 0.2),
     **kwargs,
-) -> plt.Axes:
+) -> plt.Axes | None:
     """Plot multiple visium slides
 
     Plot a feature in var_names or a column from obs in multiple visium slides.
@@ -91,7 +92,7 @@ def slides(
     :param select_samples: list with a subset of samplename that want to be plotted.
     :param show: if False, return axs.
     :param minimal_title: if set to true only the sample name will be shown as title, otherwise title + color
-    :param vmax: maximum value for continus values (e.g., expression). If common legend is set to True and vmax
+    :param vmax: maximum value for continuous values (e.g., expression). If common legend is set to True and vmax
                  is not specified, it will be automatically computed taking the p99.2 expression value across
                  all subplots.
     :param verbose: show a progress bar when plotting multiple slides.
@@ -179,7 +180,6 @@ def slides(
         """
         if minimal_title:
             axs[idx].set_title(sample, fontsize=title_fontsize, fontweight=title_fontweight)
-            # plt.suptitle(color, fontsize=23, fontweight='bold')
             fig.supylabel(color, fontsize=23, fontweight="bold")
         else:
             axs[idx].set_title(sample + "\n" + title_color, fontsize=title_fontsize, fontweight=title_fontweight)
