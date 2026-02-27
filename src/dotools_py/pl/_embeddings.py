@@ -45,7 +45,7 @@ def embedding(
 
     # Fx Specific
     labels: str = None,
-    labels_fontproporties: Dict[Literal["size", "weight", "outline"], str | int] = None,
+    labels_fontproperties: Dict[Literal["size", "weight", "outline"], str | int] = None,
     labels_repel: dict = None,
     basis: str = "X_umap",
     **kwargs,
@@ -73,7 +73,7 @@ def embedding(
     :param filename: Name of file to use when saving the figure.
     :param show: If set to `False`, returns a dictionary with the matplotlib axes.
     :param labels: Column in `adata.obs` with categorical values to add to the plot.
-    :param labels_fontproporties: Dictionary which should contain 'size' and 'weight' to define the fontsize and
+    :param labels_fontproperties: Dictionary which should contain 'size' and 'weight' to define the fontsize and
                                  fontweight of the labels.
     :param labels_repel: Additional arguments pass to `adjust_text <https://adjusttext.readthedocs.io/en/latest/>_`.
     :param basis: Embedding to use, default UMAP.
@@ -107,20 +107,20 @@ def embedding(
     # Labels is used when plotting inside the plot
     if labels is not None:
         labels_centroids = get_centroids(adata, labels, basis=basis)
-        if labels_fontproporties is None:
-            labels_fontproporties = {}
+        if labels_fontproperties is None:
+            labels_fontproperties = {}
 
-        labels_fontproporties.update(
+        labels_fontproperties.update(
             {
-                "size": labels_fontproporties.get("size", 12),
-                "weight": labels_fontproporties.get("weight", "bold"),
-                "outline": labels_fontproporties.get("outline", 1.5),
+                "size": labels_fontproperties.get("size", 12),
+                "weight": labels_fontproperties.get("weight", "bold"),
+                "outline": labels_fontproperties.get("outline", 1.5),
             }
         )
         (labels_fontweight, labels_fontsize, labels_fontoutline) = (
-            labels_fontproporties["weight"],
-            labels_fontproporties["size"],
-            labels_fontproporties["outline"],
+            labels_fontproperties["weight"],
+            labels_fontproperties["size"],
+            labels_fontproperties["outline"],
         )
 
     # We consider that the input is always a list;
@@ -162,7 +162,7 @@ def embedding(
 
         if catgs_order is not None:
             assert len(adata.obs[split_by].unique()) == len(catgs_order), (
-                f"Number of categories provided != ccategories in {split_by}"
+                f"Number of categories provided != categories in {split_by}"
             )
             catgs = catgs_order
         else:
@@ -331,7 +331,7 @@ def umap(
 
     # Fx Specific
     labels: str = None,
-    labels_fontproporties: Dict[Literal["size", "weight"], str | int] = None,
+    labels_fontproperties: Dict[Literal["size", "weight"], str | int] = None,
     labels_repel: dict = None,
     **kwargs,
 ) -> None | plt.Axes:
@@ -358,7 +358,7 @@ def umap(
     :param filename: Name of file to use when saving the figure.
     :param show: If set to `False`, returns a dictionary with the matplotlib axes.
     :param labels: Column in `adata.obs` with categorical values to add to the plot.
-    :param labels_fontproporties: Dictionary which should contain 'size' and 'weight' to define the fontsize and
+    :param labels_fontproperties: Dictionary which should contain 'size' and 'weight' to define the fontsize and
                                  fontweight of the labels.
     :param labels_repel: Additional arguments pass to `adjust_text <https://adjusttext.readthedocs.io/en/latest/>_`.
     :param kwargs: Additional parameters pass to `sc.pl.umap() <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.embedding.html>`_.
@@ -389,7 +389,7 @@ def umap(
         adata=adata, color=color, split_by=split_by, catgs_order=catgs_order, ncols=ncols,
         title_fontproperties=title_fontproperties, figsize=figsize, share_legend=share_legend, title=title,
         vmax=vmax, spacing=spacing, path=path, filename=filename, show=show, labels=labels,
-        labels_fontproporties=labels_fontproporties, labels_repel=labels_repel, basis="X_umap", ax=ax,
+        labels_fontproperties=labels_fontproperties, labels_repel=labels_repel, basis="X_umap", ax=ax,
         **kwargs,
     )
 
@@ -397,7 +397,7 @@ def umap(
 
 
 @vector_friendly()
-def split_embeddding(
+def split_embedding(
     # Data
     adata: ad.AnnData,
     split_by: str,
@@ -447,7 +447,7 @@ def split_embeddding(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.split_embeddding(adata, 'annotation', ncols=3)
+        do.pl.split_embedding(adata, 'annotation', ncols=3)
 
     """
     import scanpy as sc
@@ -604,7 +604,7 @@ def _density_individual_categorical(
     adata: ad.AnnData,
     color: str,
     basis: str,
-    figsize: tuple,
+    figsize: tuple[float, float],
     ax: plt.Axes | None,
     palette: dict,
     kwargs_kde: dict | None,
@@ -756,11 +756,11 @@ def density(
     color_legend_title
         Title of the colorbar legend
     density_legend_title
-        Titlte of the colorbar for the density
+        Title of the colorbar for the density
     basis
         Embedding to use, default spatial.
     show_basis
-        If set to `True` both the density and the scatterplot for the embedding will shown.
+        If set to `True` both the density and the scatterplot for the embedding will be shown.
     density_alpha
         Transparency for the density kernel.
     density_bw_adjust

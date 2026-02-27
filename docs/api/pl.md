@@ -24,7 +24,7 @@ functions for enhance visualization of sc/snRNA-seq data.
     :toctree: generated
 
     pl.embedding
-    pl.split_embeddding
+    pl.split_embedding
     pl.umap
     pl.density
 ```

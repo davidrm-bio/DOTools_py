@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning][].
 ### Bug Fixes
 - Fix Bug in ``dotools_py.pl.density`` related to axes ticks, colorbar and multiple feature plotting.
 - Fix Bugs in the ``dotools_py.pp`` module
+- Fix typo in the name of the function ``dotools_py.pl.split_embedding``
 
 
 ## Version 0.0.3 {small}`2026-01-30`
