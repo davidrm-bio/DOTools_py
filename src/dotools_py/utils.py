@@ -113,10 +113,10 @@ def make_grid_spec(
     *,
     nrows: int,
     ncols: int,
-    wspace: float = None,
-    hspace: float = None,
-    width_ratios: float = None,
-    height_ratios: float = None,
+    wspace: float  = None,
+    hspace: float  = None,
+    width_ratios: float | list = None,
+    height_ratios: float | list = None,
 ):
     """Adapted from Scanpy.
 
