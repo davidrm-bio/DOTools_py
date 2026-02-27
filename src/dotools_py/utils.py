@@ -113,8 +113,8 @@ def make_grid_spec(
     *,
     nrows: int,
     ncols: int,
-    wspace: float  = None,
-    hspace: float  = None,
+    wspace: float = None,
+    hspace: float = None,
     width_ratios: float | list = None,
     height_ratios: float | list = None,
 ):
@@ -246,7 +246,7 @@ def require_dependencies(required_packages):
     return decorator
 
 
-#def deprecated_function(func):
+# def deprecated_function(func):
 #    """Decorator to mark a function as deprecated."""
 #    import warnings
 #    @functools.wraps(func)
@@ -275,7 +275,6 @@ def require_dependencies(required_packages):
 #             return func(*args, **kwargs)
 #         return wrapper
 #     return decorator
-
 
 
 def draw_bracket(x_start, x_end, y_bottom=0, y_top=1, stem_length=0.2):
@@ -406,7 +405,7 @@ def return_axis(show: bool, axis: dict | plt.Axes, tight: bool = True) -> None |
     if show:
         if tight:
             plt.tight_layout()
-        return  plt.show()
+        return plt.show()
     else:
         return axis
 
@@ -420,18 +419,20 @@ class EmptyType:
 
 def vector_friendly():
     """ Decorator to set Scanpy figure parameters in a vector-friendly way."""
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             import scanpy as sc
             sc.set_figure_params(scanpy=False, vector_friendly=True)
             return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
-
-def check_r_package(package: str | list)->None:
+def check_r_package(package: str | list) -> None:
     from rpy2.robjects.packages import importr
 
     package = iterase_input(package)
@@ -445,4 +446,3 @@ def check_r_package(package: str | list)->None:
     if len(missing) != 0:
         raise ModuleNotFoundError(f"The R packages: {missing} are not installed")
     return None
-
