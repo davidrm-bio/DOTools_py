@@ -83,7 +83,7 @@ def test_embeddings():
     plt.close()
     assert all(isinstance(ax, plt.Axes) for ax in np.ravel(axs))
 
-    axs = do.pl.split_embeddding(adata, "annotation", show=False)
+    axs = do.pl.split_embedding(adata, "annotation", show=False)
     plt.close()
     assert all(isinstance(ax, plt.Axes) for ax in np.ravel(axs))
 
@@ -234,7 +234,7 @@ def test_spatial():
     # TODO - Update when a test dataset is added
     adata = do.dt.example_10x_processed()
     adata.obsm["X_spatial"] = adata.obsm["X_umap"].copy()
-    do.pl.layers(adata, "CD4", layers=["counts", "logcounts"], show=False, library_id=None, spot_size=1)
+    do.pl.layers(adata, "CD4", key_layers=["counts", "logcounts"], show=False, library_id=None, spot_size=1)
     plt.close()
     try:
         do.pl.slides(adata, "CD4")

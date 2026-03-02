@@ -84,7 +84,6 @@ def test_quality_control():
         include_rbs=True,
         remove_doublets=False,
         metrics=True,
-        qc_path="./QC"
     )
     assert isinstance(adata_new, ad.AnnData)
     assert os.path.exists("./QC")
