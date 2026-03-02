@@ -10,7 +10,7 @@ from dotools_py.utils import convert_path, get_subplot_shape, remove_extra, sani
 
 
 def layers(
-    adata: ad.AnnData, color: str, layer: str, ncols: int = 4, normalise: bool = False, show: bool = True, **kwargs
+    adata: ad.AnnData, color: str, key_layers: str | list, ncols: int = 4, normalise: bool = False, show: bool = True, **kwargs
 ) -> None | plt.Axes:
     """Plot several layers.
 
@@ -18,7 +18,7 @@ def layers(
 
     :param adata: annotated data matrix.
     :param color: var_names or obs column to plot.
-    :param layer: layers to plot.
+    :param key_layers: layers to plot.
     :param ncols:  number of columns in the plot.
     :param normalise: do log-normalization on the layers.
     :param show: if set to False, return axis.
@@ -29,13 +29,13 @@ def layers(
     adata = adata.copy()
     sanitize_anndata(adata)
     if normalise:
-        for layer in tqdm(layer, desc="Normalised Layers"):
+        for layer in tqdm(key_layers, desc="Normalised Layers"):
             sc.pp.normalize_total(adata, layer=layer)
             sc.pp.log1p(adata, layer=layer)
-    nrows, ncols, extras = get_subplot_shape(len(layer), ncols)
+    nrows, ncols, extras = get_subplot_shape(len(key_layers), ncols)
     fig, axs = plt.subplots(nrows, ncols, figsize=(15, 8))
     axs = axs.flatten()
-    for idx, ly in enumerate(layer):
+    for idx, ly in enumerate(key_layers):
         sc.pl.spatial(adata, color=color, ax=axs[idx], layer=ly, **kwargs)
         axs[idx].set_title(ly + "\n" + color)
         spine_format(axs[idx], "SP")
