@@ -829,8 +829,8 @@ class SeuratIntegration:
         else:
             # Correct dimensionality reduced matrix only
             corrected = [normalize(adata_list[i].obsm[key_correct], axis=1) for i in range(self.n_dataset)]
-
-        for xx in tqdm.tqdm(self.alignments):
+        logger.info("Integrating datasets")
+        for xx in tqdm.tqdm(self.alignments, desc="Batch alignment"):
             logger.debug(xx)
             corrected = self.transform(
                 data=np.array(corrected, dtype="object"),
