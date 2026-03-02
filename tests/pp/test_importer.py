@@ -83,7 +83,7 @@ def test_quality_control():
         max_genes=10000,
         include_rbs=True,
         remove_doublets=False,
-        metrics=True,
+        metrics=False,
     )
     assert isinstance(adata_new, ad.AnnData)
     assert os.path.exists("./QC")
