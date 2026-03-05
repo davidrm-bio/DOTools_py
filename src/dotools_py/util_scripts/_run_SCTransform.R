@@ -46,12 +46,12 @@ Seu <- tryCatch(
 )
 
 message('Preparing to Python')
-norm_expr <- GetAssayData(Seu, assay = 'SCT', slot = 'data')
+norm_expr <- GetAssayData(Seu, assay = 'SCT', layer = 'data')
 norm_expr <- as.data.frame(norm_expr)
 norm_expr <- t(norm_expr)
 print(norm_expr[1:3, 1:3])
 
-raw_expr <- GetAssayData(Seu, assay = 'SCT', slot = 'counts')
+raw_expr <- GetAssayData(Seu, assay = 'SCT', layer = 'counts')
 raw_expr <- as.data.frame(raw_expr)
 raw_expr <- t(raw_expr)
 print(raw_expr[1:3, 1:3])
