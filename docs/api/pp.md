@@ -17,7 +17,7 @@ analysing sc/snRNA-seq with different implementations building on packages from 
     pp.importer_py
     pp.quality_control
     pp.log_normalize
-    pp.sctransform_normalize
+    pp.pearson_residuals_normalize
     pp.find_doublets
 
 ```
