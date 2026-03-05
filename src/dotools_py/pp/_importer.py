@@ -3,16 +3,25 @@ import subprocess
 import uuid
 from datetime import date
 from pathlib import Path
-from beartype import beartype
 from beartype.typing import Literal, Dict
 import anndata as ad
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from scipy.sparse import issparse
 
 from dotools_py import logger
-from dotools_py.utils import convert_path, get_paths_utils
+from dotools_py.utils import convert_path, get_paths_utils, iterase_input, InputError
+from dotools_py.io import read_10x_h5, read_visium, read_10x_mtx
+
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    try:
+        from spatialdata import SpatialData
+    except ModuleNotFoundError:
+        SpatialData = Any
 
 
 def _qc_vln(
@@ -36,29 +45,30 @@ def _qc_vln(
     :param colors: colors for the violinplots.
     :return:
     """
-    if isinstance(stats, tuple):
-        stats = list(stats)
+    stats = iterase_input(stats)
 
-    assert all(col in list(adata.obs.columns) for col in stats), "column name in col_obs missing in adata.obs"
-    assert len(stats) == 3, "Expected 3 variables to plot: total_counts, n_genes_by_counts, pct_counts_mt"
+    missing_col = [col for col in stats if col not in adata.obs.columns]
 
-    if isinstance(colors, str):
-        colors = [colors]
-    if len(colors) == 1:
-        colors = colors * 3
+    if len(missing_col) != 0:
+        assert all(col in list(adata.obs.columns) for col in stats), f"{missing_col} missing in adata.obs"
+    colors = iterase_input(colors)
+    colors = colors * len(stats)
 
-    fig, axs = plt.subplots(1, 3, figsize=(10, 6))
-    for idx in range(3):
+    ncols = len(stats)
+
+    fig, axs = plt.subplots(1, ncols, figsize=(10, 6))
+    for idx in range(ncols):
         vln = sns.violinplot(adata.obs[stats[idx]], ax=axs[idx], color=colors[idx])
         vln.set_xticklabels([f"Median = {np.floor(np.median(adata.obs[stats[idx]]))}"], fontweight="bold")
         vln.set_title("")
+        #vln.set_ylabel(stats[idx], color="black")
     plt.suptitle(title, fontsize=30, fontweight="bold")
 
     if path is not None:
         plt.savefig(convert_path(path) / filename, bbox_inches="tight")
-        plt.close(fig)
+        return plt.close()
     else:
-        return
+        return plt.show()
 
 
 def _filter_quantiles(
@@ -82,41 +92,7 @@ def _filter_quantiles(
     return adata[mask, :].copy()
 
 
-# def _run_scdblfinder(
-#     adata: ad.AnnData,
-#     batch_key: str | None = None,
-# ) -> None:
-#     """Find doublets.
-#
-#     The inference is performed using `scDblFinder <https://github.com/plger/scDblFinder>`_ in R.
-#
-#     :param adata: annotated anndata matrix
-#     :param batch_key: `.obs` column name with batch information. Required if the anndata contain more than 1 sample.
-#     :return:
-#     """
-#     import polars
-#
-#     logger.info("Finding Neotypic doublets")
-#     rscript = get_paths_utils("_run_scDblFinder.R")
-#     tmpdir_path = Path("/tmp") / f"scDblFinder_{uuid.uuid4().hex}"
-#     tmpdir_path.mkdir(parents=True, exist_ok=False)
-#     adata.write(tmpdir_path / "adata_tmp.h5ad")
-#
-#     logger.info("Running scDblFinder")
-#     cmd = ["Rscript", rscript, "--input=" + str(tmpdir_path) + "/adata_tmp.h5ad", "--out=" + str(tmpdir_path) + "/"]
-#     if batch_key:
-#         cmd += ["--name=" + batch_key]
-#     subprocess.call(cmd)
-#
-#     doublets = polars.read_csv(tmpdir_path / "scDblFinder_inference.csv", infer_schema_length=0)
-#     doublets = doublets.to_pandas()
-#     doublets = doublets.set_index(adata.obs_names)  # Avoid ImplicitModificationWarning
-#     adata.obs[["doublet_class", "doublet_score"]] = doublets.values
-#     shutil.rmtree(tmpdir_path)
-#     return
 
-
-@beartype
 def find_doublets(
     adata: ad.AnnData | pd.DataFrame,
     batch_key: str | None = None,
@@ -187,6 +163,8 @@ def find_doublets(
 
     """
 
+    assert adata.n_obs != 0, "The AnnData is empty"
+
     def py_none_to_r(obj):
         if obj is None:
             return r("NULL")  # evaluated at conversion time
@@ -223,6 +201,10 @@ def find_doublets(
                 """
             )
             doublets = globalenv["df"]
+            r("""
+            rm(adata, batch, cluster, dbr, metric, random_state, sce, df)
+            gc()
+            """)
         doublets = doublets.set_index(adata.obs_names)
         adata.obs[["doublet_class", "doublet_score"]] = doublets.values
     elif method == "DoubletDetection":
@@ -287,7 +269,8 @@ def find_doublets(
         doublets.write_csv(convert_path(ovrlpy_report_path) / "SummaryDoublets.csv")
     else:
         raise Exception("Doublet detection tool available: scDblFinder, Scrublet and DoubletDetection")
-
+    adata.obs["doublet_class"] = pd.Categorical(adata.obs["doublet_class"].astype(str))
+    adata.obs["doublet_score"] = adata.obs["doublet_score"].astype(float)
     return None
 
 
@@ -311,7 +294,6 @@ def _normalise(
     :return: log-normalise anndata object
     """
     import scanpy as sc
-    adata.layers["counts"] = adata.X.copy()  # Save raw counts
     sc.pp.normalize_total(adata, target_sum=n_reads)
     if log_data:
         sc.pp.log1p(adata)
@@ -349,196 +331,316 @@ def log_normalize(
     Returns `None`. Changes will be performed inplace.
 
     """
-    from scipy.sparse import issparse
-
     # LogNormalization should only be performed on raw counts
     matrix = adata.X.data if issparse(adata.X) else adata.X.flatten()
     if (matrix % 1 != 0).any():
         raise ValueError("The count matrix should only contain integers.")
     if (matrix < 0).any():
         raise ValueError("The count matrix should only contain non-negative values.")
-
+    adata.layers["counts"] = adata.X.copy()  # Save raw counts
     _normalise(adata, n_reads=target_sum, log_data=log_data)
 
     return None
 
 
-def _qc_scrna(
+def pearson_residuals_normalize(
     adata: ad.AnnData,
-    ids: str,
-    qc_path: str | Path | None = None,
-    batch_key: str | None = None,
-    min_genes_in_cell: int = 300,
-    min_cells_with_genes: int = 5,
-    cut_mt: int = 5,
-    min_counts: int | None = None,
-    max_counts: int | None = None,
-    min_genes: int | None = None,
-    max_genes: int | None = None,
-    low_quantile: int | None = None,
-    high_quantile: int | None = None,
-    include_rbs: bool = True,
-    remove_doublets: bool = False,
-    doublet_tool: Literal["scDblFinder", "DoubletDetection", "Scrublet"] = "scDblFinder",
-    metrics: bool = True,
-    random_state: int = 0,
+    batch_key: str = None,
+    layer: str = None,
+    backend: Literal["scanpy", "seurat"] = "scanpy",
+    theta: int = 100,
 ) -> ad.AnnData:
-    """Basic QC.
+    """Apply analytic Pearson residual normalization.
 
-    :param adata: annotated dt matrix.
-    :param ids: id or name for the data.
-    :param qc_path: path where to save the metric and the violin plots.
-    :param batch_key: Column in `adata.obs` with sample information.
-    :param min_genes_in_cell: minimum number of genes in a cell.
-    :param min_cells_with_genes:  minimum number of cells expressing a gene.
-    :param cut_mt: maximum number of mitochondrial content for cells.
-    :param min_counts: minimum number of counts per cell.
-    :param max_counts: maximum number of counts per cell.
-    :param min_genes: minimum number of genes per cell.
-    :param max_genes: maximum number of genes per cell.
-    :param low_quantile: low quantile to filter genes and counts.
-    :param high_quantile: upper quantile to filter genes and counts.
-    :param include_rbs: calculate stats for ribosomal genes.
-    :param remove_doublets: remove doublets.
-    :param doublet_tool: doublet tool to use. Available scDblFinder, Scrublet and DoubletDetection.
-    :param metrics: whether to generate a metrics file or not.
-    :param random_state: Seed for random number generator.
-    :return: annotated dt matrix
+    The residuals are based on a negative binomial offset model with overdispersion theta shared across genes.
+    By default, residuals are clipped to sqrt(n_obs) and overdispersion theta=100 is used. It expects raw counts as
+    input.
+
+    :param adata: Annotated data matrix.
+    :param batch_key: Column in adata.obs with batch information.
+    :param layer: Layer to use instead of `adata.X`
+    :param backend: If set to `scanpy` it will use scanpy implementation. Otherwise set to `seutat` to use `SCTransform <https://github.com/satijalab/sctransform>`_.
+    :param theta: he negative binomial overdispersion parameter for Pearson residuals.
+    :return: Returns `AnnData`. Depending on the backend new layers will be added. The normalized values will also be set in `adata.X`
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> adata = pearson_residuals_normalisation(adata, batch_key="batch", layer="counts", backend="scanpy")
+    normalizing counts per cell
+    finished (0:00:00)
+    computing analytic Pearson residuals on counts
+        finished (0:00:00)
+    computing analytic Pearson residuals on counts
+        finished (0:00:00)
+    >>> adata
+    AnnData object with n_obs × n_vars = 700 × 1851
+    obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts',
+         'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo',
+         'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot',
+         'celltypist_conf_score', 'annotation', 'annotation_recluster'
+    obsm: 'X_CCA', 'X_pca', 'X_umap'
+    layers: 'counts', 'logcounts', 'sqrt_norm', 'pearson_norm'
+    >>> adata = do.dt.example_10x_processed()
+    >>> adata = pearson_residuals_normalisation(adata, batch_key="batch", layer="counts", backend="seurat")
+    2026-03-05 15:45:26,911 - Preparing to transfer to R
+    2026-03-05 15:45:26,928 - Running SCTransform in R
+    >>> adata
+    AnnData object with n_obs × n_vars = 700 × 1181
+    obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts',
+         'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo',
+         'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot',
+         'celltypist_conf_score', 'annotation', 'annotation_recluster'
+    var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches', 'highly_variable_intersection', 'SCT_rm'
+    obsm: 'SCT_rm'
+    varm: 'PCs'
+    layers: 'counts', 'logcounts', 'SCT_norm', 'SCT_counts'
+    obsp: 'connectivities', 'distances'
+
     """
+    from scipy import sparse
+    import polars
     import scanpy as sc
 
-    # Create a metrics file
-    today = date.today().strftime("%y%m%d")
-    metrics_filename = f"{today}_Metrics_{ids}.xlsx"
-    df = pd.DataFrame([], columns=["QC_Step", "nCells", "nFeatures", "Comments"])
-    df.loc[0] = ["Input_Shape", adata.shape[0], adata.shape[1], ""]
+    if "counts" not in adata.layers.keys():
+        adata.layers["counts"] = adata.X.copy()
 
-    # Compute Metrics
-    mt_gene, ribo_gene = "mt-", ("rbs", "rpl")
-    qc_metrics = ["mt", "ribo"] if include_rbs else ["mt"]
-    adata.var["genenames"] = adata.var_names.str.lower()  # Generalise for any gene format
-    adata.var["mt"] = adata.var["genenames"].str.startswith(mt_gene)  # Annotate mitochondria genes
-    adata.var["ribo"] = adata.var["genenames"].str.startswith(ribo_gene)  # Annotate mitochondria genes
-    sc.pp.calculate_qc_metrics(adata, qc_vars=qc_metrics, percent_top=None, log1p=True, inplace=True, parallel=True)
 
-    # Vln Plots showing Metrics before qc
-    _qc_vln(adata, title=f"PreQC for {ids}", path=qc_path, filename=f"Vln_PreQC_{ids}.svg")
+    if backend == "scanpy":
+        adata.layers["sqrt_norm"] = np.sqrt(sc.pp.normalize_total(adata, inplace=False)["X"])
 
-    # Step 1 -
-    logger.info("Remove Cells with low number of genes")
-    sc.pp.filter_cells(adata, min_genes=min_genes_in_cell, inplace=True)
-    df.loc[1] = ["Rm_Cells_lowGenes", adata.shape[0], adata.shape[1], f"Remove cells with <{min_genes_in_cell} genes"]
+        database = {}
+        for batch in adata.obs[batch_key].unique():
+            adata_batch = adata[adata.obs[batch_key] == batch].copy()
+            sc.experimental.pp.normalize_pearson_residuals(adata_batch, theta=theta, layer=layer)
+            adata_batch.layers["pearson_norm"] = adata_batch.X.copy()
+            database[batch] = adata_batch
+        adata = ad.concat(database.values(), join="outer")
+    else:
+        rscript = get_paths_utils("_run_SCTransform.R")
+        tmpdir_path = Path("/tmp") / f"SCTransform_{uuid.uuid4().hex}"
+        tmpdir_path.mkdir(parents=True, exist_ok=False)
 
-    # Step 2 -
-    logger.info("Remove Genes lowly expressed")
-    sc.pp.filter_genes(adata, min_cells=min_cells_with_genes, inplace=True)
-    df.loc[2] = [
-        "Rm_Genes_lowCells",
-        adata.shape[0],
-        adata.shape[1],
-        f"Remove genes express in less than {min_cells_with_genes} cells",
-    ]
+        logger.info("Preparing to transfer to R")
+        adata_copy = adata.copy()
+        if layer is not None:
+            adata.X = adata.layers[layer].copy()
+        del adata.uns
+        del adata.obsm
 
-    # Step 3 -
-    logger.info("Remove cells with high MT-content")
-    adata = adata[adata.obs.pct_counts_mt < cut_mt, :].copy()
-    df.loc[3] = [
-        "Rm_Cell_HighMT",
-        adata.shape[0],
-        adata.shape[1],
-        f"Remove cells with >{cut_mt}% of Mitochondrial genes",
-    ]
+        if batch_key is not None:
+            adata_copy.obs["batch"] = adata_copy.obs[batch_key].copy()
+        else:
+            adata_copy.obs["batch"] = "batch1"
+        adata_copy.write(tmpdir_path / "adata_tmp.h5ad")
 
-    # Step 4 -
-    logger.info("Remove cells based on nUMI counts")
-    assert (min_counts is None) != (low_quantile is None), "Set min_count or low_quantile"
-    assert (max_counts is None) != (high_quantile is None), "Set max_count or high_quantile"
+        logger.info("Running SCTransform in R")
+        subprocess.call(["Rscript", rscript, "--input=" + str(tmpdir_path) + "/", "--out=" + str(tmpdir_path) + "/"])
 
-    if min_counts is not None:
-        sc.pp.filter_cells(adata, min_counts=min_counts)
-    if max_counts is not None:
-        sc.pp.filter_cells(adata, max_counts=max_counts)
-    if min_genes is not None:
-        sc.pp.filter_cells(adata, min_genes=min_genes)
-    if max_genes is not None:
-        sc.pp.filter_cells(adata, max_genes=max_genes)
+        raw_counts = polars.read_csv(os.path.join(tmpdir_path, "SCTransform_raw.csv"), infer_schema_length=0)
+        raw_counts = raw_counts.to_pandas().astype(float)
+        raw_counts = raw_counts.set_index(adata.obs_names)
 
-    # Apply quantile-based filtering (conditionally)
-    adata = _filter_quantiles(adata, low_quantile, high_quantile)
-    df.loc[4] = [
-        "Rm_Cells_nUMI_nGenes",
-        adata.shape[0],
-        adata.shape[1],
-        f"Remove cells based on nUMI counts[Absolute (Min/Max): {min_counts}/{max_counts}, "
-        f"Quantile (low/high): {low_quantile}/{high_quantile}] and nFeatures [Absolute (Min/Max): "
-        f"{min_genes}/{max_genes}]",
-    ]
+        norm_counts = polars.read_csv(os.path.join(tmpdir_path, "SCTransform_norm.csv"), infer_schema_length=0)
+        norm_counts = norm_counts.to_pandas().astype(float)
+        norm_counts = norm_counts.set_index(adata.obs_names)
 
-    # Step 5 -
-    if remove_doublets:
-        find_doublets(adata, batch_key=batch_key, method=doublet_tool, random_state=random_state)
+        # Transfer genes not kept during normalization to .obsm
+        excluded_genes = [gene for gene in adata.var_names if gene not in norm_counts.columns]
+        adata.var["SCT_rm"] = [True if gene in excluded_genes else False for gene in adata.var_names]
+        adata.obsm["SCT_rm"] = adata[:, adata.var["SCT_rm"].values].X.toarray()
+        adata = adata[:, ~adata.var["SCT_rm"].values]
 
-        # if doublet_tool == "scDblFinder":
-        #     adata.layers["counts"] = adata.X.copy()  # needed for scDblFinder
-        #     _run_scdblfinder(adata, batch_key)
-        # elif doublet_tool == "Scrublet":
-        #     sc.pp.scrublet(adata)
-        #     adata.obs["doublet_class"] = adata.obs["predicted_doublet"].map({False: "singlet", True: "doublet"})
-        #     del adata.obs["predicted_doublet"]
-        # elif doublet_tool == "DoubletDetection":
-        #     clf = doubletdetection.BoostClassifier(
-        #         n_iters=15,
-        #         clustering_algorithm="leiden",
-        #         standard_scaling=True,
-        #         pseudocount=0.1,
-        #         verbose=False,
-        #         n_jobs=-1,
-        #     )
-        #     doublets = clf.fit(adata.X).predict()
-        #     doublet_score = clf.doublet_score()
-        #     mapped = np.full(doublets.shape, "singlet", dtype=object)
-        #     mapped[doublets == 1.0] = "doublet"
-        #     adata.obs["doublet_class"] = pd.Categorical(mapped, categories=["singlet", "doublet"])
-        #     adata.obs["doublet_score"] = doublet_score
-        # else:
-        #     raise Exception("Doublet detection tool available: scDblFinder, Scrublet and DoubletDetection")
+        # Make sure we have the same order or barcodes and features
+        norm_counts = norm_counts.reindex(index=adata.obs_names, columns=adata.var_names)
+        raw_counts = raw_counts.reindex(index=adata.obs_names, columns=adata.var_names)
 
-        n_doublets = adata.obs["doublet_class"].value_counts()["doublet"]
-        adata = adata[adata.obs["doublet_class"] == "singlet"].copy()
-        logger.info(f"Remove {n_doublets} doublets")
-        df.loc[5] = ["Rm_Doublets", adata.shape[0], adata.shape[1], f"Remove neotypic doublets using {doublet_tool}"]
+        adata.layers["SCT_norm"] = sparse.csr_matrix(norm_counts.values)
+        adata.layers["SCT_counts"] = sparse.csr_matrix(raw_counts.values)
+    return adata
 
-    # Save Metrics File
-    if metrics:
+
+def _lower_strings(obj):
+    if isinstance(obj, str):
+        return obj.lower()
+    elif isinstance(obj, list):
+        return [_lower_strings(item) for item in obj]
+    elif isinstance(obj, tuple):
+        return tuple(_lower_strings(item) for item in obj)
+    else:
+        return obj
+
+
+class Importer:
+    def __init__(
+        self,
+        adata: ad.AnnData = None,
+        paths: list = None,
+        ids: list = None,
+        metadata: dict = None,
+        batch_key: str = None,
+        remove_doublets: bool = True,
+        doublet_tool: Literal["scDblFinder", "Scrublet", "DoubletDetection"] = "scDblFinder",
+        min_genes_in_cell: int = None,
+        min_cells_with_genes: int = None,
+        cut_mt: int = None,
+        n_reads: int = None,
+        min_counts: int = None,
+        max_counts: int | None = None,
+        min_genes: int | None = None,
+        max_genes: int | None = None,
+        low_quantile: int | None = None,
+        high_quantile: int | None = None,
+        random_state: int = 0,
+        technology: Literal["scrna", "snrna", "visium", "xenium"] = "scrna",
+        normalisation_method: Literal["LogNormalisation", "PearsonResiduals"] = "LogNormalisation",
+        log_data: bool = True,
+        report: bool = True,
+        metrics_patterns: list | tuple = ("mt-", ("rbs", "rpl")),
+        metrics_names: list = ("mt", "ribo")
+    ):
+        # Checks
+        if (adata is None) == (paths is None):
+            raise InputError(
+                "Provide either, \n1) An unprocessed AnnData or \n2) A list of paths to an H5 file or "
+                "10x-Genomics-formated mtx directory\n"
+                ""
+            )
+        if len(metadata) != 0:
+            assert all([len(val) == len(ids) for val in metadata.values()]), (
+                "The number of ids and the entries for some metadata does not match"
+            )
+        if doublet_tool not in ["scDblFinder", "Scrublet", "DoubletDetection"]:
+            raise InputError(
+                f"{doublet_tool} is not a valid key for doublet_tool"
+            )
+        if technology not in ["scrna", "snrna", "visium", "xenium"]:
+            raise InputError(
+                f"{technology} is not a valid key for technology"
+            )
+
+        self.adata_raw = adata
+        self.paths = paths
+        self.batch_names = ids
+        self.metadata = metadata
+        self.batch_key = batch_key
+        self.technology = technology
+        self.report = report
+
+        self.remove_doublets = remove_doublets
+        self.doublet_tool = doublet_tool
+
+        self.min_genes_in_cell = min_genes_in_cell
+        self.min_cells_with_genes = min_cells_with_genes
+        self.cut_mt = cut_mt
+        self.n_reads = n_reads
+        self.min_counts = min_counts
+        self.max_counts = max_counts
+        self.min_genes = min_genes
+        self.max_genes = max_genes
+        self.low_quantile = low_quantile
+        self.high_quantile = high_quantile
+        self.random_state = random_state
+        self.norm_method = normalisation_method
+        self.log_data = log_data
+        self.patterns = _lower_strings(metrics_patterns)
+        self.pattern_names = metrics_names
+
+        self.qc_path = None
+        self.history = []
+        self.adata = None
+
+    def _read_data(self, path: str | Path, batch_name: str) -> ad.AnnData:
+        """Reads data into an AnnData object.
+
+        Reads data in H5 format or a 10x-Genomics-formated mtx directory into an AnnData object. If
+        metadata was provided in `__init__` this will be added. If `technology` is set to `visium`
+        the `squidpy.read_visium` variant will be used.
+
+        :param path: path to H5 file or 10x-Genomics-formated mtx directory.
+        :param batch_name: Name of the batch.
+        :return: Returns an AnnData Object.
+        """
+
+        if self.technology in ("snrna", "scrna"):
+            if path.endswith(".h5"):
+                adata = read_10x_h5(path)
+            elif os.path.isdir(path):
+                adata = read_10x_mtx(path)
+            else:
+                raise InputError(
+                    f"The input path is neither an H5 file or a 10x-Genomics-formated mtx directory:\n{path}"
+                )
+        elif self.technology == "visium":
+            try:
+                adata = read_visium(path, library_id=batch_name, load_images=True)
+            except Exception as e:
+                raise InputError(
+                    f"{path} is not recognise as a Visium folder"
+                )
+        else:
+            raise NotImplementedError(f"{self.technology} is not a valid technology")
+
+        adata.var_names_make_unique()
+        adata.obs[self.batch_key] = batch_name  # Add batch name
+        if self.metadata:  # Map metadata
+            for key, value in self.metadata.items():
+                adata.obs[key] = adata.obs[self.batch_key].map((dict(zip(self.batch_names, value, strict=True))))  # TODO
+        return adata
+
+    @staticmethod
+    def _check_data(adata: ad.AnnData) -> None:
+        """Check if `adata.X` contains non-negative integers.
+
+        :param adata: Annotated data matrix.
+        :return: Returns None.
+        """
+        matrix = adata.X.data if issparse(adata.X) else adata.X.flatten()
+        if (matrix % 1 != 0).any():
+            raise ValueError("The count matrix `adata.X` should only contain integers.")
+        if (matrix < 0).any():
+            raise ValueError("The count matrix `adata.X` should only contain non-negative values.")
+        adata.layers["counts"] = adata.X.copy()
+        return None
+
+    def generate_report(self, df: pd.DataFrame, filename: str | Path, batch_name: str) -> None:
+        """Generate a report.
+
+        Generate an ExcelSheet that contains the history of the quality control process (i.e.,
+        how many genes and features were removed after each quality control step).
+
+        :param df: Dataframe with the history.
+        :param filename: Name of the file.
+        :param batch_name: Name of the batch
+        :return: Returns None.
+        """
         from dotools_py.utils import make_grid_spec
         from dotools_py.utility import get_hex_colormaps
         import matplotlib.lines as mlines
-        df_plot = df.iloc[:, :-1].melt(id_vars="QC_Step")  # Exclude comments
 
+        today = date.today().strftime("%y%m%d")
+        df_plot = df.iloc[:, :-1].melt(id_vars="QC_Step")  # Exclude comments
         fig, gs = make_grid_spec(
             None or (8, 5), nrows=1, ncols=2, wspace=0.7 / 6, width_ratios=[6 - (0.9 + 0) + 0, 0.9]
         )
-
         ax = fig.add_subplot(gs[0])
-
-        bp = sns.barplot(df_plot, hue="QC_Step", x="value", y="variable",
-                         order=["nCells", "nFeatures"], hue_order=list(df["QC_Step"]),
-                         palette="tab10", ax=ax, legend=False)
-
+        bp = sns.barplot(
+            df_plot, hue="QC_Step", x="value", y="variable", order=["nCells", "nFeatures"],
+            hue_order=list(df["QC_Step"]), palette="tab10", ax=ax, legend=False
+        )
         for container in bp.containers:
-            bp.bar_label(container, fmt='{:,.0f}')
+            ax.bar_label(container, fmt='{:,.0f}')
         bp.set_title("Summary Quality Control", fontdict={"weight": "bold"})
         bp.set_ylabel("", fontsize=18)
         bp.set_xlabel("Counts", fontsize=18)
         bp.set_yticklabels(bp.get_yticklabels(), rotation=90, va="center", fontdict={"weight": "bold"})
-
         axs_legend = fig.add_subplot(gs[1])
         colors_dict = dict(zip(list(df["QC_Step"]), get_hex_colormaps("tab10"), strict=False))
         handles = []
         for lab, c in colors_dict.items():
             handles.append(mlines.Line2D([0], [0], marker=".", color=c, lw=0, label=lab,
                                          markerfacecolor=c, markeredgecolor=None, markersize=18))
-
         legend = axs_legend.legend(handles=handles, frameon=False, loc="center left", ncols=1, title="",
                                    prop={"size": 12, "weight": "bold"})
         legend.get_title().set_fontweight("bold")
@@ -547,139 +649,347 @@ def _qc_scrna(
                                labelbottom=False)
         axs_legend.spines[["right", "left", "top", "bottom"]].set_visible(False)
         axs_legend.grid(visible=False)
-        plt.savefig(os.path.join(qc_path, f"{today}_QC_Metrics{ids}.svg"), bbox_inches="tight")
+        plt.savefig(os.path.join(self.qc_path, f"{today}_QC_Metrics{batch_name}.svg"), bbox_inches="tight")
         plt.close(fig)
 
         # Save Metric File
-        df.to_excel(os.path.join(qc_path, metrics_filename), index=False)
-    return adata
+        df.to_excel(os.path.join(self.qc_path, filename), index=False)
+        return None
+
+    def compute_metrics(self, adata: ad.AnnData) -> None:
+        """Calculate quality control metrics.
+
+        :param adata: Annodated data matrix with raw counts in `adata.X`.
+        :return: Returns None. Changes are made inplace.
+        """
+        import scanpy as sc
+
+        self._check_data(adata)  # Input should be raw counts
+
+        adata.var["gene_names"] = adata.var_names.str.lower()
+        for idx, pttn in enumerate(self.patterns):
+            adata.var[self.pattern_names[idx]] = adata.var["gene_names"].str.startswith(pttn)
+        sc.pp.calculate_qc_metrics(
+            adata, qc_vars=self.pattern_names, percent_top=None, log1p=True, inplace=True, parallel=True
+        )
+        return None
+
+    def filter_cells_genes(self, adata: ad.AnnData) -> ad.AnnData:
+        """Filters cells and features.
+
+        :param adata: Unprocessed AnnData object.
+        :return:
+        """
+        import scanpy as sc
+
+        # Step 1 - Basic filtering
+        logger.info("Remove cells with low number of genes")
+        sc.pp.filter_cells(adata, min_genes=self.min_genes_in_cell, inplace=True)
+        self.history.append([
+            "Rm_Cells_lowGenes", adata.shape[0], adata.shape[1], f"Remove cells with <{self.min_genes_in_cell} genes"
+        ])
+        logger.info("Remove genes lowly expressed")
+        sc.pp.filter_genes(adata, min_cells=self.min_cells_with_genes, inplace=True)
+        self.history.append([
+            "Rm_Genes_lowCells", adata.shape[0], adata.shape[1],
+            f"Remove genes express in less than {self.min_cells_with_genes} cells",
+        ])
+
+        # Step 2 - Removed cells with high mitochondrial content
+        if self.cut_mt is not None:
+            logger.info("Remove cells with high Mt-content")
+            if "pct_counts_mt" not in adata.obs.columns:
+                logger.warn("Cannot remove cells based on mitochondrial content because 'pct_counts_mt' is not"
+                            "in adata.obs")
+            else:
+                adata = adata[adata.obs["pct_counts_mt"] < self.cut_mt, :].copy()
+                self.history.append([
+                    "Rm_Cell_HighMT", adata.shape[0], adata.shape[1],
+                    f"Remove cells with >{self.cut_mt}% of Mitochondrial genes",
+                ])
+
+        # Step 3 - Remove low quality cells
+        logger.info("Remove cells based on nUMI counts")
+        assert (self.min_counts is None) != (self.low_quantile is None), "Set min_count or low_quantile"
+        assert (self.max_counts is None) != (self.high_quantile is None), "Set max_count or high_quantile"
+
+        if self.min_counts is not None:
+            sc.pp.filter_cells(adata, min_counts=self.min_counts)
+        if self.max_counts is not None:
+            sc.pp.filter_cells(adata, max_counts=self.max_counts)
+        if self.min_genes is not None:
+            sc.pp.filter_cells(adata, min_genes=self.min_genes)
+        if self.max_genes is not None:
+            sc.pp.filter_cells(adata, max_genes=self.max_genes)
+
+        # Apply quantile-based filtering (conditionally)
+        adata = _filter_quantiles(adata, self.low_quantile, self.high_quantile)
+        self.history.append([
+            "Rm_Cells_nUMI_nGenes", adata.shape[0], adata.shape[1],
+            f"Remove cells based on nUMI counts[Absolute (Min/Max): {self.min_counts}/{self.max_counts}, "
+            f"Quantile (low/high): {self.low_quantile}/{self.high_quantile}] and nFeatures [Absolute (Min/Max): "
+            f"{self.min_genes}/{self.max_genes}]",
+        ])
+
+        # Step 4 - Remove doublets
+        if self.remove_doublets:
+            find_doublets(adata, batch_key=self.batch_key, method=self.doublet_tool, random_state=self.random_state)
+            n_doublets = adata.obs["doublet_class"].value_counts()["doublet"]
+            adata = adata[adata.obs["doublet_class"] == "singlet"].copy()
+            logger.info(f"Removed {n_doublets} doublets")
+            self.history.append([
+                "Rm_Doublets", adata.shape[0], adata.shape[1], f"Remove neotypic doublets using {self.doublet_tool}"
+            ])
+        return adata
+
+    def scrna_quality_control(self) -> None:
+        """Quality Control pipeline for sc/snRNA-seq.
+
+        :return: Returns None.
+        """
+
+        database = {}
+        today = date.today().strftime("%y%m%d")
+
+        if self.adata_raw is not None:  # Case 1 - Input is AnnData
+            for batch_name in self.adata_raw.obs[self.batch_key].unique():
+                adata_batch = self.adata_raw[self.adata_raw.obs[self.batch_key] == batch_name].copy()
+                self.compute_metrics(adata_batch)
+                adata_batch = self.filter_cells_genes(adata_batch)
+                database[batch_name] = adata_batch
+
+        else:  # Case 2 - Input is paths
+            for idx, path in enumerate(self.paths):
+                self.qc_path = convert_path("/".join(path.split("/")[:-1]))
+                logger.info(f"QualityControl Plots will be saved in\n{self.qc_path}")
+
+                batch_name = self.batch_names[idx]
+                adata_batch = self._read_data(path, batch_name=batch_name)
+                self.compute_metrics(adata_batch)
+
+                # Metrics
+                metrics_filename = f"{today}_Metrics_{batch_name}.xlsx"
+                self.history = []
+                self.history.append(["Input_Shape", adata_batch.shape[0], adata_batch.shape[1], ""])
+                adata_batch = self.filter_cells_genes(adata_batch)
+
+                _qc_vln(
+                    adata_batch, title=f"PostQC for {batch_name}", path=self.qc_path,
+                    filename=f"Vln_PostQC_{batch_name}.svg"
+                )
+
+                database[batch_name] = adata_batch
+                if self.report:
+                    df_history = pd.DataFrame(self.history, columns=["QC_Step", "nCells", "nFeatures", "Comments"])
+                    self.generate_report(df=df_history, filename=metrics_filename, batch_name=batch_name)
+
+        logger.info("Concatenating samples")
+        adata = ad.concat(
+            database.values(), label=self.batch_key, keys=database.keys(), join="outer", index_unique="-", fill_value=0
+        )
+        self.adata = adata
+        return None
+
+    def normalise(self) -> None:
+        """Normalise AnnData Object.
+
+        :return: Returns None.
+        """
+        if self.adata is None:
+            raise ValueError("The data has not been processed, run quality_control")
+        logger.info("Normalisation of the expression")
+        if self.norm_method == "LogNormalisation":
+            _normalise(self.adata, n_reads=self.n_reads, log_data=self.log_data)
+        elif self.norm_method == "PearsonResiduals":
+            raise NotImplementedError("Not implemented")
+        else:
+            raise ValueError("Not a valid method, use 'LogNormalisation' or 'PearsonResiduals'")
+        return None
+
+    def run_pca(self) -> None:
+        """Compute HVGs and compute PCA using HVGs.
+
+        :return: Returns None.
+        """
+        import scanpy as sc
+
+        logger.info("Finding Highly Variable Genes shared across samples")
+        sc.pp.highly_variable_genes(self.adata, batch_key=self.batch_key)
+
+        logger.info("Run PCA")
+        hvg = self.adata[:, self.adata.var.highly_variable].copy()
+        sc.pp.scale(hvg, zero_center=True)  # Scale only on HVGs to replicate Seurat Approach
+        sc.pp.pca(hvg, random_state=self.random_state)  # PCA on Scaled HVGs
+        self.adata.obsm["X_pca"] = hvg.obsm["X_pca"].copy()  # Save in original object
+        return None
+
+    @property
+    def get_adata(self) -> ad.AnnData:
+        """Return the AnnData.
+
+        :return: Returns AnnData.
+        """
+        return self.adata
+
+    def visium_quality_control(self) -> None:
+        """Quality Control pipeline for Visium.
+
+        :return: Returns None.
+        """
+        database = {}
+        today = date.today().strftime("%y%m%d")
+
+        # Technology specific steps
+        if self.cut_mt is not None:
+            logger.info("For Visium, filtering based on Mitochondrial content is not recommended, ignoring this step")
+            self.cut_mt = None
+        if not self.remove_doublets:
+            logger.info("For Visium, removing doublets is not recommended, ignoring this step")
+            self.remove_doublets = False
+        if "^Hb.*-" not in self.patterns:
+            logger.info("For Visium, identifying hemoglobin genes is recommended, adding the pattern")
+            self.patterns = iterase_input(self.patterns) + ["^hb.*-"]
+            self.pattern_names = iterase_input(self.pattern_names) + ["hb"]
+
+        if self.adata_raw is not None:  # Case 1 - Input is AnnData
+            for batch_name in self.adata_raw.obs[self.batch_key].unique():
+                adata_batch = self.adata_raw[self.adata_raw.obs[self.batch_key] == batch_name].copy()
+                self.compute_metrics(adata_batch)
+                adata_batch = self.filter_cells_genes(adata_batch)
+                database[batch_name] = adata_batch
+
+        else:  # Case 2 - Input is paths
+            for idx, path in enumerate(self.paths):
+                self.qc_path = convert_path("/".join(path.split("/")[:-1]))
+                logger.info(f"QualityControl Plots will be saved in\n{self.qc_path}")
+
+                batch_name = self.batch_names[idx]
+                adata_batch = self._read_data(path, batch_name=batch_name)
+                self.compute_metrics(adata_batch)
+
+                # Metrics
+                metrics_filename = f"{today}_Metrics_{batch_name}.xlsx"
+                self.history = []
+                self.history.append(["Input_Shape", adata_batch.shape[0], adata_batch.shape[1], ""])
+                adata_batch = self.filter_cells_genes(adata_batch)
+
+                _qc_vln(
+                    adata_batch, title=f"PostQC for {batch_name}", path=self.qc_path,
+                    filename=f"Vln_PostQC_{batch_name}.svg",
+                    stats = ["total_counts", "n_genes_by_counts", "pct_counts_mt", "pct_counts_hb"],
+                )
+
+                database[batch_name] = adata_batch
+                if self.report:
+                    df_history = pd.DataFrame(self.history, columns=["QC_Step", "nCells", "nFeatures", "Comments"])
+                    self.generate_report(df=df_history, filename=metrics_filename, batch_name=batch_name)
+
+        logger.info("Concatenating samples")
+        adata = ad.concat(
+            database.values(), label=self.batch_key, keys=database.keys(), join="outer", index_unique="-", fill_value=0
+        ) # TODO check that the adata.uns["spatial"] is not lost
+
+        if "spatial" not in adata.uns.keys():
+            uns_spatial = {}
+            for key, val in database.items():
+                uns_spatial[key] = val.uns["spatial"][key]
+            adata.uns["spatial"] = uns_spatial
+        self.adata = adata
+        return None
 
 
-def quality_control(
-    adata: ad.AnnData,
-    batch_key: str,
+def importer_py(
+    # Step 1 - Basic input
+    paths: list,
+    ids: list,
+    metadata: dict | None = None,
+    batch_key: str = "batch",
+    # Step 2 - Filter low quality cells and features
     min_genes_in_cell: int = 300,
     min_cells_with_genes: int = 5,
-    cut_mt: int = 5,
+    cut_mt: int | None = 5,
+    n_reads: int = 10_000,
     min_counts: int | None = None,
     max_counts: int | None = None,
     min_genes: int | None = None,
     max_genes: int | None = None,
     low_quantile: int | None = None,
     high_quantile: int | None = None,
-    include_rbs: bool = True,
-    remove_doublets: bool = False,
-    doublet_tool: Literal["scDblFinder", "DoubletDetection", "Scrublet"] = "scDblFinder",
-    metrics: bool = True,
+    remove_doublets: bool = True,
+    doublet_tool: Literal["scDblFinder", "Scrublet", "DoubletDetection"] = "scDblFinder",
+    # Extra processing steps and configurations
+    normalisation_method: Literal["LogNormalisation", "PearsonResiduals"] = "LogNormalisation",
+    log_data: bool = True,
+    metrics_patterns: tuple = ("mt-", ("rbs", "rpl")),
+    metrics_names: list = ("mt", "ribo"),
     random_state: int = 0,
-) -> ad.AnnData:
-    """Basic quality control for sc/snRNA-seq.
+    technology: Literal["snrna", "scrna", "visium", "xenium"] = "snrna",
+):
+    # Checks
+    invalid = next((p for p in paths if not os.path.exists(p)), None)
+    if invalid:
+        raise InputError(f"{invalid} is not a valid path")
 
-    For each sample in an AnnData object, several quality and filtering steps are applied:
+    assert len(ids) == len(paths), "The numbers of paths does not match the number of ids"
 
-    - Filter genes expressed in a low number of cells.
-    - Filter cells with a low number of genes.
-    - Filter cells with high mitochondrial content (recommended: 5% for scRNA, 3% for snRNA).
-    - Filter cells based on nUMI and features using two modes:
-        1. **Absolute filtering**: Sets absolute values for min/max UMI and features.
-        2. **Quantile filtering**: Filters top/lower quantiles.
-    - Remove doublets using scDblFinder, Scrublet, or DoubletDetection.
-
-    An Excel sheet summarizing how many cells/genes were removed at each step will be generated,
-    along with violin plots showing the distribution of `total_counts`, `n_genes_by_counts`,
-    and `pct_mt_content` before and after QC.
-
-    .. note::
-        This function reproduces the quality control steps of :func:`dotools_py.pp.importer_py` but allows
-        to provide an AnnData object as input.  This function assumes that `adata.X` contains raw counts.
-
-    Parameters
-    ----------
-    adata
-        Annotated data matrix with raw counts in `adata.X`.
-    batch_key
-        Column in `adata.obs` with sample information.
-    min_genes_in_cell
-        Minimum number of genes per cell.
-    min_cells_with_genes
-        Minimum number of cells expressing a gene.
-    cut_mt
-         Maximum percentage of mitochondrial genes per cell.
-    min_counts
-        Minimum number of counts per cell.
-    max_counts
-        Maximum number of counts per cell.
-    min_genes
-        Minimum number of genes per cell.
-    max_genes
-        Maximum number of genes per cell.
-    low_quantile
-        Low quantile to filter cells based on counts.
-    high_quantile
-        Upper quantile to filter cells based on counts.
-    include_rbs
-        Calculate statistics for ribosomal genes.
-    remove_doublets
-        Identify and remove doublets.
-    doublet_tool
-        Method to use for the removal of doublets.
-    metrics
-        Whether to compute statistics of how many cells and genes are remove in each step.
-    random_state
-        Seed for random number generator,
-
-    Returns
-    -------
-    Returns a processed AnnData object.
-
-    """
-    from scipy.sparse import issparse
-
-    matrix = adata.X.data if issparse(adata.X) else adata.X.flatten()
-    if (matrix % 1 != 0).any():
-        raise ValueError("The count matrix should only contain integers.")
-    if (matrix < 0).any():
-        raise ValueError("The count matrix should only contain non-negative values.")
-
-    database = {}
-    for batch_name in adata.obs[batch_key].unique():
-        adata_batch = adata[adata.obs[batch_key] == batch_name].copy()
-        adata_batch = _qc_scrna(
-            adata=adata_batch,
-            ids=batch_name,
-            batch_key=batch_key,
-            min_genes_in_cell=min_genes_in_cell,
-            min_cells_with_genes=min_cells_with_genes,
-            cut_mt=cut_mt,
-            min_counts=min_counts,
-            max_counts=max_counts,
-            min_genes=min_genes,
-            max_genes=max_genes,
-            low_quantile=low_quantile,
-            high_quantile=high_quantile,
-            include_rbs=include_rbs,
-            remove_doublets=remove_doublets,
-            doublet_tool=doublet_tool,
-            metrics=metrics,
-            qc_path=None,
-            random_state=random_state
-
+    if metadata:
+        assert all([len(metadata[key]) == len(paths) for key in metadata]), (
+            f"Some metadata does not have {len(paths)} values"
         )
-        database[batch_name] = adata_batch
 
-    adata = ad.concat(
-        database.values(), label=batch_key, keys=database.keys(), join="outer", index_unique="-", fill_value=0
+    # Warnings
+    if cut_mt == 5 and technology == "snrna":
+        logger.warn(
+            "For snRNA a lower 'cut_mt' is recommended since mitochondrial genes\n should not be highly "
+            "expressed in the nuclei")
+
+    processor = Importer(
+        adata=None,
+        paths=paths,
+        ids=ids,
+        metadata=metadata,
+        batch_key=batch_key,
+        remove_doublets=remove_doublets,
+        doublet_tool=doublet_tool,
+        min_genes_in_cell=min_genes_in_cell,
+        min_cells_with_genes=min_cells_with_genes,
+        cut_mt=cut_mt,
+        n_reads=n_reads,
+        min_counts=min_counts,
+        max_counts=max_counts,
+        min_genes=min_genes,
+        max_genes=max_genes,
+        low_quantile=low_quantile,
+        high_quantile=high_quantile,
+        random_state=random_state,
+        technology=technology,
+        normalisation_method=normalisation_method,
+        log_data=log_data,
+        report=True,
+        metrics_patterns=metrics_patterns,
+        metrics_names=metrics_names,
     )
+    if technology in ("scrna", "snrna"):
+        processor.scrna_quality_control()
+        processor.normalise()
+        processor.run_pca()
+    elif technology == "visium":
+        processor.visium_quality_control()
+        processor.normalise()
+        processor.run_pca()
+    else:
+        raise NotImplementedError(f"{technology} is currently not implemented")
+    adata = processor.get_adata
     return adata
 
 
-def importer_py(
-    paths: list,
-    ids: list,
-    metadata: dict | None = None,
-    batch_key: str = "batch",
-    remove_doublets: bool = True,
-    doublet_tool: Literal["scDblFinder", "Scrublet", "DoubletDetection"] = "scDblFinder",
+
+def quality_control(
+    # Step 1 - Basic input
+    adata: ad.AnnData,
+    batch_key: str,
+
+    # Step 2 - Filter low quality cells and features
     min_genes_in_cell: int = 300,
     min_cells_with_genes: int = 5,
     cut_mt: int = 5,
@@ -690,234 +1000,60 @@ def importer_py(
     max_genes: int | None = None,
     low_quantile: int | None = None,
     high_quantile: int | None = None,
+    include_rbs: bool = True,
+    remove_doublets: bool = False,
+    doublet_tool: Literal["scDblFinder", "DoubletDetection", "Scrublet"] = "scDblFinder",
+    # Extra processing steps and configurations
+    normalisation_method: Literal["LogNormalisation", "PearsonResiduals"] = "LogNormalisation",
+    log_data: bool = True,
+    metrics_patterns: tuple = ("mt-", ("rbs", "rpl")),
+    metrics_names: list = ("mt", "ribo"),
     random_state: int = 0,
-) -> ad.AnnData:
-    """Quality control analysis for sc/snRNA.
+    technology: Literal["snrna", "scrna", "visium", "xenium"] = "snrna",
+)-> ad.AnnData:
 
-    The input is a list with paths to H5 files generated with
-    `CellRanger <https://www.10xgenomics.com/support/software/cell-ranger/latest>`_,
-    `Cellbender <https://cellbender.readthedocs.io/en/latest/>`_, or
-    `STARsolo <https://github.com/alexdobin/STAR>`_. A list of batch names for each sample must also be provided.
-    Optionally, a dictionary with additional metadata can be passed. The order of batch names and metadata must
-    match the order of the file paths.
+    # Warnings
+    if cut_mt == 5 and technology == "snrna":
+        logger.warn(
+            "For snRNA a lower 'cut_mt' is recommended since mitochondrial genes\n should not be highly "
+            "expressed in the nuclei")
 
-    For each sample, several quality and filtering steps are applied:
-
-    - Filter genes expressed in a low number of cells.
-    - Filter cells with a low number of genes.
-    - Filter cells with high mitochondrial content (recommended: 5% for scRNA, 3% for snRNA).
-    - Filter cells based on nUMI and features using two modes:
-        1. **Absolute filtering**: Sets absolute values for min/max UMI and features.
-        2. **Quantile filtering**: Filters top/lower quantiles.
-    - Remove doublets using scDblFinder, Scrublet, or DoubletDetection.
-
-    An Excel sheet summarizing how many cells/genes were removed at each step will be generated,
-    along with violin plots showing the distribution of `total_counts`, `n_genes_by_counts`,
-    and `pct_mt_content` before and after QC. These outputs will be saved in the folder containing the H5 files.
-
-    After QC, the data will be log-normalized and scaled. Highly variable genes and PCA will also be computed.
-
-    :param paths: list with the path to the H5 files.
-    :param ids: list with the batch name for each sample.
-    :param metadata: dictionary with metadata information.
-    :param batch_key: key in `.obs` for the batch information.
-    :param remove_doublets: if set to True, neotypic doublets will be removed.
-    :param doublet_tool: doublet tool to use. Available scDblFinder, Scrublet and DoubletDetection.
-    :param min_genes_in_cell: minimum number of genes per cell.
-    :param min_cells_with_genes: minimum cells expressing a genes.
-    :param n_reads: target sum after normalization per cell.
-    :param cut_mt: maximum percentage of mitochondrial genes per cell.
-    :param min_counts:  minimum number of counts per cell.
-    :param max_counts: maximum number of counts per cell.
-    :param min_genes: minimum number of genes per cell.
-    :param max_genes: maximum number of genes per cell.
-    :param low_quantile: low quantile to filter cells based on counts.
-    :param high_quantile: upper quantile to filter cells based on counts.
-    :param random_state: seed for random number generator.
-    :return: Returns an Annotated data matrix of shape `n_obs` x `n_vars` with all the samples concatenated.
-
-    Example
-    -------
-    >>> import dotools_py as do
-    >>> paths = ["/path/sample1", "/path/sample2"]
-    >>> batchname = ["sample1", "sample2"]
-    >>> metadata = {
-    ...     "condition": ["WT", "KO"],
-    ...     "age": ["3m", "3m"],
-    ... }
-    >>> adata = do.pp.importer_py(
-    ...     paths=paths,
-    ...     ids=batchname,
-    ...     metadata=metadata,
-    ...     batch_key="batch",
-    ...     remove_doublets=True,
-    ...     min_genes_in_cell=300,
-    ...     min_cells_with_genes=5,
-    ...     n_reads=10_000,
-    ...     cut_mt=5,
-    ...     high_quantile=95,
-    ...     min_counts=500,
-    ... )
-    """
-    import scanpy as sc
-
-    # Checks
-    assert isinstance(paths, list) and isinstance(ids, list), "Please provide a list of paths and ids"
-    assert len(paths) == len(ids), f"Provided {len(paths)} paths and {len(ids)} ids"
-
-    adata_dict = {}
-    for idx, path in enumerate(paths):
-        # Save QC Plots in the folder with raw dt
-        qc_path = convert_path("/".join(path.split("/")[:-1]))
-
-        logger.info(f"Reading {ids[idx]}")
-        try:
-            adata = sc.read_10x_h5(path)  # Works for 10x and CellBender and StarSolo?
-        except IsADirectoryError:
-            adata = sc.read_10x_mtx(path)  # Directory with .mtx and .tsv files
-
-        adata.var_names_make_unique()
-
-        # Add ID and Metadata
-        adata.obs[batch_key] = ids[idx]
-        if metadata:
-            for key, value in metadata.items():
-                adata.obs[key] = adata.obs[batch_key].map(dict(zip(ids, value, strict=False)))
-
-        # Quality Control
-        adata = _qc_scrna(
-            adata=adata,
-            ids=ids[idx],
-            batch_key=batch_key,
-            qc_path=qc_path,
-            metrics=True,
-            min_genes_in_cell=min_genes_in_cell,
-            min_cells_with_genes=min_cells_with_genes,
-            cut_mt=cut_mt,
-            min_counts=min_counts,
-            max_counts=max_counts,
-            min_genes=min_genes,
-            max_genes=max_genes,
-            low_quantile=low_quantile,
-            high_quantile=high_quantile,
-            include_rbs=True,
-            remove_doublets=remove_doublets,
-            doublet_tool=doublet_tool,
-            random_state=random_state
-        )
-
-        # Vln Plots showing Metrics before qc
-        _qc_vln(adata, title=f"PostQC for {ids[idx]}", path=qc_path, filename=f"Vln_PostQC_{ids[idx]}.svg")
-
-        adata_dict[ids[idx]] = adata
-
-    logger.info("Concatenating samples")
-    adata_concat = ad.concat(
-        adata_dict.values(), label=batch_key, keys=adata_dict.keys(), join="outer", index_unique="-", fill_value=0
+    processor = Importer(
+        adata=adata,
+        paths=None,
+        ids=None,
+        metadata=None,
+        batch_key=batch_key,
+        remove_doublets=remove_doublets,
+        doublet_tool=doublet_tool,
+        min_genes_in_cell=min_genes_in_cell,
+        min_cells_with_genes=min_cells_with_genes,
+        cut_mt=cut_mt,
+        n_reads=n_reads,
+        min_counts=min_counts,
+        max_counts=max_counts,
+        min_genes=min_genes,
+        max_genes=max_genes,
+        low_quantile=low_quantile,
+        high_quantile=high_quantile,
+        random_state=random_state,
+        technology=technology,
+        normalisation_method=normalisation_method,
+        log_data=log_data,
+        report=False,
+        metrics_patterns=metrics_patterns,
+        metrics_names=metrics_names,
     )
-    logger.info("Normalisation of the expression")
-    _normalise(adata_concat, n_reads=n_reads)
 
-    logger.info("Finding Highly Variable Genes shared across samples")
-    sc.pp.highly_variable_genes(adata_concat, batch_key=batch_key)
-
-    logger.info("Run PCA")
-    hvg = adata_concat[:, adata_concat.var.highly_variable].copy()
-    sc.pp.scale(hvg, zero_center=True)  # Scale only on HVGs to replicate Seurat Approach
-    sc.pp.pca(hvg, random_state=random_state)  # PCA on Scaled HVGs
-    adata_concat.obsm["X_pca"] = hvg.obsm["X_pca"].copy()  # Save in original object
-
-    return adata_concat
-
-
-def sctransform_normalize(
-    adata: ad.AnnData,
-    batch_key: str = None,
-    layer: str = None
-) -> None:
-    """Normalization based on `SCTransform <https://github.com/satijalab/sctransform>`_.
-
-    This function performs an alternative normalization based on the SCTransform.
-
-    :param adata: AnnData object with counts in `X`.
-    :param batch_key: obs metadata with batch information.
-    :param layer: layer to use.
-    :return: Returns None. The input AnnData object will have two new layers containing the SCT counts and normalize data.
-
-    Example
-    ------
-    >>> import dotools_py as do
-    >>> adata = do.dt.example_10x_processed()
-    >>> adata
-    AnnData object with n_obs × n_vars = 700 × 1851
-    obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts',
-         'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo',
-         'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type',
-         'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster'
-    var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches',
-         'highly_variable_intersection'
-    uns: 'annotation_colors', 'annotation_recluster_colors', 'batch_colors', 'hvg', 'leiden', 'leiden_colors', 'log1p',
-         'neighbors', 'pca', 'umap'
-    obsm: 'X_CCA', 'X_pca', 'X_umap'
-    varm: 'PCs'
-    layers: 'counts', 'logcounts'
-    obsp: 'connectivities', 'distances'
-    >>>
-    >>> do.pp.sctransform_normalize(adata, batch_key="batch", layer="counts")
-    >>> adata
-    AnnData object with n_obs × n_vars = 700 × 1181
-    obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts',
-         'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo',
-         'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type',
-         'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster'
-    var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches',
-         'highly_variable_intersection', 'SCT_rm'
-    obsm: 'SCT_rm'
-    varm: 'PCs'
-    layers: 'counts', 'logcounts', 'SCT_norm', 'SCT_counts'
-    obsp: 'connectivities', 'distances'
-    """
-    from scipy import sparse
-    import polars
-
-    rscript = get_paths_utils("_run_SCTransform.R")
-    tmpdir_path = Path("/tmp") / f"SCTransform_{uuid.uuid4().hex}"
-    tmpdir_path.mkdir(parents=True, exist_ok=False)
-
-    logger.info("Preparing to transfer to R")
-    adata_copy = adata.copy()
-    if layer is not None:
-        adata.X = adata.layers[layer].copy()
-    del adata.uns
-    del adata.obsm
-
-    if batch_key is not None:
-        adata_copy.obs["batch"] = adata_copy.obs[batch_key].copy()
+    if technology in ("scrna", "snrna"):
+        processor.scrna_quality_control()
+        processor.normalise()
+        processor.run_pca()
+    elif technology == "visium":
+        processor.visium_quality_control()
+        processor.normalise()
+        processor.run_pca()
     else:
-        adata_copy.obs["batch"] = "batch1"
-    adata_copy.write(tmpdir_path / "adata_tmp.h5ad")
-
-    logger.info("Running SCTransform in R")
-    subprocess.call(["Rscript", rscript, "--input=" + str(tmpdir_path) + "/", "--out=" + str(tmpdir_path) + "/"])
-
-    raw_counts = polars.read_csv(os.path.join(tmpdir_path, "SCTransform_raw.csv"), infer_schema_length=0)
-    raw_counts = raw_counts.to_pandas().astype(float)
-    raw_counts = raw_counts.set_index(adata.obs_names)
-
-    norm_counts = polars.read_csv(os.path.join(tmpdir_path, "SCTransform_norm.csv"), infer_schema_length=0)
-    norm_counts = norm_counts.to_pandas().astype(float)
-    norm_counts = norm_counts.set_index(adata.obs_names)
-
-    # Transfer genes not kept during normalization to .obsm
-    excluded_genes = [gene for gene in adata.var_names if gene not in norm_counts.columns]
-    adata.var["SCT_rm"] = [True if gene in excluded_genes else False for gene in adata.var_names]
-    adata.obsm["SCT_rm"] = adata[:, adata.var["SCT_rm"].values].X.toarray()
-    adata = adata[:, ~adata.var["SCT_rm"].values]
-
-    # Make sure we have the same order or barcodes and features
-    norm_counts = norm_counts.reindex(index=adata.obs_names, columns=adata.var_names)
-    raw_counts = raw_counts.reindex(index=adata.obs_names, columns=adata.var_names)
-
-    adata.layers["SCT_norm"] = sparse.csr_matrix(norm_counts.values)
-    adata.layers["SCT_counts"] = sparse.csr_matrix(raw_counts.values)
-    return None
+        raise NotImplementedError(f"{technology} is currently not implemented")
+    adata = processor.get_adata
+    return adata
