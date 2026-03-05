@@ -10,6 +10,7 @@ The `io` module contains functions to read and save data.
     :toctree: generated
 
     io.read_h5ad
+    io.read_visium
     io.read_zarr
     io.read_rds
     io.save_rds
