@@ -187,6 +187,7 @@ def session_settings(
             "xtick.labelsize": ticks_fontsize,
             "ytick.labelsize": ticks_fontsize,
             "legend.fontsize": fontsize * 0.92,
+            "text.color": "black",
             # Same configuration as Scanpy
             "savefig.dpi": dpi_save,
             "savefig.transparent": transparent,
@@ -202,8 +203,9 @@ def session_settings(
             "axes.prop_cycle": cycler(color=palettes.default_20),
             "axes.edgecolor": "black",
             "axes.facecolor": "white",
-            "xtick.color": "k",
-            "ytick.color": "k",
+            "axes.labelcolor":"black",
+            "xtick.color": "black",
+            "ytick.color": "black",
             "image.cmap": mpl.rcParams["image.cmap"] if colormap is None else colormap,
             # Figure and axes
             "figure.figsize": figsize,  # Single column width (inches)
