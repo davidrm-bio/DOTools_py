@@ -322,6 +322,8 @@ def iterase_input(data: str | float | int | Iterable | None) -> list:
         return data
     elif isinstance(data, Iterable):
         return list(data)
+    elif isinstance(data, plt.Axes):
+        return [data]
     else:
         raise Exception("Input is not a string or iterable object")
 
@@ -446,3 +448,9 @@ def check_r_package(package: str | list) -> None:
     if len(missing) != 0:
         raise ModuleNotFoundError(f"The R packages: {missing} are not installed")
     return None
+
+
+class InputError(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(message)
