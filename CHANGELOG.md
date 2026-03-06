@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning][].
 
 ### Documentation
 - Update scRNA-seq tutorial
+- Add Visium tutorial
 
 
 ## Version 0.0.3 {small}`2026-01-30`
