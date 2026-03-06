@@ -884,7 +884,6 @@ def quality_control(
     # Step 1 - Basic input
     adata: ad.AnnData,
     batch_key: str,
-
     # Step 2 - Filter low quality cells and features
     min_genes_in_cell: int = 300,
     min_cells_with_genes: int = 5,
