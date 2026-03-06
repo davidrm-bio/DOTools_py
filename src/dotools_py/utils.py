@@ -2,17 +2,14 @@ import functools
 import importlib
 from pathlib import Path
 from collections.abc import Iterable
-from typing import Literal
-
+from typing import Literal, Any
+from ._custom_class import InputError
 import anndata as ad
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-
-class DeprecatedFunctionError(Exception):
-    pass
 
 
 def get_paths_utils(script: str) -> Path:
@@ -43,6 +40,8 @@ def sanitize_anndata(adata: ad.AnnData) -> None:
     :param adata: AnnData
     :return None
     """
+    if isinstance(adata, ad.AnnData):
+        raise InputError("Input is not an AnnData Object")
     adata._sanitize()
     return None
 
@@ -412,12 +411,6 @@ def return_axis(show: bool, axis: dict | plt.Axes, tight: bool = True) -> None |
         return axis
 
 
-class EmptyType:
-    """A singleton sentinel representing an 'empty' value."""
-
-    def __repr__(self) -> Literal["Empty"]:
-        return "Empty"
-
 
 def vector_friendly():
     """ Decorator to set Scanpy figure parameters in a vector-friendly way."""
@@ -450,7 +443,15 @@ def check_r_package(package: str | list) -> None:
     return None
 
 
-class InputError(Exception):
-    def __init__(self, message):
-        self.message = message
-        super().__init__(message)
+
+def is_none(variable: Any, default: Any = None):
+    return variable if variable is not None else default
+
+
+def x_is_raw_counts(adata: ad.AnnData) -> None:
+    from scipy.sparse import issparse
+    matrix = adata.X.data if issparse(adata.X) else adata.X.flatten()
+    if (matrix % 1 != 0).any():
+        raise ValueError("The count matrix should only contain integers.")
+    if (matrix < 0).any():
+        raise ValueError("The count matrix should only contain non-negative values.")
