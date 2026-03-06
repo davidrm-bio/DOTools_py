@@ -487,7 +487,7 @@ class Importer:
         if self.metadata:  # Map metadata
             for key, value in self.metadata.items():
                 adata.obs[key] = adata.obs[self.batch_key].map(
-                    (dict(zip(self.batch_names, value, strict=True))))  # TODO
+                    (dict(zip(self.batch_names, value, strict=True))))
         return adata
 
     @staticmethod
