@@ -7,7 +7,9 @@ from tqdm import tqdm
 from pathlib import Path
 
 from dotools_py.get import expr as get_expr
-from dotools_py.utils import convert_path, get_subplot_shape, remove_extra, sanitize_anndata, spine_format, iterase_input, InputError
+from dotools_py.utils import convert_path, get_subplot_shape, remove_extra, sanitize_anndata, spine_format, iterase_input
+from dotools_py._custom_class import InputError
+
 from dotools_py.pl._embeddings import embedding
 
 def layers(
