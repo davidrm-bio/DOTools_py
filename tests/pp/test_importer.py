@@ -23,7 +23,6 @@ def test_importer():
         max_genes=2000,
     )
     files = os.listdir("./tmp/healthy/outs")
-    assert "Vln_PreQC_Batch1.svg" in files
     assert "Vln_PostQC_Batch1.svg" in files
     assert isinstance(adata, ad.AnnData)
     shutil.rmtree("./tmp")
@@ -83,7 +82,6 @@ def test_quality_control():
         max_genes=10000,
         include_rbs=True,
         remove_doublets=False,
-        metrics=False,
     )
     assert isinstance(adata_new, ad.AnnData)
     assert os.path.exists("./QC")

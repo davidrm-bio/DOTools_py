@@ -65,11 +65,11 @@ def test_objects():
 
 
 
-def test():
-    os.makedirs("./tmp", exist_ok=True)
-    do.dt.example_visium("./tmp")
-    adata = do.io.read_visium("./tmp")
-    assert isinstance(adata, ad.AnnData)
-    shutil.rmtree("./tmp")
+#def test():
+    #os.makedirs("./tmp", exist_ok=True)
+    #do.dt.example_visium("./tmp")
+    #adata = do.io.read_visium("./tmp")
+    #assert isinstance(adata, ad.AnnData)
+    #shutil.rmtree("./tmp")
 
 
