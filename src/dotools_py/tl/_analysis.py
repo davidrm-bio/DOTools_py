@@ -14,6 +14,9 @@ from dotools_py.dt import standard_ct_labels_heart
 from dotools_py.utils import convert_path, get_paths_utils, transfer_labels, check_missing
 from typing import TYPE_CHECKING
 
+from dotools_py.utils import sanitize_anndata
+from dotools_py._custom_class import  InputError
+
 if TYPE_CHECKING:
     from scvi.model._scvi import SCVI
     from scvi.model._scanvi import SCANVI
@@ -386,9 +389,11 @@ def integrate_data(
     resolution: float = 0.3,
     categorical_covariates: list = None,
     continuous_covariates: list = None,
+    technology: Literal["scrna", "spatial"] = "scrna",
     get_model: bool = False,
     random_state: int = 0,
     workers: int = 1,
+    spatial_neigh_kwargs: dict = None,
     **kwargs,
 ) -> "SCVI | None":
     """Integrate a concatenated AnnData.
@@ -526,12 +531,31 @@ def integrate_data(
     else:
         sc.pp.neighbors(adata, use_rep=dim_reduc, random_state=42)
 
+    if technology == "spatial":
+        try:
+            import squidpy as sq
+        except ImportError:
+            raise ImportError(f"If technology is set to {technology}, `squidpy` needs to be installed.\nRun pip install squidpy")
+        spatial_neigh_kwargs = {} if spatial_neigh_kwargs is None else spatial_neigh_kwargs
+        sq.gr.spatial_neighbors(adata, library_key=batch_key, **spatial_neigh_kwargs)
+
     logger.info("Run UMAP")
     sc.tl.umap(adata, random_state=random_state)
 
     logger.info(f"Clustering cells using Leiden (resolution {resolution})")
-    sc.tl.leiden(adata, resolution=resolution, flavor="igraph", n_iterations=2, directed=False,
+    if technology == "scrna":
+        sc.tl.leiden(adata, resolution=resolution, flavor="igraph", n_iterations=2, directed=False,
                  random_state=random_state)
+    elif technology == "spatial":
+        try:
+            from spatialleiden import spatialleiden
+        except ImportError:
+            raise ImportError(f"If technology is set to {technology}, `spatialleiden` needs to be installed.\nRun pip install spatialleiden")
+        spatialleiden(adata, resolution=resolution, random_state=random_state, key_added="leiden")
+        adata.obs["leiden"] = adata.obs["leiden"].astype(str)
+        sanitize_anndata(adata)
+    else:
+        raise InputError(f"{technology} is not a valid input")
     return model
 
 
