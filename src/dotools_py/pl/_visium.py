@@ -270,6 +270,7 @@ def slides(
             size=sp_size,
             library_id=adata.obs[batch_key].unique().tolist()[0],
             layer=layer,
+            img_key=img_key,
             vmax=vmax,
             show=False,
             figsize=figsize,

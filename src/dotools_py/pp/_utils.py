@@ -42,7 +42,7 @@ def _qc_vln(
         vln.set_title("")
     plt.suptitle(title, fontsize=30, fontweight="bold")
     save_plot(path, filename)
-    return plt.show()
+    return plt.close()
 
 
 
