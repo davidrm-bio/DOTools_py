@@ -62,3 +62,14 @@ def test_objects():
     adata = do.io.read_10x_h5("./tmp/disease/outs/filtered_feature_bc_matrix.h5")
     assert isinstance(adata, ad.AnnData)
     shutil.rmtree("./tmp")
+
+
+
+def test():
+    os.makedirs("./tmp", exist_ok=True)
+    do.dt.example_visium("./tmp")
+    adata = do.io.read_visium("./tmp")
+    assert isinstance(adata, ad.AnnData)
+    shutil.rmtree("./tmp")
+
+
