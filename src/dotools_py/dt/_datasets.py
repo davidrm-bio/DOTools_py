@@ -192,3 +192,30 @@ def example_visium(path: str | Path = "tmp/dotools_datasets/") -> None:
     ]
     _ = subprocess.run(command, shell=True, check=True, cwd=visium_path)
     return None
+
+
+def example_visium_processed()-> ad.AnnData:
+    """Load example datasets from 10x processed.
+
+        Loads a reduced version of the example datasets from Visium used in the tutorial of the package.
+
+        :return: Returns an AnnData object processed with 1046 cells and 1000 genes.
+
+        Example
+        -------
+        >>> import dotools_py as do
+        >>> adata = do.dt.example_visium_processed()
+        >>> adata
+        AnnData object with n_obs × n_vars = 1046 × 1000
+        obs: 'in_tissue', 'array_row', 'array_col', 'batch', 'condition', 'tissue', 'n_genes_by_counts',
+             'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt', 'log1p_total_counts_mt',
+             'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo', 'pct_counts_ribo', 'total_counts_hb',
+             'log1p_total_counts_hb', 'pct_counts_hb', 'n_genes', 'n_counts', 'leiden'
+        var: 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches',
+             'highly_variable_intersection'
+        uns: 'hvg', 'leiden_colors', 'log1p', 'neighbors', 'spatial', 'spatial_neighbors', 'umap'
+        obsm: 'X_pca', 'X_umap', 'spatial'
+        layers: 'counts', 'logcounts'
+        obsp: 'connectivities', 'distances', 'spatial_connectivities', 'spatial_distances'
+        """
+    return ad.read_h5ad(HERE / "example_visium_reduced.h5ad")
