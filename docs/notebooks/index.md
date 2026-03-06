@@ -11,6 +11,7 @@ downstream analysis using a public dataset from 10X.
 Running_CellBender
 example_10X
 Integration
+Example_Visium
 ```
 
 ## Visualisation and Usage Examples
