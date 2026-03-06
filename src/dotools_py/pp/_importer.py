@@ -823,6 +823,83 @@ def importer_py(
     random_state: int = 0,
     technology: Literal["snrna", "scrna", "visium", "xenium"] = "snrna",
 ):
+    """Quality control analysis for scRNA / Spatial Transcriptomics.
+
+    The input is a list with paths to H5 files generated with
+    `CellRanger <https://www.10xgenomics.com/support/software/cell-ranger/latest>`_,
+    `Cellbender <https://cellbender.readthedocs.io/en/latest/>`_, or
+    `STARsolo <https://github.com/alexdobin/STAR>`_ or `SpaceRanger <https://www.10xgenomics.com/support/software/space-ranger/latest>`_
+    A list of batch names for each sample must also be provided.
+    Optionally, a dictionary with additional metadata can be passed. The order of batch names and metadata must
+    match the order of the file paths.
+
+    For each sample, several quality and filtering steps are applied:
+
+    - Filter genes expressed in a low number of cells.
+    - Filter cells with a low number of genes.
+    - Filter cells with high mitochondrial content (recommended: 5% for scRNA, 3% for snRNA).
+    - Filter cells based on nUMI and features using two modes:
+        1. **Absolute filtering**: Sets absolute values for min/max UMI and features.
+        2. **Quantile filtering**: Filters top/lower quantiles.
+    - Remove doublets using scDblFinder, Scrublet, or DoubletDetection.
+
+    An Excel sheet summarizing how many cells/genes were removed at each step will be generated,
+    along with violin plots showing the distribution of `total_counts`, `n_genes_by_counts`,
+    and `pct_mt_content` before and after QC. These outputs will be saved in the folder containing the H5 files.
+
+    After QC, the data will be log-normalized and scaled. Highly variable genes and PCA will also be computed.
+
+    .. note::
+        Depending on the type of technology some steps will be omitted or adapted.
+
+    :param paths: list with the path to the H5 files.
+    :param ids: list with the batch name for each sample.
+    :param metadata: dictionary with metadata information.
+    :param batch_key: key in `.obs` for the batch information.
+    :param remove_doublets: if set to True, neotypic doublets will be removed.
+    :param doublet_tool: doublet tool to use. Available scDblFinder, Scrublet and DoubletDetection.
+    :param min_genes_in_cell: minimum number of genes per cell.
+    :param min_cells_with_genes: minimum cells expressing a genes.
+    :param n_reads: target sum after normalization per cell.
+    :param cut_mt: maximum percentage of mitochondrial genes per cell.
+    :param min_counts:  minimum number of counts per cell.
+    :param max_counts: maximum number of counts per cell.
+    :param min_genes: minimum number of genes per cell.
+    :param max_genes: maximum number of genes per cell.
+    :param low_quantile: low quantile to filter cells based on counts.
+    :param high_quantile: upper quantile to filter cells based on counts.
+    :param normalisation_method: Type of normalization method.
+    :param log_data: Whether to log data after normalization or not.
+    :param metrics_patterns: Patterns to use to annotate features. Use `mt-` for mitochondrial, `rps` and `rpl` for ribosomal, and `^hb*-` for hemoglobin. Should be written in lowercase.
+    :param metrics_names: Name for the patterns use "mt" for mitochondrial, "ribo" for ribosomal and "hb" for hemoglobin.
+    :param technology: Type of the input dataset.
+    :param random_state: seed for random number generator.
+    :return: Returns an Annotated data matrix of shape `n_obs` x `n_vars` with all the samples concatenated.
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> paths = ["/path/sample1", "/path/sample2"]
+    >>> batchname = ["sample1", "sample2"]
+    >>> metadata = {
+    ...     "condition": ["WT", "KO"],
+    ...     "age": ["3m", "3m"],
+    ... }
+    >>> adata = do.pp.importer_py(
+    ...     paths=paths,
+    ...     ids=batchname,
+    ...     metadata=metadata,
+    ...     batch_key="batch",
+    ...     remove_doublets=True,
+    ...     min_genes_in_cell=300,
+    ...     min_cells_with_genes=5,
+    ...     n_reads=10_000,
+    ...     cut_mt=5,
+    ...     high_quantile=95,
+    ...     min_counts=500,
+    ... )
+    """
+
     # Checks
     invalid = next((p for p in paths if not os.path.exists(p)), None)
     if invalid:
@@ -896,17 +973,85 @@ def quality_control(
     max_genes: int | None = None,
     low_quantile: int | None = None,
     high_quantile: int | None = None,
-    include_rbs: bool = True,
     remove_doublets: bool = False,
     doublet_tool: Literal["scDblFinder", "DoubletDetection", "Scrublet"] = "scDblFinder",
     # Extra processing steps and configurations
-    normalisation_method: Literal["LogNormalisation", "PearsonResiduals"] = "LogNormalisation",
+    normalization_method: Literal["LogNormalisation", "PearsonResiduals"] = "LogNormalisation",
     log_data: bool = True,
     metrics_patterns: tuple = ("mt-", ("rbs", "rpl")),
     metrics_names: list = ("mt", "ribo"),
     random_state: int = 0,
     technology: Literal["snrna", "scrna", "visium", "xenium"] = "snrna",
 ) -> ad.AnnData:
+    """Basic quality control for snRNA-seq / Spatial Transcriptomics.
+
+    For each sample in an AnnData object, several quality and filtering steps are applied:
+
+    - Filter genes expressed in a low number of cells.
+    - Filter cells with a low number of genes.
+    - Filter cells with high mitochondrial content (recommended: 5% for scRNA, 3% for snRNA).
+    - Filter cells based on nUMI and features using two modes:
+        1. **Absolute filtering**: Sets absolute values for min/max UMI and features.
+        2. **Quantile filtering**: Filters top/lower quantiles.
+    - Remove doublets using scDblFinder, Scrublet, or DoubletDetection.
+
+
+    .. note::
+        This function reproduces the quality control steps of :func:`dotools_py.pp.importer_py` but allows
+        to provide an AnnData object as input.  This function assumes that `adata.X` contains raw counts.
+
+    .. warning::
+        Depending on the `technology` some steps will be omitted or adapted.
+
+    Parameters
+    ----------
+    adata
+        Annotated data matrix with raw counts in `adata.X`.
+    batch_key
+        Column in `adata.obs` with sample information.
+    min_genes_in_cell
+        Minimum number of genes per cell.
+    min_cells_with_genes
+        Minimum number of cells expressing a gene.
+    cut_mt
+         Maximum percentage of mitochondrial genes per cell.
+    n_reads
+        Target sum after normalization per cell.
+    min_counts
+        Minimum number of counts per cell.
+    max_counts
+        Maximum number of counts per cell.
+    min_genes
+        Minimum number of genes per cell.
+    max_genes
+        Maximum number of genes per cell.
+    low_quantile
+        Low quantile to filter cells based on counts.
+    high_quantile
+        Upper quantile to filter cells based on counts.
+    remove_doublets
+        Identify and remove doublets.
+    doublet_tool
+        Method to use for the removal of doublets.
+    normalization_method
+        Normalization method to use.
+    log_data
+        Whether to log the data after normalization or not.
+    metrics_patterns
+        Patterns to use to annotate features. Use `mt-` for mitochondrial, `rps` and `rpl` for ribosomal,
+        and `^hb*-` for hemoglobin. Should be written in lowercase.
+    metrics_names
+        Name for the patterns use "mt" for mitochondrial, "ribo" for ribosomal and "hb" for hemoglobin.
+    technology
+        Type of the input dataset.
+    random_state
+        Seed for random number generator,
+
+    Returns
+    -------
+    Returns a processed AnnData object.
+
+    """
     # Warnings
     if cut_mt == 5 and technology == "snrna":
         logger.warn(
@@ -933,7 +1078,7 @@ def quality_control(
         high_quantile=high_quantile,
         random_state=random_state,
         technology=technology,
-        normalisation_method=normalisation_method,
+        normalisation_method=normalization_method,
         log_data=log_data,
         report=False,
         metrics_patterns=metrics_patterns,
