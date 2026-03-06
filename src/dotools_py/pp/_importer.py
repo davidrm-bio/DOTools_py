@@ -407,6 +407,7 @@ class Importer:
                 "10x-Genomics-formated mtx directory\n"
                 ""
             )
+        metadata = is_none(metadata, {})
         if len(metadata) != 0:
             assert all([len(val) == len(ids) for val in metadata.values()]), (
                 "The number of ids and the entries for some metadata does not match"
