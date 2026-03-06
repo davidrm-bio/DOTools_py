@@ -3,94 +3,33 @@ import subprocess
 import uuid
 from datetime import date
 from pathlib import Path
-from beartype.typing import Literal, Dict
 import anndata as ad
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from scipy.sparse import issparse
 
 from dotools_py import logger
-from dotools_py.utils import convert_path, get_paths_utils, iterase_input, InputError
 from dotools_py.io import read_10x_h5, read_visium, read_10x_mtx
+from dotools_py.utils import (
+    convert_path,
+    get_paths_utils,
+    iterase_input,
+    x_is_raw_counts,
+    check_r_package,
+    is_none
+)
 
-from typing import TYPE_CHECKING, Any
+from dotools_py._custom_class import InputError
+from typing import TYPE_CHECKING, Any, Literal, Dict
+from ._utils import _qc_vln, _filter_quantiles, py_none_to_r, _normalise, _lower_strings
+
 
 if TYPE_CHECKING:
     try:
         from spatialdata import SpatialData
     except ModuleNotFoundError:
         SpatialData = Any
-
-
-def _qc_vln(
-    adata: ad.AnnData,
-    title: str = "ViolinPlots - Quality Metrics",
-    path: str | Path = None,
-    filename: str = "ViolinPlots.png",
-    stats: list = ("total_counts", "n_genes_by_counts", "pct_counts_mt"),
-    colors: str | list = "lightsteelblue",
-) -> None:
-    """Violin Plots showing basic QC stats.
-
-    Generate ViolinPlots to show the distribution of total counts, number of genes and percentage of
-    mitochondrial genes.
-
-    :param adata: annotated dt matrix.
-    :param title: title of the Plot.
-    :param path: path to figure folder.
-    :param filename: name of the file.
-    :param stats: `.obs` column name to plot.
-    :param colors: colors for the violinplots.
-    :return:
-    """
-    stats = iterase_input(stats)
-
-    missing_col = [col for col in stats if col not in adata.obs.columns]
-
-    if len(missing_col) != 0:
-        assert all(col in list(adata.obs.columns) for col in stats), f"{missing_col} missing in adata.obs"
-    colors = iterase_input(colors)
-    colors = colors * len(stats)
-
-    ncols = len(stats)
-
-    fig, axs = plt.subplots(1, ncols, figsize=(10, 6))
-    for idx in range(ncols):
-        vln = sns.violinplot(adata.obs[stats[idx]], ax=axs[idx], color=colors[idx])
-        vln.set_xticklabels([f"Median = {np.floor(np.median(adata.obs[stats[idx]]))}"], fontweight="bold")
-        vln.set_title("")
-        #vln.set_ylabel(stats[idx], color="black")
-    plt.suptitle(title, fontsize=30, fontweight="bold")
-
-    if path is not None:
-        plt.savefig(convert_path(path) / filename, bbox_inches="tight")
-        return plt.close()
-    else:
-        return plt.show()
-
-
-def _filter_quantiles(
-    adata: ad.AnnData,
-    low: int | None = None,
-    high: int | None = None,
-) -> ad.AnnData:
-    """Filter cells based on total nUMI counts using quantiles.
-
-    :param adata: annotated dt matrix
-    :param low: lower quantile
-    :param high: upper quantile
-    :return: annotated dt matrix
-    """
-    counts = adata.obs["total_counts"]
-    mask = np.ones(adata.n_obs, dtype=bool)
-    if low:
-        mask &= counts > np.percentile(counts, low)
-    if high:
-        mask &= counts < np.percentile(counts, high)
-    return adata[mask, :].copy()
-
 
 
 def find_doublets(
@@ -163,20 +102,18 @@ def find_doublets(
 
     """
 
-    assert adata.n_obs != 0, "The AnnData is empty"
-
-    def py_none_to_r(obj):
-        if obj is None:
-            return r("NULL")  # evaluated at conversion time
-        return obj
+    assert adata.n_obs != 0, "The AnnData is empty "
 
     if method == "scDblFinder":
         import anndata2ri
         from rpy2.robjects import r, conversion, globalenv, pandas2ri
+
+        check_r_package("scDblFinder")
         none_converter = conversion.Converter("None converter")
         none_converter.py2rpy.register(type(None), py_none_to_r)
         adata_copy = adata.copy()
-        del adata_copy.raw, adata_copy.uns
+        adata_copy.raw, adata_copy.uns = None, None
+
         with conversion.localconverter(anndata2ri.converter + none_converter + pandas2ri.converter):
             r.assign("adata", adata_copy)
             r.assign("batch", batch_key)
@@ -201,14 +138,18 @@ def find_doublets(
                 """
             )
             doublets = globalenv["df"]
-            r("""
-            rm(adata, batch, cluster, dbr, metric, random_state, sce, df)
-            gc()
-            """)
+            r(
+                """
+                rm(adata, batch, cluster, dbr, metric, random_state, sce, df)
+                gc()
+                """
+            )
         doublets = doublets.set_index(adata.obs_names)
         adata.obs[["doublet_class", "doublet_score"]] = doublets.values
+
     elif method == "DoubletDetection":
         import doubletdetection
+
         clf = doubletdetection.BoostClassifier(
             n_iters=15, clustering_algorithm="leiden", standard_scaling=True, verbose=False, n_jobs=-1,
             random_state=random_state,
@@ -219,17 +160,22 @@ def find_doublets(
         mapped[doublets == 1.0] = "doublet"
         adata.obs["doublet_class"] = pd.Categorical(mapped, categories=["singlet", "doublet"])
         adata.obs["doublet_score"] = doublet_score
+
     elif method == "Scrublet":
         from scanpy.preprocessing import scrublet
-        expected_doublet_rate = doublet_rate if doublet_rate is not None else 0.05
-        scrublet(adata, expected_doublet_rate=expected_doublet_rate, random_state=random_state)
+
+        scrublet(adata, expected_doublet_rate=is_none(doublet_rate, 0.05), random_state=random_state)
         adata.obs["doublet_class"] = adata.obs["predicted_doublet"].map({False: "singlet", True: "doublet"})
         del adata.obs["predicted_doublet"]
+
     elif method == "Ovrlpy":
-        assert isinstance(adata, pd.DataFrame), ("To run Ovrlpy (Detection of doublets in scSpatialTranscriptomics "
-                                                 "provide a DataFrame with X,Y,Z coordinates for features.")
+        assert isinstance(adata, pd.DataFrame), (
+            "To run Ovrlpy (Detection of doublets in scSpatialTranscriptomics provide a DataFrame with X,Y,Z coordinates "
+            "for features."
+        )
         assert batch_key is None, "Ovrlpy cannot perform doublet detection across batches"
         assert ovrlpy_report_path is not None, "Provide path to save the report from the Ovrlpy inference"
+
         import ovrlpy
         import pickle
         available_cores = int(os.cpu_count() / 2)
@@ -268,39 +214,10 @@ def find_doublets(
             pickle.dump(data, file)
         doublets.write_csv(convert_path(ovrlpy_report_path) / "SummaryDoublets.csv")
     else:
-        raise Exception("Doublet detection tool available: scDblFinder, Scrublet and DoubletDetection")
+        raise InputError("Doublet detection tool available: scDblFinder, Scrublet and DoubletDetection")
     adata.obs["doublet_class"] = pd.Categorical(adata.obs["doublet_class"].astype(str))
     adata.obs["doublet_score"] = adata.obs["doublet_score"].astype(float)
     return None
-
-
-def _normalise(
-    adata: ad.AnnData,
-    n_reads: int = 10_000,
-    log_data: bool = True
-) -> None:
-    """Normalize raw counts.
-
-    The input is an unnormalize anndata object. The dt in X will be log-normalize to 10,000 reads per cell.
-    The returned anndata object will contain 3 layers:
-    * counts: contains the raw unnormalized counts
-    * logcounts: contains the log-normalize counts
-    * scaled: contained the log-normalize counts scaled
-    Additionally, the log-normalize counts will also be saved under the X attribute.
-
-    :param adata: annData object
-    :param n_reads: target number of reads per cell to normalize to. (Default  is **10,000**)
-    :param log_data: Whether to apply logarithm to the normalize data or not.
-    :return: log-normalise anndata object
-    """
-    import scanpy as sc
-    sc.pp.normalize_total(adata, target_sum=n_reads)
-    if log_data:
-        sc.pp.log1p(adata)
-        adata.layers["logcounts"] = adata.X.copy()
-    else:
-        adata.layers["norm_counts"] = adata.X.copy()
-    return
 
 
 def log_normalize(
@@ -331,15 +248,9 @@ def log_normalize(
     Returns `None`. Changes will be performed inplace.
 
     """
-    # LogNormalization should only be performed on raw counts
-    matrix = adata.X.data if issparse(adata.X) else adata.X.flatten()
-    if (matrix % 1 != 0).any():
-        raise ValueError("The count matrix should only contain integers.")
-    if (matrix < 0).any():
-        raise ValueError("The count matrix should only contain non-negative values.")
+    x_is_raw_counts(adata)  # LogNormalization should only be performed on raw counts
     adata.layers["counts"] = adata.X.copy()  # Save raw counts
     _normalise(adata, n_reads=target_sum, log_data=log_data)
-
     return None
 
 
@@ -399,17 +310,14 @@ def pearson_residuals_normalize(
     obsp: 'connectivities', 'distances'
 
     """
-    from scipy import sparse
-    import polars
-    import scanpy as sc
+    x_is_raw_counts(adata)
 
     if "counts" not in adata.layers.keys():
         adata.layers["counts"] = adata.X.copy()
 
-
     if backend == "scanpy":
+        import scanpy as sc
         adata.layers["sqrt_norm"] = np.sqrt(sc.pp.normalize_total(adata, inplace=False)["X"])
-
         database = {}
         for batch in adata.obs[batch_key].unique():
             adata_batch = adata[adata.obs[batch_key] == batch].copy()
@@ -418,6 +326,8 @@ def pearson_residuals_normalize(
             database[batch] = adata_batch
         adata = ad.concat(database.values(), join="outer")
     else:
+        from scipy import sparse
+        import polars
         rscript = get_paths_utils("_run_SCTransform.R")
         tmpdir_path = Path("/tmp") / f"SCTransform_{uuid.uuid4().hex}"
         tmpdir_path.mkdir(parents=True, exist_ok=False)
@@ -460,16 +370,6 @@ def pearson_residuals_normalize(
         adata.layers["SCT_counts"] = sparse.csr_matrix(raw_counts.values)
     return adata
 
-
-def _lower_strings(obj):
-    if isinstance(obj, str):
-        return obj.lower()
-    elif isinstance(obj, list):
-        return [_lower_strings(item) for item in obj]
-    elif isinstance(obj, tuple):
-        return tuple(_lower_strings(item) for item in obj)
-    else:
-        return obj
 
 
 class Importer:
@@ -586,7 +486,8 @@ class Importer:
         adata.obs[self.batch_key] = batch_name  # Add batch name
         if self.metadata:  # Map metadata
             for key, value in self.metadata.items():
-                adata.obs[key] = adata.obs[self.batch_key].map((dict(zip(self.batch_names, value, strict=True))))  # TODO
+                adata.obs[key] = adata.obs[self.batch_key].map(
+                    (dict(zip(self.batch_names, value, strict=True))))  # TODO
         return adata
 
     @staticmethod
@@ -596,11 +497,7 @@ class Importer:
         :param adata: Annotated data matrix.
         :return: Returns None.
         """
-        matrix = adata.X.data if issparse(adata.X) else adata.X.flatten()
-        if (matrix % 1 != 0).any():
-            raise ValueError("The count matrix `adata.X` should only contain integers.")
-        if (matrix < 0).any():
-            raise ValueError("The count matrix `adata.X` should only contain non-negative values.")
+        x_is_raw_counts(adata)
         adata.layers["counts"] = adata.X.copy()
         return None
 
@@ -876,7 +773,7 @@ class Importer:
                 _qc_vln(
                     adata_batch, title=f"PostQC for {batch_name}", path=self.qc_path,
                     filename=f"Vln_PostQC_{batch_name}.svg",
-                    stats = ["total_counts", "n_genes_by_counts", "pct_counts_mt", "pct_counts_hb"],
+                    stats=["total_counts", "n_genes_by_counts", "pct_counts_mt", "pct_counts_hb"],
                 )
 
                 database[batch_name] = adata_batch
@@ -887,7 +784,7 @@ class Importer:
         logger.info("Concatenating samples")
         adata = ad.concat(
             database.values(), label=self.batch_key, keys=database.keys(), join="outer", index_unique="-", fill_value=0
-        ) # TODO check that the adata.uns["spatial"] is not lost
+        )
 
         if "spatial" not in adata.uns.keys():
             uns_spatial = {}
@@ -983,7 +880,6 @@ def importer_py(
     return adata
 
 
-
 def quality_control(
     # Step 1 - Basic input
     adata: ad.AnnData,
@@ -1010,8 +906,7 @@ def quality_control(
     metrics_names: list = ("mt", "ribo"),
     random_state: int = 0,
     technology: Literal["snrna", "scrna", "visium", "xenium"] = "snrna",
-)-> ad.AnnData:
-
+) -> ad.AnnData:
     # Warnings
     if cut_mt == 5 and technology == "snrna":
         logger.warn(
