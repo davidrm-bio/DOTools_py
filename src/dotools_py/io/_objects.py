@@ -8,8 +8,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import spatialdata as st
 
-from dotools_py.utils import convert_path, EmptyType
+from dotools_py.utils import convert_path
 from dotools_py.logger import logger
+from dotools_py._custom_class import EmptyType
 
 _Empty = EmptyType()
 

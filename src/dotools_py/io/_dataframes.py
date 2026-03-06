@@ -5,8 +5,8 @@ import pandas as pd
 import polars as pl
 
 from dotools_py.logger import logger
-from dotools_py.utils import convert_path, EmptyType
-
+from dotools_py.utils import convert_path
+from dotools_py._custom_class import  EmptyType
 _Empty = EmptyType()
 
 
