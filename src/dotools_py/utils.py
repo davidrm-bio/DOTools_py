@@ -40,8 +40,6 @@ def sanitize_anndata(adata: ad.AnnData) -> None:
     :param adata: AnnData
     :return None
     """
-    if isinstance(adata, ad.AnnData):
-        raise InputError("Input is not an AnnData Object")
     adata._sanitize()
     return None
 
