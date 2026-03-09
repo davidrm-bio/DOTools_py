@@ -423,7 +423,7 @@ def integrate_data(
     :param get_model: Set to True to Return the scVI model.
     :param random_state: seed for random number generator.
     :param workers: number of threads to use for harmony.
-    :param spatial_neigh_kwargs: Additional arguments when computing the spatial neighborhood graph. See `Squidpy <https://squidpy.readthedocs.io/en/stable/api/squidpy.gr.spatial_neighbors.html#squidpy.gr.spatial_neighbors>`
+    :param spatial_neigh_kwargs: Additional arguments when computing the spatial neighborhood graph. See `Squidpy <https://squidpy.readthedocs.io/en/stable/api/squidpy.gr.spatial_neighbors.html#squidpy.gr.spatial_neighbors>`_
     :param kwargs: Additional arguments for
                   `scVI model <https://docs.scvi-tools.org/en/stable/api/reference/scvi.model.SCVI.html>`_.
     :return: Returns `None` or the scVI model if `get_model` is `True`. The following fields will be set:
