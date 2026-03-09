@@ -16,14 +16,12 @@ from dotools_py.utils import (
     get_paths_utils,
     iterase_input,
     x_is_raw_counts,
-    check_r_package,
     is_none
 )
 
 from dotools_py._custom_class import InputError
 from typing import TYPE_CHECKING, Any, Literal, Dict
-from ._utils import _qc_vln, _filter_quantiles, py_none_to_r, _normalise, _lower_strings
-
+from ._utils import _qc_vln, _filter_quantiles, _normalise, _lower_strings, _run_sc_dbl_finder, _run_ovrlpy
 
 if TYPE_CHECKING:
     try:
@@ -44,6 +42,12 @@ def find_doublets(
     random_state: int = 0,
 ) -> None:
     """Detect doublets in scRNAseq and iST.
+
+    Detect doublets in sc/snRNA-seq and imaged-based spatial transcriptomics (iST). For the iST, vertical doublets
+    will be detected (i.e., regions where doublets are detected over the Z axis).
+
+    .. note::
+        For iST, a report will be generated but no vertical doublets will be removed.
 
     Parameters
     ----------
@@ -67,7 +71,7 @@ def find_doublets(
         `scDblFinder <https://f1000research.com/articles/10-979/v2>`_,
         `DoubletDetection <https://zenodo.org/records/14827937>`_, and
         `Scrublet <https://www.sciencedirect.com/science/article/pii/S2405471218304745>`_.
-        For Spatial Transcriptomics at single cell resolution, like Xenium the avaialble methods are:
+        For Spatial Transcriptomics at single cell resolution, like Xenium the available methods are:
         `Ovrlpy <https://ovrlpy.readthedocs.io/latest/>`_ (Allow the detection of vertical doublets in image based ST).
     ovrlpy_keys
         Dictionary with the following keys: `gene_key`, `x_key`, `y_key` and `z_key` indicating the name of the column
@@ -105,51 +109,18 @@ def find_doublets(
     assert adata.n_obs != 0, "The AnnData is empty "
 
     if method == "scDblFinder":
-        import anndata2ri
-        from rpy2.robjects import r, conversion, globalenv, pandas2ri
-
-        check_r_package("scDblFinder")
-        none_converter = conversion.Converter("None converter")
-        none_converter.py2rpy.register(type(None), py_none_to_r)
-        adata_copy = adata.copy()
-        adata_copy.raw, adata_copy.uns = None, None
-
-        with conversion.localconverter(anndata2ri.converter + none_converter + pandas2ri.converter):
-            r.assign("adata", adata_copy)
-            r.assign("batch", batch_key)
-            r.assign("cluster", cluster_key)
-            r.assign("dbr", doublet_rate)
-            r.assign("metric", scdblfinder_metric)
-            r.assign("random_state", random_state)
-            r(
-                """
-                library(scDblFinder)
-                if (!suppressPackageStartupMessages(require(SingleCellExperiment))) {
-                    stop("R dependecy SingleCellExperiment not found.")
-                }
-                set.seed(random_state)
-                sce <- as(adata, "SingleCellExperiment")
-                sce <- scDblFinder(sce, samples = batch, clusters=cluster, dbr=dbr, metric=metric, verbose = F)
-                df <- data.frame(
-                    scDblFinder.class = as.character(colData(sce)$scDblFinder.class),
-                    scDblFinder.score = as.numeric(colData(sce)$scDblFinder.score),
-                    stringsAsFactors = FALSE
-                )
-                """
-            )
-            doublets = globalenv["df"]
-            r(
-                """
-                rm(adata, batch, cluster, dbr, metric, random_state, sce, df)
-                gc()
-                """
-            )
-        doublets = doublets.set_index(adata.obs_names)
+        doublets = _run_sc_dbl_finder(
+            adata=adata,
+            batch_key=batch_key,
+            cluster_key=cluster_key,
+            doublet_rate=doublet_rate,
+            scdblfinder_metric=scdblfinder_metric,
+            random_state=random_state
+        )
         adata.obs[["doublet_class", "doublet_score"]] = doublets.values
 
     elif method == "DoubletDetection":
         import doubletdetection
-
         clf = doubletdetection.BoostClassifier(
             n_iters=15, clustering_algorithm="leiden", standard_scaling=True, verbose=False, n_jobs=-1,
             random_state=random_state,
@@ -163,56 +134,12 @@ def find_doublets(
 
     elif method == "Scrublet":
         from scanpy.preprocessing import scrublet
-
         scrublet(adata, expected_doublet_rate=is_none(doublet_rate, 0.05), random_state=random_state)
         adata.obs["doublet_class"] = adata.obs["predicted_doublet"].map({False: "singlet", True: "doublet"})
         del adata.obs["predicted_doublet"]
 
     elif method == "Ovrlpy":
-        assert isinstance(adata, pd.DataFrame), (
-            "To run Ovrlpy (Detection of doublets in scSpatialTranscriptomics provide a DataFrame with X,Y,Z coordinates "
-            "for features."
-        )
-        assert batch_key is None, "Ovrlpy cannot perform doublet detection across batches"
-        assert ovrlpy_report_path is not None, "Provide path to save the report from the Ovrlpy inference"
-
-        import ovrlpy
-        import pickle
-        available_cores = int(os.cpu_count() / 2)
-        ovrlpy_keys = {} if ovrlpy_keys is None else ovrlpy_keys
-        gene_key, x_key, y_key, z_key = (ovrlpy_keys.get("gene_key", "feature_name"),
-                                         ovrlpy_keys.get("x_key", "x_location"),
-                                         ovrlpy_keys.get("y_key", "y_location"),
-                                         ovrlpy_keys.get("z_key", "z_location"))
-
-        data = ovrlpy.Ovrlp(
-            adata, n_workers=available_cores, random_state=random_state, gene_key=gene_key,
-            coordinate_keys=(x_key, y_key, z_key),
-        )
-        data.analyse()
-
-        # Save results in the report folder
-        logger.info("Generating Report")
-        os.makedirs(ovrlpy_report_path, exist_ok=True)
-        _ = ovrlpy.plot_pseudocells(data)
-        plt.savefig(convert_path(ovrlpy_report_path) / "Overview_Ovrlpy.pdf", bbox_inches="tight")
-        plt.close()
-        _ = ovrlpy.plot_signal_integrity(data, signal_threshold=3)
-        plt.savefig(convert_path(ovrlpy_report_path) / "Integrity_Ovrlpy.pdf", bbox_inches="tight")
-        plt.close()
-
-        doublets = data.detect_doublets(min_signal=3, integrity_sigma=2)
-
-        fig, ax = plt.subplots()
-        _scatter = ax.scatter(doublets["x"], doublets["y"], c=doublets["integrity"], s=0.2, cmap="viridis")
-        _ = ax.set_aspect("equal")
-        _ = fig.colorbar(_scatter, ax=ax)
-        plt.savefig(convert_path(ovrlpy_report_path) / "DoubletsIntegrity_Ovrlpy.pdf", bbox_inches="tight")
-        plt.close()
-
-        with open(convert_path(ovrlpy_report_path) / "ObjectOvrlpy.pickle", "wb") as file:
-            pickle.dump(data, file)
-        doublets.write_csv(convert_path(ovrlpy_report_path) / "SummaryDoublets.csv")
+        _run_ovrlpy(df=adata, batch_key=batch_key, ovrlpy_report_path=ovrlpy_report_path, ovrlpy_keys=ovrlpy_keys)
     else:
         raise InputError("Doublet detection tool available: scDblFinder, Scrublet and DoubletDetection")
     adata.obs["doublet_class"] = pd.Categorical(adata.obs["doublet_class"].astype(str))
@@ -911,7 +838,6 @@ def importer_py(
         assert all([len(metadata[key]) == len(paths) for key in metadata]), (
             f"Some metadata does not have {len(paths)} values"
         )
-
     # Warnings
     if cut_mt == 5 and technology == "snrna":
         logger.warn(
@@ -944,16 +870,16 @@ def importer_py(
         metrics_patterns=metrics_patterns,
         metrics_names=metrics_names,
     )
+
     if technology in ("scrna", "snrna"):
         processor.scrna_quality_control()
-        processor.normalise()
-        processor.run_pca()
     elif technology == "visium":
         processor.visium_quality_control()
-        processor.normalise()
-        processor.run_pca()
     else:
         raise NotImplementedError(f"{technology} is currently not implemented")
+
+    processor.normalise()
+    processor.run_pca()
     adata = processor.get_adata
     return adata
 
@@ -1087,13 +1013,12 @@ def quality_control(
 
     if technology in ("scrna", "snrna"):
         processor.scrna_quality_control()
-        processor.normalise()
-        processor.run_pca()
     elif technology == "visium":
         processor.visium_quality_control()
-        processor.normalise()
-        processor.run_pca()
     else:
         raise NotImplementedError(f"{technology} is currently not implemented")
+
+    processor.normalise()
+    processor.run_pca()
     adata = processor.get_adata
     return adata

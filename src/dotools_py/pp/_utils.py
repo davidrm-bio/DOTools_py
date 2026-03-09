@@ -1,10 +1,13 @@
+import os
 from pathlib import Path
+from typing import Literal, Dict
 
 import anndata as ad
 import numpy as np
+import pandas as pd
 
-from dotools_py.utils import iterase_input, check_missing, save_plot, sanitize_anndata
-
+from dotools_py.utils import iterase_input, check_missing, save_plot, sanitize_anndata, check_r_package, convert_path
+from dotools_py.logger import  logger
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -113,3 +116,118 @@ def _lower_strings(obj):
         return tuple(_lower_strings(item) for item in obj)
     else:
         return obj
+
+
+def _run_sc_dbl_finder(
+    adata: ad.AnnData,
+    batch_key: str,
+    cluster_key: str,
+    doublet_rate: float = None,
+    scdblfinder_metric: Literal['merror', 'logloss', 'auc', 'aucpr'] = "logloss",
+    random_state: int = 0,
+) -> pd.DataFrame:
+    """Detect doublets using scDblFinder
+
+    :param adata: Annotated data matrix.
+    :param batch_key: Column in `adata.obs` with batch information.
+    :param cluster_key: Column in `adata.obs` with cluster information.
+    :param doublet_rate: Doublet rate.
+    :param scdblfinder_metric: Error metric to optimize during training (e.g. 'merror', 'logloss', 'auc', 'aucpr').
+    :param random_state: Random seed
+    :return: Returns a pandas DataFrame with the results of the double inference.
+    """
+    import anndata2ri
+    from rpy2.robjects import r, conversion, globalenv, pandas2ri
+
+    check_r_package("scDblFinder")
+    none_converter = conversion.Converter("None converter")
+    none_converter.py2rpy.register(type(None), py_none_to_r)
+    adata_copy = adata.copy()
+    adata_copy.raw, adata_copy.uns = None, None
+
+    with conversion.localconverter(anndata2ri.converter + none_converter + pandas2ri.converter):
+        r.assign("adata", adata_copy)
+        r.assign("batch", batch_key)
+        r.assign("cluster", cluster_key)
+        r.assign("dbr", doublet_rate)
+        r.assign("metric", scdblfinder_metric)
+        r.assign("random_state", random_state)
+        r(
+            """
+            library(scDblFinder)
+            if (!suppressPackageStartupMessages(require(SingleCellExperiment))) {
+                stop("R dependecy SingleCellExperiment not found.")
+            }
+            set.seed(random_state)
+            sce <- as(adata, "SingleCellExperiment")
+            sce <- scDblFinder(sce, samples = batch, clusters=cluster, dbr=dbr, metric=metric, verbose = F)
+            df <- data.frame(
+                scDblFinder.class = as.character(colData(sce)$scDblFinder.class),
+                scDblFinder.score = as.numeric(colData(sce)$scDblFinder.score),
+                stringsAsFactors = FALSE
+            )
+            """
+        )
+        doublets = globalenv["df"]
+        r(
+            """
+            rm(adata, batch, cluster, dbr, metric, random_state, sce, df)
+            gc()
+            """
+        )
+    doublets = doublets.set_index(adata.obs_names)
+    return doublets
+
+
+def _run_ovrlpy(
+    df: pd.DataFrame,
+    batch_key: str,
+    ovrlpy_report_path: str | Path,
+    ovrlpy_keys: Dict,
+    random_state: int = 0
+) -> None:
+    assert isinstance(df, pd.DataFrame), (
+        "To run Ovrlpy (Detection of doublets in scSpatialTranscriptomics provide a DataFrame with X,Y,Z coordinates "
+        "for features."
+    )
+    assert batch_key is None, "Ovrlpy cannot perform doublet detection across batches"
+    assert ovrlpy_report_path is not None, "Provide path to save the report from the Ovrlpy inference"
+
+    import ovrlpy
+    import pickle
+    available_cores = int(os.cpu_count() / 2)
+    ovrlpy_keys = {} if ovrlpy_keys is None else ovrlpy_keys
+    gene_key, x_key, y_key, z_key = (ovrlpy_keys.get("gene_key", "feature_name"),
+                                     ovrlpy_keys.get("x_key", "x_location"),
+                                     ovrlpy_keys.get("y_key", "y_location"),
+                                     ovrlpy_keys.get("z_key", "z_location"))
+
+    data = ovrlpy.Ovrlp(
+        df, n_workers=available_cores, random_state=random_state, gene_key=gene_key,
+        coordinate_keys=(x_key, y_key, z_key),
+    )
+    data.analyse()
+
+    # Save results in the report folder
+    logger.info("Generating Report")
+    os.makedirs(ovrlpy_report_path, exist_ok=True)
+    _ = ovrlpy.plot_pseudocells(data)
+    plt.savefig(convert_path(ovrlpy_report_path) / "Overview_Ovrlpy.pdf", bbox_inches="tight")
+    plt.close()
+    _ = ovrlpy.plot_signal_integrity(data, signal_threshold=3)
+    plt.savefig(convert_path(ovrlpy_report_path) / "Integrity_Ovrlpy.pdf", bbox_inches="tight")
+    plt.close()
+
+    doublets = data.detect_doublets(min_signal=3, integrity_sigma=2)
+
+    fig, ax = plt.subplots()
+    _scatter = ax.scatter(doublets["x"], doublets["y"], c=doublets["integrity"], s=0.2, cmap="viridis")
+    _ = ax.set_aspect("equal")
+    _ = fig.colorbar(_scatter, ax=ax)
+    plt.savefig(convert_path(ovrlpy_report_path) / "DoubletsIntegrity_Ovrlpy.pdf", bbox_inches="tight")
+    plt.close()
+
+    with open(convert_path(ovrlpy_report_path) / "ObjectOvrlpy.pickle", "wb") as file:
+        pickle.dump(data, file)
+    doublets.write_csv(convert_path(ovrlpy_report_path) / "SummaryDoublets.csv")
+    return None
