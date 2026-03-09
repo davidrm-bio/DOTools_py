@@ -80,7 +80,6 @@ def test_quality_control():
         max_counts=10000,
         min_genes=10,
         max_genes=10000,
-        include_rbs=True,
         remove_doublets=False,
     )
     assert isinstance(adata_new, ad.AnnData)
