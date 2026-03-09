@@ -114,33 +114,33 @@ def example_10x_processed() -> ad.AnnData:
 def example_visium(path: str | Path = "tmp/dotools_datasets/") -> None:
     """Download 10X Visium datasets.
 
-       Downloads a dataset of the human heart fresh frozen tissue including H&E image.
+    Downloads a dataset of the human heart fresh frozen tissue including H&E image.
 
-       :param path: Path where the data is downloaded.
-       :return: Returns `None`.
+    :param path: Path where the data is downloaded.
+    :return: Returns `None`.
 
-       Example
-       -------
-       >>> import dotools_py as do
-       >>> do.dt.example_visium("/tmp/dotools_datasets/")
-       2026-03-03 11:53:51,993 - Downloading data to /tmp/dotools_datasets/
-       Downloading Molecule info: 100%|██████████| 142M/142M [00:07<00:00, 20.8MiB/s]
-       Downloading filtered matrix: 100%|██████████| 11.6M/11.6M [00:01<00:00, 7.77MiB/s]
-       Downloading raw matrix: 100%|██████████| 13.4M/13.4M [00:01<00:00, 11.0MiB/s]
-       Downloading spatial: 100%|██████████| 8.78M/8.78M [00:01<00:00, 8.02MiB/s]
-       Downloading metrics: 100%|██████████| 945/945 [00:00<00:00, 4.36MiB/s]
-       Downloading web summary: 7.29MiB [00:01, 6.73MiB/s]
-       >>> adata = do.io.read_visium("/tmp/dotools_datasets")
-       >>> adata
-       reading /tmp/dotools_datasets/filtered_feature_bc_matrix.h5
-        (0:00:00)
-       AnnData object with n_obs × n_vars = 4247 × 36601
-        obs: 'in_tissue', 'array_row', 'array_col'
-        var: 'gene_ids', 'feature_types', 'genome'
-        uns: 'spatial'
-        obsm: 'spatial'
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> do.dt.example_visium("/tmp/dotools_datasets/")
+    2026-03-03 11:53:51,993 - Downloading data to /tmp/dotools_datasets/
+    Downloading Molecule info: 100%|██████████| 142M/142M [00:07<00:00, 20.8MiB/s]
+    Downloading filtered matrix: 100%|██████████| 11.6M/11.6M [00:01<00:00, 7.77MiB/s]
+    Downloading raw matrix: 100%|██████████| 13.4M/13.4M [00:01<00:00, 11.0MiB/s]
+    Downloading spatial: 100%|██████████| 8.78M/8.78M [00:01<00:00, 8.02MiB/s]
+    Downloading metrics: 100%|██████████| 945/945 [00:00<00:00, 4.36MiB/s]
+    Downloading web summary: 7.29MiB [00:01, 6.73MiB/s]
+    >>> adata = do.io.read_visium("/tmp/dotools_datasets")
+    >>> adata
+    reading /tmp/dotools_datasets/filtered_feature_bc_matrix.h5
+    (0:00:00)
+    AnnData object with n_obs × n_vars = 4247 × 36601
+    obs: 'in_tissue', 'array_row', 'array_col'
+    var: 'gene_ids', 'feature_types', 'genome'
+    uns: 'spatial'
+    obsm: 'spatial'
 
-       """
+    """
     from tqdm import tqdm
     import requests
     import subprocess
@@ -197,27 +197,28 @@ def example_visium(path: str | Path = "tmp/dotools_datasets/") -> None:
 
 
 def example_visium_processed()-> ad.AnnData:
-    """Load example datasets from 10x processed.
+    """Load example datasets from Visium processed.
 
-        Loads a reduced version of the example datasets from Visium used in the tutorial of the package.
+    Loads a reduced version of the example datasets from Visium used in the tutorial of the package.
 
-        :return: Returns an AnnData object processed with 1046 cells and 1000 genes.
+    :return: Returns an AnnData object processed with 1046 cells and 1000 genes.
 
-        Example
-        -------
-        >>> import dotools_py as do
-        >>> adata = do.dt.example_visium_processed()
-        >>> adata
-        AnnData object with n_obs × n_vars = 1046 × 1000
-        obs: 'in_tissue', 'array_row', 'array_col', 'batch', 'condition', 'tissue', 'n_genes_by_counts',
-             'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt', 'log1p_total_counts_mt',
-             'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo', 'pct_counts_ribo', 'total_counts_hb',
-             'log1p_total_counts_hb', 'pct_counts_hb', 'n_genes', 'n_counts', 'leiden'
-        var: 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches',
-             'highly_variable_intersection'
-        uns: 'hvg', 'leiden_colors', 'log1p', 'neighbors', 'spatial', 'spatial_neighbors', 'umap'
-        obsm: 'X_pca', 'X_umap', 'spatial'
-        layers: 'counts', 'logcounts'
-        obsp: 'connectivities', 'distances', 'spatial_connectivities', 'spatial_distances'
-        """
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_visium_processed()
+    >>> adata
+    AnnData object with n_obs × n_vars = 1046 × 1000
+    obs: 'in_tissue', 'array_row', 'array_col', 'batch', 'condition', 'tissue', 'n_genes_by_counts',
+         'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'total_counts_mt', 'log1p_total_counts_mt',
+         'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo', 'pct_counts_ribo', 'total_counts_hb',
+         'log1p_total_counts_hb', 'pct_counts_hb', 'n_genes', 'n_counts', 'leiden'
+    var: 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches',
+         'highly_variable_intersection'
+    uns: 'hvg', 'leiden_colors', 'log1p', 'neighbors', 'spatial', 'spatial_neighbors', 'umap'
+    obsm: 'X_pca', 'X_umap', 'spatial'
+    layers: 'counts', 'logcounts'
+    obsp: 'connectivities', 'distances', 'spatial_connectivities', 'spatial_distances'
+
+    """
     return ad.read_h5ad(HERE / "example_visium_reduced.h5ad")
