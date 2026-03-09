@@ -186,11 +186,13 @@ def example_visium(path: str | Path = "tmp/dotools_datasets/") -> None:
             for data in response.iter_content(block_size):
                 file.write(data)
                 bar.update(len(data))
-
-    command = [
-        f"tar -xf {visium_path / 'spatial.tar.gz'}"
-    ]
-    _ = subprocess.run(command, shell=True, check=True, cwd=visium_path)
+    try:
+        command = [
+            f"tar -xf {visium_path / 'spatial.tar.gz'}"
+        ]
+        _ = subprocess.run(command, shell=True, check=True, cwd=visium_path)
+    except Exception as e:
+        logger.warn(f"Could not uncompressed {visium_path / 'spatial.tar.gz'}, please do it manually")
     return None
 
 
