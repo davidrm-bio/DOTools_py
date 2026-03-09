@@ -7,13 +7,23 @@ from tqdm import tqdm
 from pathlib import Path
 
 from dotools_py.get import expr as get_expr
-from dotools_py.utils import convert_path, get_subplot_shape, remove_extra, sanitize_anndata, spine_format, iterase_input
+from dotools_py.utils import convert_path, get_subplot_shape, remove_extra, sanitize_anndata, spine_format, iterase_input, return_axis, save_plot
 from dotools_py._custom_class import InputError
 
 from dotools_py.pl._embeddings import embedding
 
+
 def layers(
-    adata: ad.AnnData, color: str, key_layers: str | list, ncols: int = 4, normalise: bool = False, show: bool = True, **kwargs
+    adata: ad.AnnData,
+    color: str,
+    key_layers: str | list,
+    ncols: int = 4,
+    normalise: bool = False,
+    show: bool = True,
+    figsize: tuple = (15, 8),
+    path: str | Path = None,
+    filename: str = "Layers.pdf",
+    **kwargs
 ) -> None | plt.Axes:
     """Plot several layers.
 
@@ -25,8 +35,22 @@ def layers(
     :param ncols:  number of columns in the plot.
     :param normalise: do log-normalization on the layers.
     :param show: if set to False, return axis.
+    :param figsize: Figure size, the format is (width, height).
+    :param path:  Path to the folder to save the figure.
+    :param filename: Name of file to use when saving the figure.
     :param kwargs: additional arguments for `sc.pl.spatial <https://scanpy.readthedocs.io/en/latest/api/generated/scanpy.pl.spatial.html>`_.
     :return:  None or plt.axes.
+
+    Examples
+    --------
+
+    .. plot::
+        :context: close-figs
+
+        import dotools_py as do
+        adata = do.dt.example_visium_processed()
+        do.pl.layers(adata, "NPPA", key_layers= ['counts', 'logcounts'], img_key="lowres")
+
     """
     import scanpy as sc
     adata = adata.copy()
@@ -36,17 +60,15 @@ def layers(
             sc.pp.normalize_total(adata, layer=layer)
             sc.pp.log1p(adata, layer=layer)
     nrows, ncols, extras = get_subplot_shape(len(key_layers), ncols)
-    fig, axs = plt.subplots(nrows, ncols, figsize=(15, 8))
+    fig, axs = plt.subplots(nrows, ncols, figsize=figsize)
     axs = axs.flatten()
     for idx, ly in enumerate(key_layers):
-        sc.pl.spatial(adata, color=color, ax=axs[idx], layer=ly, **kwargs)
+        slides(adata, color=color, ax=axs[idx], layer=ly, **kwargs)
         axs[idx].set_title(ly + "\n" + color)
         spine_format(axs[idx], "SP")
     remove_extra(extras, nrows, ncols, axs)
-    if not show:
-        return axs
-    else:
-        return None
+    save_plot(path, filename)
+    return  return_axis(show, axs)
 
 
 
@@ -78,6 +100,7 @@ def _check_img(
     img_key: None | str ,
     bw: bool = False,
 ) -> tuple[np.ndarray | None, str | None]:
+
     if img is None and spatial_data is not None and img_key is None:
         img_key = next(
             (k for k in ["hires", "lowres"] if k in spatial_data["images"]),
@@ -87,6 +110,7 @@ def _check_img(
     if bw:
         img = np.dot(img[..., :3], [0.2989, 0.5870, 0.1140])
     return img, img_key
+
 
 def _check_spot_size(spatial_data: Mapping | None, spot_size: float | None) -> float:
     if spatial_data is None and spot_size is None:
@@ -244,6 +268,17 @@ def slides(
     :param kwargs: additional arguments for the function `scanpy.pl.spatial()`.
     :param spacing: spacing between subplots (height, width) padding between plots
     :return: a matplotlib axes object
+
+    Examples
+    --------
+
+    .. plot::
+        :context: close-figs
+
+        import dotools_py as do
+        adata = do.dt.example_visium_processed()
+        do.pl.slides(adata, ["leiden", None], img_key="lowres", figsize=(5,5))
+
     """
     sanitize_anndata(adata)
 
@@ -262,6 +297,11 @@ def slides(
         show_order = adata.obs[batch_key].cat.categories.to_list()
 
     color = iterase_input(color)
+    if len(color) == 0:
+        color = "None"
+        adata.obs["None"] = ""
+        adata.uns["None_colors"] = ["#FFFFFF00"]
+
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     if n_samples == 1: # Case 1 - We have 1 sample
         axs = _spatial(
