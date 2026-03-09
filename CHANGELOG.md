@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning][].
 - Fix typo in the name of the function ``dotools_py.pl.split_embedding``
 - Fix Bug in default matplotlib settings
 - Fix deprecation bug in SCTransform
-- Internal restructure of the ``pp`` module.
+- Internal restructure of the ``dotools_py.pp`` module.
 
 ### Documentation
 - Update scRNA-seq tutorial
