@@ -60,3 +60,32 @@ def test_standard_labels():
     labels = do.dt.standard_ct_labels_heart()
     assert isinstance(labels, dict), "Labels to updated is not a dictionary"
     return
+
+
+def test_visium():
+    import shutil
+    import scanpy as sc
+
+    path = "./tmp"
+    os.makedirs(path, exist_ok=True)  # Generate a tmp folder
+
+    do.dt.example_visium(path)  # Download datasets
+    assert  len(os.listdir(path)) !=0
+    # Load one test dataset
+    try:
+        adata = sc.read_visium(path)
+        assert isinstance(adata, ad.AnnData), "Loaded datasets is not an AnnData"  # Check we have an AnnData
+    except Exception:  # might fail if subprocess could not be run
+        pass
+    shutil.rmtree(path)  # remove the tmp folder
+
+
+def test_processedvisium():
+
+    adata = do.dt.example_visium_processed()
+    assert  isinstance(adata, ad.AnnData)
+
+    # Expected 700 x 1851
+    assert  adata.n_obs == 1046, f"Expected 1046 cells but object has {adata.n_obs}"
+    assert  adata.n_vars == 1000, f"Expected 1000 genes but object has {adata.n_vars}"
+    return
