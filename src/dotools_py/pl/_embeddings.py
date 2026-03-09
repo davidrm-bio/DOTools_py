@@ -124,7 +124,7 @@ def embedding(
         )
 
     # We consider that the input is always a list;
-    color = [color] if isinstance(color, str) else color
+    color = iterase_input(color)
 
     # Avoid problems with colors
     for c in color:
@@ -797,7 +797,6 @@ def density(
         do.pl.density(adata, 'CD4', basis="X_umap", density_alpha=.75)
 
     """
-    #TODO Improve speed
     color = iterase_input(color)
     sanitize_anndata(adata)
     if len(color) == 1:
