@@ -1767,11 +1767,8 @@ def dotplot(
 
         if y_categories_order is not None:
             y_categories_order = y_categories_order[::-1]  # Reverse to start on the top
-            print(_color_df)
             _color_df = _color_df.reindex(columns=y_categories_order)  # row x col --> Yaxis x Xaxis
             _size_df = _size_df.reindex(columns=y_categories_order)
-            print(_color_df)
-
         if x_categories_order is not None:
             idx = pd.MultiIndex.from_product([_color_df.index.get_level_values(0).unique(), x_categories_order])
             _color_df = _color_df.reindex(index=idx)
