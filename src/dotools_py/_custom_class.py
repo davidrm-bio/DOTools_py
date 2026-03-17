@@ -1,3 +1,5 @@
+import os
+import pathlib
 from typing import Literal
 
 
@@ -15,3 +17,6 @@ class EmptyType:
     """A singleton sentinel representing an 'empty' value."""
     def __repr__(self) -> Literal["Empty"]:
         return "Empty"
+
+
+PathLike = str | os.PathLike[str] | pathlib.Path
