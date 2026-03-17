@@ -714,6 +714,8 @@ def density(
     vcenter: int | str = None,
     color_legend_title: str = None,
     density_legend_title: str = None,
+    path: str | Path = None,
+    filename: str = "Density.pdf",
 
     # Fx Specific
     basis: str = "spatial",
@@ -757,6 +759,10 @@ def density(
         Title of the colorbar legend
     density_legend_title
         Title of the colorbar for the density
+    path
+        Folder where the figure is saved.
+    filename
+        Name of the file.
     basis
         Embedding to use, default spatial.
     show_basis
@@ -797,6 +803,8 @@ def density(
         do.pl.density(adata, 'CD4', basis="X_umap", density_alpha=.75)
 
     """
+    assert "split_by" not in kwargs, '"split_by" is not supported for do.pl.density'
+
     color = iterase_input(color)
     sanitize_anndata(adata)
     if len(color) == 1:
@@ -861,5 +869,6 @@ def density(
                 )
             axes_dict[f"subplot_axes_{idx}"] = axes_dict_current
         remove_extra(nExtra, nrows, ncols, ax)
+    save_plot(path, filename)
     return return_axis(show, axes_dict)
 
