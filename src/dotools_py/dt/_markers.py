@@ -1,6 +1,7 @@
 from typing import Literal
 
 from dotools_py import logger
+from dotools_py._custom_class import InputError
 
 
 def heart_markers(
@@ -64,7 +65,7 @@ def heart_markers(
     elif species == "human":
         return human
     else:
-        raise Exception("Species not recognise")
+        raise InputError(f"{species} is not a valid species")
 
 
 def standard_ct_labels_heart() -> dict:
