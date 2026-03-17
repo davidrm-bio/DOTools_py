@@ -73,7 +73,8 @@ def transfer_labels(
 def add_gene_metadata(
     data: ad.AnnData | pd.DataFrame,
     gene_key: str,
-    species: Literal["mouse", "human"] = "mouse"
+    species: Literal["mouse", "human"] = "mouse",
+    add_gene_id: bool = False,
 ) -> ad.AnnData | pd.DataFrame:
     """Add gene metadata to AnnData or DataFrame.
 
@@ -84,6 +85,7 @@ def add_gene_metadata(
     :param gene_key: name of the key with gene names. If an AnnData is provided the .var name column name with gene names. If the gene names are in
                      `var_names`, specify `var_names`.
     :param species: the input species.
+    :param add_gene_id: Add gene id (ENSEMBL ID) information.
     :return:  Returns a dataframe or AnnData object. Three new columns will be set: `biotype`, `locations` and `gene_id`.
 
     Examples
@@ -119,20 +121,23 @@ def add_gene_metadata(
     data_copy = data.copy()  # Changes will not be inplace
 
     assert species in ["mouse", "human"], "Not a valid species: use mouse or human"
-    file = "MusMusculus_GeneMetadata.pickle.gz" if species == "mouse" else "MusMusculus_GeneMetadata.pickle.gz"
+    file = "MusMusculus_GeneMetadata.pickle.gz" if species == "mouse" else "HomoSapiens_GeneMetadata.pickle.gz"
     with gzip.open(os.path.join(HERE, file), "rb") as pickle_file:
         database = pickle.load(pickle_file)
+    biotype = "gene_type" if species == "mouse" else "gene_biotype"
 
     if isinstance(data, pd.DataFrame):
         genes = data_copy[gene_key].tolist()
-        data_copy["biotype"] = [database[g]["gene_type"] if g in database else "NaN" for g in genes]
+        data_copy["biotype"] = [database[g][biotype] if g in database else "NaN" for g in genes]
         data_copy["locations"] = [",".join(database[g]["locations"]) if g in database else "NaN" for g in genes]
-        data_copy["gene_id"] = [database[g]["gene_id"] if g in database else "NaN" for g in genes]
+        if add_gene_id:
+            data_copy["gene_id"] = [database[g]["gene_id"] if g in database else "NaN" for g in genes]
     elif isinstance(data_copy, ad.AnnData):
         genes = list(data_copy.var_names) if gene_key == "var_names" else data_copy.var[gene_key].tolist()
-        data_copy.var["biotype"] = [database[g]["gene_type"] if g in database else "NaN" for g in genes]
+        data_copy.var["biotype"] = [database[g][biotype] if g in database else "NaN" for g in genes]
         data_copy.var["locations"] = [",".join(database[g]["locations"]) if g in database else "NaN" for g in genes]
-        data_copy.var["gene_id"] = [database[g]["gene_id"] if g in database else "NaN" for g in genes]
+        if add_gene_id:
+            data_copy.var["gene_id"] = [database[g]["gene_id"] if g in database else "NaN" for g in genes]
     else:
         raise Exception("Not a valid input, provide a DataFrame or AnnData")
 
