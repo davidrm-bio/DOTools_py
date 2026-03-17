@@ -1,4 +1,6 @@
 from typing import Literal
+import operator
+from scipy.sparse import issparse
 
 import anndata as ad
 import pandas as pd
@@ -10,6 +12,7 @@ from dotools_py.utility._general import free_memory
 from dotools_py.utils import sanitize_anndata, iterase_input, check_missing
 from dotools_py.settings._global_parameters import FAST_ARRAY_UTILS
 
+
 if FAST_ARRAY_UTILS:
     import fast_array_utils
 
@@ -20,13 +23,13 @@ def _expm1_anndata(adata: ad.AnnData) -> None:
     :param adata: annotated data matrix
     :return: None, changes are inplace
     """
-    import scipy as sp
 
-    if sp.sparse.issparse(adata.X):
+    if issparse(adata.X):
         adata.X = adata.X.copy()
         adata.X.data = np.expm1(adata.X.data)
     else:
         adata.X = np.expm1(adata.X)
+    return  None
 
 
 def expr(
@@ -83,9 +86,11 @@ def expr(
     CATGGTACAAACGGCA-1-batch1  0.0    T_cells
 
     """
+
     sanitize_anndata(adata)
     features = iterase_input(features)
     groups = iterase_input(groups)
+
     assert len(features) != 0, "No features provided"
     assert out_format == "wide" or out_format == "long", f'{out_format} not recognize, try "long" or "wide"'
 
@@ -256,7 +261,8 @@ def dge_results(
     [5 rows x 8 columns]
 
     """
-    import scanpy as sc
+    from scanpy.get import rank_genes_groups_df
+    assert key in adata.uns.keys(), f"{key} is not present in adata.uns"
 
     update_columns = {
         "names": "GeneName",
@@ -270,7 +276,7 @@ def dge_results(
         "pct_nz_reference": "pts_ref",
     }
 
-    df_results = sc.get.rank_genes_groups_df(adata, group=None, key=key)
+    df_results = rank_genes_groups_df(adata, group=None, key=key)
     df_results.columns = [update_columns[col] for col in df_results.columns]
     try:
         if "pts_ref" not in df_results.columns:
@@ -339,7 +345,6 @@ def subset(
         obsp: 'connectivities', 'distances'
 
     """
-    import operator
 
     sanitize_anndata(adata)
     check_missing(adata, groups=obs_key, variables=var_key)
@@ -420,7 +425,6 @@ def log2fc(
     """
 
     # Get the data
-    features = iterase_input(features)
     features = list(adata.var_names) if len(iterase_input(features)) == 0 else iterase_input(features)
     groups = list(adata.obs[group_by].unique()) if len(iterase_input(groups)) == 0 else iterase_input(groups)
     if reference in groups:
@@ -634,7 +638,7 @@ def pseudobulk(
 def layer_swap(
     adata: ad.AnnData,
     layer_key: str,
-    x_key: str = "X",
+    x_key: str  | None = "X",
     inplace: bool = True,
 ) -> ad.AnnData | None:
     """Swap `adata.X` with `adata.layers`.
@@ -646,7 +650,7 @@ def layer_swap(
     layer_key
         Valid key in adata.layers
     x_key
-        Key to use to save adata.X in adata.layers
+        Key to use to save adata.X in adata.layers. Set to `None` to not copy `adata.X` in `adata.layers`
     inplace
         Whether to generate a new object or make changes inplace.
 
@@ -658,11 +662,13 @@ def layer_swap(
     assert layer_key in adata.layers.keys(), f"{layer_key} not a valid key in adata.layers"
 
     if inplace:
-        adata.layers[x_key] = adata.X.copy()
+        if x_key is not None:
+            adata.layers[x_key] = adata.X.copy()
         adata.X = adata.layers[layer_key].copy()
         return None
     else:
         adata_copy = adata.copy()
-        adata_copy.layers[x_key] = adata_copy.X.copy()
+        if x_key is not None:
+            adata_copy.layers[x_key] = adata_copy.X.copy()
         adata_copy.X = adata_copy.layers[layer_key].copy()
         return adata_copy
