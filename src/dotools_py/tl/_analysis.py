@@ -529,9 +529,9 @@ def integrate_data(
     if bbknn:
         logger.info("Computing neighbors with BBKNN")
         sce.pp.bbknn(adata, use_rep=dim_reduc, neighbors_within_batch=neighbors_within_batch, batch_key=batch_key,
-                     pynndescent_random_state=random_state)
+                     pynndescent_random_state=random_state, approx=False, use_annoy=False)
     else:
-        sc.pp.neighbors(adata, use_rep=dim_reduc, random_state=42)
+        sc.pp.neighbors(adata, use_rep=dim_reduc, random_state=random_state)
 
     if technology == "spatial":
         try:
