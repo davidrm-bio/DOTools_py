@@ -1,14 +1,17 @@
-from pathlib import Path
+import tqdm
+import requests
+import subprocess
 
 import anndata as ad
 
 from dotools_py import logger
-from dotools_py.utils import convert_path
+from dotools_py._custom_class import PathLike
+from dotools_py._utils import convert_path
 
-HERE = Path(__file__).parent
+HERE = convert_path(__file__).parent
 
 
-def example_10x(path: str | Path = "/tmp/dotools_datasets/") -> None:
+def example_10x(path: PathLike = "/tmp/dotools_datasets/") -> None:
     """Download 10X datasets.
 
     Downloads a dataset of PBMC from healty and malignant B cells. Two H5 files will be downloaded
@@ -34,8 +37,6 @@ def example_10x(path: str | Path = "/tmp/dotools_datasets/") -> None:
     var: 'gene_ids', 'feature_types', 'genome', 'pattern', 'read', 'sequence'
 
     """
-    from tqdm import tqdm
-    import requests
 
     logger.info(f"Downloading data to {path}")
     path = convert_path(path)
@@ -66,7 +67,7 @@ def example_10x(path: str | Path = "/tmp/dotools_datasets/") -> None:
         current_path = healthy_path if "healthy" in name else disease_path
         with (
             open(current_path / filename, "wb") as file,
-            tqdm(
+            tqdm.tqdm(
                 desc=f"Downloading {name}",
                 total=total_size,
                 unit="iB",
@@ -111,7 +112,7 @@ def example_10x_processed() -> ad.AnnData:
     return ad.read_h5ad(HERE / "example_reduced.h5ad")
 
 
-def example_visium(path: str | Path = "tmp/dotools_datasets/") -> None:
+def example_visium(path: PathLike = "tmp/dotools_datasets/") -> None:
     """Download 10X Visium datasets.
 
     Downloads a dataset of the human heart fresh frozen tissue including H&E image.
@@ -141,9 +142,6 @@ def example_visium(path: str | Path = "tmp/dotools_datasets/") -> None:
     obsm: 'spatial'
 
     """
-    from tqdm import tqdm
-    import requests
-    import subprocess
 
     logger.info(f"Downloading data to {path}")
     path = convert_path(path)
@@ -175,7 +173,7 @@ def example_visium(path: str | Path = "tmp/dotools_datasets/") -> None:
         block_size = 1024  # 1 Kibibyte
         with (
             open(visium_path / filename, "wb") as file,
-            tqdm(
+            tqdm.tqdm(
                 desc=f"Downloading {name}",
                 total=total_size,
                 unit="iB",
