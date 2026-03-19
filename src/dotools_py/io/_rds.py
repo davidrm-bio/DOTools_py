@@ -7,7 +7,6 @@ from typing import Literal
 
 import anndata as ad
 import pandas as pd
-import polars as pl
 import numpy as np
 from scipy.sparse import issparse, csr_matrix
 
@@ -56,6 +55,7 @@ def read_rds(
         obsp: 'connectivities', 'distances'
 
     """
+    import polars as pl
 
     check_r_package(["Seurat", "zellkonverter", "optparse", "remotes", "data.table"])
 
@@ -198,6 +198,8 @@ def save_rds(
             3-dimensional reductions calculated: cca, pca, umap
 
     """
+    import polars as pl
+
     check_r_package(["Seurat", "zellkonverter", "optparse", "remotes", "data.table"])
 
     rscript = get_paths_utils("_ReadWrite_RDS.R")

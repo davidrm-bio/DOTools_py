@@ -1,7 +1,6 @@
 from typing import Literal
 from pathlib import Path
 import pandas as pd
-import polars as pl
 
 from dotools_py.logger import logger
 from dotools_py._utils import convert_path
@@ -41,6 +40,8 @@ def read_excel(
     Returns a `pd.DataFrame` containing the content from the selected sheet.
 
     """
+    import polars as pl
+
     _check_backend(backend, ["pandas","polars"])
     input_path = convert_path(path) if filename is None else convert_path(path) / filename
     df = _Empty
@@ -91,6 +92,8 @@ def read_csv(
     Returns a `pd.DataFrame` containing the content from the selected sheet.
 
     """
+    import polars as pl
+
     _check_backend(backend, ["pandas","polars"])
     input_path = convert_path(path) if filename is None else convert_path(path) / filename
     df  = _Empty
@@ -139,6 +142,8 @@ def read_parquet(
     Returns a `pd.DataFrame` containing the content from the selected sheet.
 
     """
+    import polars as pl
+
     _check_backend(backend, ["pandas","polars"])
     input_path: Path = convert_path(path) if filename is None else convert_path(path) / filename
 

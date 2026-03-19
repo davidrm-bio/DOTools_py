@@ -1,14 +1,16 @@
+from typing import Literal
+
 import anndata as ad
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.sparse.csgraph import connected_components
 from numba import njit
+
 from dotools_py._utils import check_missing, require_dependencies, iterase_input
 from dotools_py.pl._plot_utils import  make_grid_spec, return_axis, save_plot
 from dotools_py.utility._plotting import get_hex_colormaps
 from dotools_py.get import subset as get_subset
-from typing import Literal
 from dotools_py.bm._helper import kBET, scib_silhouette_batch, scib_silhouette
 from dotools_py.logger import logger
 
