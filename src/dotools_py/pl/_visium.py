@@ -231,6 +231,7 @@ def slides(
     img_key: str = "hires",
     title_fontsize: int = 15,
     title_fontweight: str = None,
+    library_id: str = None,
     select_samples: list | str = None,
     show: bool = True,
     minimal_title: bool = True,
@@ -258,6 +259,7 @@ def slides(
     :param img_key: image key to use for plotting (hires or lowres).
     :param title_fontsize: fontsize of the title for the subplots.
     :param title_fontweight: change fontweight of the title.
+    :param library_id: Name of the key in adata.uns['spatial'] containing the image information.
     :param select_samples: list with a subset of samplename that want to be plotted.
     :param show: if False, return axs.
     :param minimal_title: if set to true only the sample name will be shown as title, otherwise title + color
@@ -308,7 +310,7 @@ def slides(
             adata=adata,
             color=color,
             size=sp_size,
-            library_id=adata.obs[batch_key].unique().tolist()[0],
+            library_id=library_id,
             layer=layer,
             img_key=img_key,
             vmax=vmax,
