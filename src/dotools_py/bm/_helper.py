@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-from sklearn.metrics.cluster import silhouette_samples, silhouette_score
 from dotools_py.logger import  logger
 
 
@@ -432,6 +431,7 @@ def scib_silhouette(
         # embedding output
         scib.me.silhouette(adata, label_key="celltype", embed="X_emb")
     """
+    from sklearn.metrics.cluster import  silhouette_score
 
     if embed not in adata.obsm.keys():
         raise KeyError(f"{embed} not in adata.obsm ({adata.obsm.keys()})")
@@ -509,6 +509,8 @@ def scib_silhouette_batch(
         scib.me.silhouette_batch(adata, batch_key="batch", label_key="celltype", embed="X_emb")
 
     """
+    from sklearn.metrics.cluster import silhouette_samples
+
     if embed not in adata.obsm.keys():
         raise KeyError(f"{embed} not in adata.obsm ({adata.obsm.keys()})")
 
