@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 
-from dotools_py.utils import sanitize_anndata, iterase_input, convert_path
+from dotools_py._utils import sanitize_anndata, iterase_input, convert_path
 from dotools_py.pl._plot_utils import _AxesSubplot
 
 from matplotlib.colors import Colormap

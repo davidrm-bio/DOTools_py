@@ -1,5 +1,4 @@
 import sys
-from pathlib import Path
 from typing import Literal, Dict
 
 import anndata as ad
@@ -15,7 +14,9 @@ from matplotlib.colors import LinearSegmentedColormap, ListedColormap
 from dotools_py import logger
 from dotools_py.get import mean_expr
 from dotools_py.utility import generate_cmap
-from dotools_py.utils import convert_path, format_terms_gsea, make_grid_spec, require_dependencies, sanitize_anndata, save_plot, return_axis
+from dotools_py._custom_class import PathLike
+from dotools_py._utils import sanitize_anndata, convert_path, require_dependencies
+from dotools_py.pl._plot_utils import save_plot, return_axis, make_grid_spec
 
 
 def correlation(
@@ -30,7 +31,7 @@ def correlation(
     ticks_size: int = 12,
 
     # IO
-    path: str | None = None,
+    path: PathLike = None,
     filename: str = "Correlation.svg",
     show: bool = True,
 
@@ -226,7 +227,7 @@ def cell_composition(
     legend_ncols: int = 1,
 
     # IO
-    path: str | Path = None,
+    path: PathLike = None,
     filename: str = "Proportions.svg",
     show: bool = True,
 
@@ -515,7 +516,7 @@ def volcano_plot(
     legend_ncols: int = 1,
 
     # IO
-    path: str | Path = None,
+    path: PathLike = None,
     filename: str = "Volcano.svg",
     show: bool = True,
 
@@ -689,6 +690,42 @@ def volcano_plot(
         return plt.show()
 
 
+
+
+def _format_terms_gsea(df: pd.DataFrame, term_col: str, cutoff: int = 35) -> pd.DataFrame:
+    """Format Terms from Gene Set Enrichment Analysis.
+
+    :param df: dataframe with GSEA terms.
+    :param term_col: column with terms.
+    :param cutoff: maximum number of characters per line.
+    :return: dataframe with modified terms
+    """
+
+    def remove_whitespace_around_newlines(text):
+        import re
+        # Replace whitespace before and after newlines with just the newline
+        return re.sub(r"\s*\n\s*", "\n", text)
+
+    newterms = []
+    for text in df[term_col]:
+        newterm, text_list_nchar, nchar, limit = [], [], 0, cutoff
+        text_list = text.split(" ")
+        for txt in text_list:  # From text_list get a list where we sum nchar from a word + previous word
+            nchar += len(txt)
+            text_list_nchar.append(nchar)
+        for idx, word in enumerate(text_list_nchar):
+            if word > limit:  # If we have more than cutoff characters in len add a break line
+                newterm.append("\n")
+                limit += cutoff
+            newterm.append(text_list[idx])
+        newterm = " ".join(newterm)
+        cleanterm = remove_whitespace_around_newlines(newterm)  # remove whitespace inserted
+        newterms.append(cleanterm)
+    df[term_col] = newterms
+
+    return df
+
+
 def split_bar_gsea(
     df: pd.DataFrame,
     term_col: str,
@@ -701,7 +738,7 @@ def split_bar_gsea(
     topn: float = 10,
     colors_pairs: list = ("sandybrown", "royalblue"),
     alpha_colors: float = 0.3,
-    path: str | None = None,
+    path: PathLike = None,
     spacing: float = 5,
     txt_size: float = 12,
     filename: str = "SplitBar.svg",
@@ -780,7 +817,7 @@ def split_bar_gsea(
 
     # Format the Terms
     df[term_col] = df[term_col].str.capitalize()  # Capitalise
-    df = format_terms_gsea(df, term_col, cutoff)  # Split terms too long in several rows
+    df = _format_terms_gsea(df, term_col, cutoff)  # Split terms too long in several rows
 
     # Get the dataframe for the positive and negative axis
     df_pos = df[df[cond_col] == pos_cond].sort_values(col_split, ascending=False).head(int(topn))

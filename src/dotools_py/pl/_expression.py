@@ -1,5 +1,4 @@
 from typing import Literal, Dict
-from pathlib import Path
 
 import anndata as ad
 
@@ -10,11 +9,11 @@ import seaborn as sns
 
 from dotools_py import logger
 from dotools_py.pl._StatsPlotter import TestData, StatsPlotter
-from dotools_py.utils import iterase_input
 
 from dotools_py.pl._plot_utils import COMMON_EXPR_ARGS, _doc_params
 from dotools_py.pl._Classes import BaseSeaborn
-
+from dotools_py._custom_class import PathLike
+from dotools_py._utils import iterase_input
 
 @_doc_params(COMMON_ARGS=COMMON_EXPR_ARGS)
 def barplot(
@@ -45,7 +44,7 @@ def barplot(
     legend_loc: Literal["center left", "cemter right", "upper right", "upper left", "lower left", "lower right", "right", "lower center", "upper center", "center"] = 'center left',
 
     # IO
-    path: str | Path = None,
+    path: PathLike = None,
     filename: str = "barplot.svg",
     show: bool = True,
     ax: plt.Axes = None,
@@ -257,7 +256,7 @@ def boxplot(
     legend_loc: Literal["center left", "cemter right", "upper right", "upper left", "lower left", "lower right", "right", "lower center", "upper center", "center"] = 'center left',
 
     # IO
-    path: str | Path = None,
+    path: PathLike = None,
     filename: str = "barplot.svg",
     show: bool = True,
     ax: plt.Axes = None,
@@ -439,7 +438,7 @@ def violinplot(
     legend_loc: Literal["center left", "cemter right", "upper right", "upper left", "lower left", "lower right", "right", "lower center", "upper center", "center"] = 'center left',
 
     # IO
-    path: str | Path = None,
+    path: PathLike = None,
     filename: str = "barplot.svg",
     show: bool = True,
     ax: plt.Axes = None,

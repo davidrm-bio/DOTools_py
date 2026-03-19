@@ -1,8 +1,6 @@
 from typing import Literal, Dict
-from pathlib import Path
 
 import anndata as ad
-import matplotlib.gridspec as gridspec
 import matplotlib.patches as patches
 import matplotlib.lines as mlines
 from matplotlib.colors import ListedColormap
@@ -17,33 +15,9 @@ from dotools_py.logger import logger
 from dotools_py.tl import rank_genes_groups
 from dotools_py.get import mean_expr
 from dotools_py.get import log2fc as get_log2fc
-from dotools_py.utils import convert_path, sanitize_anndata, iterase_input, check_missing
-
-
-def make_grid_spec(
-    ax_or_figsize,
-    *,
-    nrows: int,
-    ncols: int,
-    wspace: float = None,
-    hspace: float = None,
-    width_ratios: float | list = None,
-    height_ratios: float | list = None,
-):
-    # Taken from Scanpy
-    kw = {"wspace": wspace, "hspace": hspace, "width_ratios": width_ratios, "height_ratios": height_ratios}
-
-    if isinstance(ax_or_figsize, tuple):
-        fig = plt.figure(figsize=ax_or_figsize)
-        return fig, gridspec.GridSpec(nrows, ncols, **kw)
-    else:
-        ax = ax_or_figsize
-        ax.axis("off")
-        ax.set_frame_on(False)
-        ax.set_xticks([])
-        ax.set_yticks([])
-        return ax.figure, ax.get_subplotspec().subgridspec(nrows, ncols, **kw)
-
+from dotools_py._utils import  convert_path, sanitize_anndata, iterase_input, check_missing
+from dotools_py.pl._plot_utils import make_grid_spec
+from dotools_py._custom_class import PathLike
 
 def check_colornorm(vmin=None, vmax=None, vcenter=None, norm=None):
     from matplotlib.colors import Normalize
@@ -140,7 +114,7 @@ def heatmap(
     legend_title: str = "LogMean(nUMI)\nin group",
 
     # IO
-    path: str | Path = None,
+    path: PathLike = None,
     filename: str = "Heatmap.svg",
     show: bool = True,
 
@@ -515,7 +489,7 @@ def heatmap_foldchange(
     group_legend_ncols: int = 1,
 
     # IO
-    path: str | Path = None,
+    path: PathLike = None,
     filename: str = "Heatmap.svg",
     show: bool = True,
 

@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Literal, Dict
 
 import anndata as ad
@@ -12,11 +11,13 @@ import seaborn as sns
 import matplotlib.lines as mlines
 
 from dotools_py.get._generic import expr as get_expr
-from dotools_py.utils import (get_centroids, get_subplot_shape, remove_extra, sanitize_anndata,
-                              return_axis, save_plot, spine_format, vector_friendly, iterase_input,
-                              make_grid_spec)
+
 from dotools_py.pl._heatmap import check_colornorm, ScalarMappable
 from dotools_py import logger
+from dotools_py._custom_class import PathLike
+from dotools_py._utils import  iterase_input, sanitize_anndata
+from dotools_py.pl._plot_utils import (return_axis, save_plot, make_grid_spec, vector_friendly, spine_format,
+                                       remove_extra, get_centroids, get_subplot_shape)
 
 @vector_friendly()
 def embedding(
@@ -39,7 +40,7 @@ def embedding(
     spacing: tuple = (0.3, 0.2),
 
     # IO
-    path: str | Path | None = None,
+    path: PathLike = None,
     filename: str = "Umap.svg",
     show: bool = True,
 
@@ -325,7 +326,7 @@ def umap(
     spacing: tuple = (0.3, 0.2),
 
     # IO
-    path: str | Path | None = None,
+    path: PathLike = None,
     filename: str = "Umap.svg",
     show: bool = True,
 
@@ -408,7 +409,7 @@ def split_embedding(
     ncols: int = 4,
 
     # IO
-    path: str | Path = None,
+    path: PathLike = None,
     filename: str = "UMAP.svg",
     show: bool = True,
 
@@ -714,7 +715,7 @@ def density(
     vcenter: int | str = None,
     color_legend_title: str = None,
     density_legend_title: str = None,
-    path: str | Path = None,
+    path: PathLike = None,
     filename: str = "Density.pdf",
 
     # Fx Specific

@@ -3,6 +3,14 @@ from typing import TypeVar, Callable
 from textwrap import indent
 from matplotlib.axes import Axes
 from matplotlib import axes
+from dotools_py._custom_class import PathLike
+from dotools_py._utils import convert_path
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+import functools
+import anndata as ad
+import pandas as pd
+import numpy as np
 
 
 COMMON_EXPR_ARGS = """\
@@ -100,3 +108,160 @@ def _doc_params(**replacements: str) -> Callable[[T], T]:
 
 class _AxesSubplot(Axes, axes.SubplotBase):
     """Intersection between Axes and SubplotBase: Has methods of both."""
+
+
+def save_plot(path: PathLike | None, filename: str) -> None:
+    """Save a plot.
+
+    :param path: Path to the folder where to save the plot.
+    :param filename: Name of the file.
+    :return: Returns None. If path is None, no plot is saved.
+    """
+    if path is not None:
+        plt.savefig(convert_path(path) / filename, bbox_inches="tight")
+    return None
+
+
+def return_axis(show: bool, axis: dict | plt.Axes, tight: bool = True) -> None | plt.Axes:
+    """Whether to return axis or not.
+
+    :param show: Boolean to indicate if the axis is returned or not.
+    :param axis: Dictionary of axis or axis.
+    :param tight: Tight layout.
+    :return: Returns None if show is True, otherwise returns the axis.
+    """
+    if show:
+        if tight:
+            plt.tight_layout()
+        return plt.show()
+    else:
+        return axis
+
+
+
+def make_grid_spec(
+    ax_or_figsize,
+    *,
+    nrows: int,
+    ncols: int,
+    wspace: float = None,
+    hspace: float = None,
+    width_ratios: float | list = None,
+    height_ratios: float | list = None,
+):
+    """Adapted from Scanpy.
+
+    :param ax_or_figsize: axes or figsize
+    :param nrows: number of rows
+    :param ncols: number of columns
+    :param wspace: width space
+    :param hspace: height space
+    :param width_ratios: width ratio
+    :param height_ratios: height ratio
+    :return: Figure and matplotlib Axes
+    """
+    kw = dict(wspace=wspace, hspace=hspace, width_ratios=width_ratios, height_ratios=height_ratios)
+
+    if isinstance(ax_or_figsize, tuple):
+        fig = plt.figure(figsize=ax_or_figsize)
+        return fig, gridspec.GridSpec(nrows, ncols, **kw)
+    else:
+        ax = ax_or_figsize
+        ax.axis("off")
+        ax.set_frame_on(False)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        return ax.figure, ax.get_subplotspec().subgridspec(nrows, ncols, **kw)
+
+
+
+def vector_friendly():
+    """ Decorator to set Scanpy figure parameters in a vector-friendly way."""
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            import scanpy as sc
+            sc.set_figure_params(scanpy=False, vector_friendly=True)
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def spine_format(axis: plt.Axes, txt: str = "UMAP", fontsize: int = 10) -> None:
+    """Formatting the spines for Embeddings.
+
+    Removes the top and right spines and set the x- and y-label for the left and bottom spine
+    moving them to the corner.
+
+    :param axis: matplotlib axes object.
+    :param txt: text for the embedding.
+    :param fontsize: size of the text.
+    :return:
+    """
+    axis.spines[["right", "top"]].set_visible(False)
+    axis.set_xlabel(txt + "1", loc="left", fontsize=fontsize, fontweight="bold")
+    axis.set_ylabel(txt + "2", loc="bottom", fontsize=fontsize, fontweight="bold")
+    return
+
+
+def remove_extra(extras: int, nrows: int, ncols: int, axs: plt.Axes) -> None:
+    """Hide the last subplots.
+
+    :param extras: number of subplots to remove.
+    :param nrows: number of rows of the plot.
+    :param ncols: number of columns of the plot.
+    :param axs: matplotlib axes object.
+    :return:
+    """
+    if extras == 0:
+        return None
+    else:
+        for check in range(nrows * ncols - extras, nrows * ncols):
+            axs[check].set_visible(False)
+        return None
+
+
+
+def get_centroids(adata: ad.AnnData, cluster_key: str, basis: str = "X_umap") -> pd.DataFrame:
+    """Get centroids for clusters in anndata object.
+
+    :param adata: AnnData.
+    :param cluster_key: obs column with categorical information.
+    :param basis: embedding to use.
+    :return: centroids as a panda dataframe.
+    """
+    all_pos = pd.DataFrame(adata.obsm[basis], columns=["x", "y"])
+    all_pos["group"] = adata.obs[cluster_key].values
+    return all_pos.groupby("group", observed=True).median().sort_index()
+
+
+
+def get_subplot_shape(n_samples: int, ncols: int) -> tuple:
+    """Compute the number of rows and columns to use for defining the figure base on a desired number of samples and columns.
+
+    :param n_samples: number of samples to plot.
+    :param ncols: number of columns to plot.
+    :return: nrows, ncols, extras (extra subplots that should be hidden).
+    """
+    if n_samples < ncols:  # Correction
+        ncols = n_samples  # Adjust plot if more cols than samples are specified
+    nrows = int(np.ceil(n_samples / ncols))
+    extras = nrows * ncols - n_samples  # For hiding empty subplots
+    return nrows, ncols, extras
+
+
+
+def draw_vertical_bracket(y_start, y_end, x_left=0, x_right=1, stem_length=0.2):
+    import matplotlib.path as mpath
+
+    verts = [
+        (x_left, y_start),  # Start of bracket (bottom-left)
+        (x_right, y_start),  # Horizontal stem right
+        (x_right, y_end - stem_length),  # Vertical part up
+        (x_left, y_end - stem_length)  # Horizontal back left
+    ]
+    codes = [mpath.Path.MOVETO, mpath.Path.LINETO, mpath.Path.LINETO, mpath.Path.LINETO]
+    return mpath.Path(verts, codes)

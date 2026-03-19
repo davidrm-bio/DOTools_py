@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import anndata as ad
@@ -9,7 +8,6 @@ import matplotlib.gridspec as gridspec
 import matplotlib.patches as patches
 import matplotlib.patheffects as path_effects
 import numpy as np
-import pandas as pd
 import scanpy as sc
 from matplotlib import pyplot as plt
 from matplotlib.cm import ScalarMappable
@@ -29,9 +27,11 @@ from scanpy.plotting._utils import (
 from scanpy.plotting._anndata import VarGroups, _plot_var_groups_brackets
 from dotools_py import logger
 from dotools_py.get._generic import expr as get_expr
-from dotools_py.utils import sanitize_anndata, save_plot, return_axis
+from dotools_py.pl._plot_utils import save_plot, return_axis
+from dotools_py.utils import sanitize_anndata
 from dotools_py.pl._heatmap import small_squares
 from dotools_py.tl._get_stats import rank_genes_groups
+from dotools_py._custom_class import PathLike
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -1175,7 +1175,7 @@ def dotplot(
     xticks_rotation: float = 90,
     ax: plt.Axes | None = None,
     figsize: tuple[float, float] = (8, 4),
-    path: str | Path | None = None,
+    path: PathLike | None = None,
     filename: str = "Dotplot.svg",
     smallest_dot: float = 0.0,
     largest_dot: float = 200.0,

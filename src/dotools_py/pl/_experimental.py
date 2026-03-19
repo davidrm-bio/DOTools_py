@@ -1,7 +1,6 @@
 import sys
 from typing import Literal, Union, Dict
 from numpy.typing import NDArray
-from pathlib import Path
 
 import anndata as ad
 import numpy as np
@@ -16,9 +15,9 @@ from adjustText import adjust_text
 
 from dotools_py.get._generic import expr as get_expr
 from dotools_py.utility._plotting import get_hex_colormaps
-from dotools_py.utils import make_grid_spec, logmean, logsem, save_plot, return_axis, sanitize_anndata, iterase_input, \
-    check_missing, draw_vertical_bracket
-
+from dotools_py.pl._plot_utils import  make_grid_spec, save_plot, return_axis, draw_vertical_bracket
+from dotools_py._utils import sanitize_anndata, iterase_input, check_missing, logmean, logsem
+from dotools_py._custom_class import PathLike
 
 def lineplot(
     # Data
@@ -43,7 +42,7 @@ def lineplot(
     legend_repel: dict = None,
 
     # IO
-    path: str | Path = None,
+    path: PathLike = None,
     filename: str = "lineplot.svg",
     show: bool = False,
 
@@ -250,7 +249,7 @@ def ridgeplot(
     txt_size: int = 10,
 
     # IO
-    path: str | Path = None,
+    path: PathLike = None,
     filename: str = "Ridgeplot.pdf",
     show: bool = True,
 

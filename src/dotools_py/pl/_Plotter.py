@@ -7,7 +7,7 @@ import pandas as pd
 #from scipy.cluster.hierarchy import dendrogram, linkage
 #from pathlib import Path
 
-from dotools_py.utils import iterase_input, check_missing, sanitize_anndata
+from dotools_py._utils import iterase_input, check_missing, sanitize_anndata
 from dotools_py.get._generic import expr as get_expr
 from dotools_py import logger
 #import matplotlib.pyplot as plt

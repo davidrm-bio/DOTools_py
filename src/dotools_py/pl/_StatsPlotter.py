@@ -10,7 +10,7 @@ from matplotlib.patches import PathPatch
 from scipy.stats import f_oneway, kruskal, mannwhitneyu, shapiro, ttest_ind
 
 from dotools_py import logger
-from dotools_py.utils import sanitize_anndata
+from dotools_py._utils import sanitize_anndata
 
 DEFAULT_TXT_SIZE = 13
 DEFAULT_TXT = "p ="

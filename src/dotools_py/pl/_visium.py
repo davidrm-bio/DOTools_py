@@ -4,11 +4,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from pathlib import Path
 
 from dotools_py.get import expr as get_expr
-from dotools_py.utils import convert_path, get_subplot_shape, remove_extra, sanitize_anndata, spine_format, iterase_input, return_axis, save_plot
-from dotools_py._custom_class import InputError
+from dotools_py._custom_class import InputError, PathLike
+from dotools_py.pl._plot_utils import remove_extra, get_subplot_shape, spine_format, return_axis, save_plot
+from dotools_py._utils import convert_path, sanitize_anndata, iterase_input
 
 from dotools_py.pl._embeddings import embedding
 
@@ -21,7 +21,7 @@ def layers(
     normalise: bool = False,
     show: bool = True,
     figsize: tuple = (15, 8),
-    path: str | Path = None,
+    path: PathLike = None,
     filename: str = "Layers.pdf",
     **kwargs
 ) -> None | plt.Axes:
@@ -222,7 +222,7 @@ def slides(
     batch_key: str = "batch",
     ncols: int = 4,
     sp_size: float = 1.5,
-    path: str | Path = None,
+    path: PathLike = None,
     filename: str = "Spatial.svg",
     common_expr: str | float | None = "p99.2",
     order: list = None,
