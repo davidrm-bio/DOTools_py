@@ -5,8 +5,7 @@ import polars as pl
 
 from dotools_py.logger import logger
 from dotools_py._utils import convert_path
-from dotools_py._custom_class import PathLike
-from dotools_py._custom_class import  EmptyType
+from dotools_py._custom_class import PathLike, EmptyType
 from dotools_py.io._utils import _check_backend
 
 _Empty = EmptyType()
