@@ -43,7 +43,7 @@ def test_transferLabels():
 
 def test_add_gene_metadata():
     adata = do.dt.example_10x_processed()
-    adata = do.utility.add_gene_metadata(adata, "var_names", "human")
+    adata = do.utility.add_gene_metadata(adata, "var_names", "human", add_gene_id=True)
     cols = {'biotype', 'locations', 'gene_id'}
     assert cols.issubset(adata.var.columns)
     df = adata.var.copy()

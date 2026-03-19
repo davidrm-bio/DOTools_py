@@ -232,12 +232,11 @@ def test_plotter():
 
 def test_spatial():
     # TODO - Update when a test dataset is added
-    adata = do.dt.example_10x_processed()
-    adata.obsm["X_spatial"] = adata.obsm["X_umap"].copy()
-    do.pl.layers(adata, "CD4", key_layers=["counts", "logcounts"], show=False, library_id=None, spot_size=1)
+    adata = do.dt.example_visium_processed()
+    do.pl.layers(adata, adata.var_names[0], key_layers=["counts", "logcounts"],  show=False, img_key="lowres")
     plt.close()
     try:
-        do.pl.slides(adata, "CD4")
+        do.pl.slides(adata, adata.var_names[0], img_key="lowres")
     except KeyError:
         pass
     plt.close()
