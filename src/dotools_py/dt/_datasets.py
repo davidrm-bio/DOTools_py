@@ -1,5 +1,4 @@
 import tqdm
-import requests
 import subprocess
 
 import anndata as ad
@@ -37,6 +36,7 @@ def example_10x(path: PathLike = "/tmp/dotools_datasets/") -> None:
     var: 'gene_ids', 'feature_types', 'genome', 'pattern', 'read', 'sequence'
 
     """
+    import requests
 
     logger.info(f"Downloading data to {path}")
     path = convert_path(path)
@@ -142,6 +142,7 @@ def example_visium(path: PathLike = "tmp/dotools_datasets/") -> None:
     obsm: 'spatial'
 
     """
+    import requests
 
     logger.info(f"Downloading data to {path}")
     path = convert_path(path)
