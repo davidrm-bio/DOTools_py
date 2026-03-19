@@ -2,8 +2,7 @@ import functools
 import importlib
 from pathlib import Path
 from collections.abc import Iterable
-from typing import Literal, Any
-from ._custom_class import InputError
+from typing import Any
 import anndata as ad
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
