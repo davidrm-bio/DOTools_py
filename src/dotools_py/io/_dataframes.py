@@ -1,19 +1,19 @@
-from beartype import beartype
-from beartype.typing import Literal, Any
+from typing import Literal
 from pathlib import Path
 import pandas as pd
 import polars as pl
 
 from dotools_py.logger import logger
-from dotools_py.utils import convert_path
+from dotools_py._utils import convert_path
+from dotools_py._custom_class import PathLike
 from dotools_py._custom_class import  EmptyType
+from dotools_py.io._utils import _check_backend
+
 _Empty = EmptyType()
 
 
-
-@beartype
 def read_excel(
-    path: str | Path,
+    path: PathLike,
     filename: str = None,
     sheet_name: str = "Sheet1",
     backend: Literal["pandas", "polars"] = "pandas",
@@ -42,17 +42,18 @@ def read_excel(
     Returns a `pd.DataFrame` containing the content from the selected sheet.
 
     """
-    input_path: Path = convert_path(path) if filename is None else convert_path(path) / filename
-    df: pl.DataFrame | pd.DataFrame | EmptyType = _Empty
+    _check_backend(backend, ["pandas","polars"])
+    input_path = convert_path(path) if filename is None else convert_path(path) / filename
+    df = _Empty
     if backend == "polars":
         try:
-            df: pl.DataFrame = pl.read_excel(source=input_path, sheet_name=sheet_name, **kwargs)
+            df = pl.read_excel(source=input_path, sheet_name=sheet_name, **kwargs)
             df = df.to_pandas()
         except Exception as e:
             logger.warn(f"Error using polars backend falling back to pandas.\n{e}")
-
     if df is _Empty:
-        df: pd.DataFrame = pd.read_excel(io=input_path, sheet_name=sheet_name, **kwargs)
+        df = pd.read_excel(io=input_path, sheet_name=sheet_name, **kwargs)
+
     if "Unnamed: 0" in df.columns:
         df.set_index("Unnamed: 0", inplace=True)
         df.index.name = None
@@ -61,9 +62,8 @@ def read_excel(
     return df
 
 
-@beartype
 def read_csv(
-    path: str | Path,
+    path: PathLike,
     filename: str = None,
     delimiter: str = ",",
     backend: Literal["pandas", "polars"] = "pandas",
@@ -92,18 +92,19 @@ def read_csv(
     Returns a `pd.DataFrame` containing the content from the selected sheet.
 
     """
-    input_path: Path = convert_path(path) if filename is None else convert_path(path) / filename
-    df: pl.DataFrame | pd.DataFrame | Any  = _Empty
+    _check_backend(backend, ["pandas","polars"])
+    input_path = convert_path(path) if filename is None else convert_path(path) / filename
+    df  = _Empty
 
     if backend == "polars":
         try:
-            df: pl.DataFrame = pl.read_csv(source=input_path, separator=delimiter, **kwargs)
+            df = pl.read_csv(source=input_path, separator=delimiter, **kwargs)
             df = df.to_pandas()
         except Exception as e:
             logger.warn(f"Error using polars backend falling back to pandas.\n{e}")
 
     if df is _Empty:
-        df: pd.DataFrame | Any = pd.read_csv(input_path, sep=delimiter, iterator=False, **kwargs)
+        df = pd.read_csv(input_path, sep=delimiter, iterator=False, **kwargs)
     if "" in df.columns:
         del df[""]
     if "Unnamed: 0" in df.columns:
@@ -112,9 +113,8 @@ def read_csv(
     return  df
 
 
-@beartype
 def read_parquet(
-    path: str | Path,
+    path: PathLike,
     filename: str = None,
     backend: Literal["pandas", "polars"] = "pandas",
     **kwargs
@@ -140,19 +140,20 @@ def read_parquet(
     Returns a `pd.DataFrame` containing the content from the selected sheet.
 
     """
+    _check_backend(backend, ["pandas","polars"])
     input_path: Path = convert_path(path) if filename is None else convert_path(path) / filename
 
-    df: pl.DataFrame | pd.DataFrame | Any = _Empty
+    df = _Empty
 
     if backend == "polars":
         try:
-            df: pl.DataFrame = pl.read_parquet(source=input_path, **kwargs)
+            df = pl.read_parquet(source=input_path, **kwargs)
             df = df.to_pandas()
         except Exception as e:
             logger.warn(f"Error using polars backend falling back to pandas.\n{e}")
 
     if df is _Empty:
-        df: pd.DataFrame | Any = pd.read_parquet(input_path, **kwargs)
+        df = pd.read_parquet(input_path, **kwargs)
 
     if "__index_level_0__" in df.columns:
         df.set_index("__index_level_0__", inplace=True)

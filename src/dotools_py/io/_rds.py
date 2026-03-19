@@ -7,16 +7,18 @@ from typing import Literal
 
 import anndata as ad
 import pandas as pd
+import polars as pl
 import numpy as np
-from scipy.sparse import issparse
+from scipy.sparse import issparse, csr_matrix
 
-from dotools_py.utils import get_paths_utils, check_r_package
+from dotools_py._utils import get_paths_utils, check_r_package
 from dotools_py import logger
+from dotools_py._custom_class import PathLike
 
 
 def read_rds(
-    path_rds: str | Path,
-    path_h5ad: str | Path,
+    path_rds: PathLike,
+    path_h5ad: PathLike,
     batch_key: str = "batch",
 ) -> ad.AnnData | None:
     """Read Rds object with Seurat or SingleCellExperiment Object.
@@ -54,8 +56,6 @@ def read_rds(
         obsp: 'connectivities', 'distances'
 
     """
-    import polars as pl
-    import scipy.sparse as sp
 
     check_r_package(["Seurat", "zellkonverter", "optparse", "remotes", "data.table"])
 
@@ -98,7 +98,7 @@ def read_rds(
             del connectivities[""]  # Index
         if connectivities.shape[0] == connectivities.shape[1]:
             logger.info("Transferring connectivities")
-            adata.obsp["connectivities"] = sp.csr_matrix(connectivities.values)
+            adata.obsp["connectivities"] = csr_matrix(connectivities.values)
         else:
             logger.info("Problem transferring connectivities")
     except FileNotFoundError as e:
@@ -113,7 +113,7 @@ def read_rds(
             del distances[""]  # Index
         if distances.shape[0] == distances.shape[1]:
             logger.info("Transferring neighbor distances")
-            adata.obsp["distances"] = sp.csr_matrix(distances.values)
+            adata.obsp["distances"] = csr_matrix(distances.values)
         else:
             logger.info("Problem transferring neighbor distances")
     except FileNotFoundError as e:
@@ -154,10 +154,10 @@ def read_rds(
 
 
 def save_rds(
-    path_rds: str,
+    path_rds: PathLike,
     batch_key: str = "batch",
     adata: ad.AnnData = None,
-    path_h5ad: str = None,
+    path_h5ad: PathLike = None,
     out_type: Literal["seurat", "sce"] = "seurat",
 ) -> None:
     """Save AnnData as Seurat or SingleCellExperiment Object.
@@ -198,7 +198,6 @@ def save_rds(
             3-dimensional reductions calculated: cca, pca, umap
 
     """
-    import polars as pl
     check_r_package(["Seurat", "zellkonverter", "optparse", "remotes", "data.table"])
 
     rscript = get_paths_utils("_ReadWrite_RDS.R")

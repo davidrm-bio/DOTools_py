@@ -1,23 +1,26 @@
 from typing import Literal
-from beartype import beartype
-from pathlib import Path
 import anndata as ad
+
+import json
+from PIL import Image
+import numpy as np
+import pandas as pd
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     import spatialdata as st
 
-from dotools_py.utils import convert_path
+from dotools_py._utils import convert_path
 from dotools_py.logger import logger
-from dotools_py._custom_class import EmptyType
+from dotools_py._custom_class import EmptyType, PathLike
+from dotools_py.io._utils import _check_backend
 
 _Empty = EmptyType()
 
 
-@beartype
 def read_h5ad(
-    path: str | Path,
+    path: PathLike,
     filename: str = None,
     **kwargs,
 ) -> ad.AnnData:
@@ -39,12 +42,12 @@ def read_h5ad(
         Returns an `AnnData` Object.
 
     """
-    input_path: Path = convert_path(path) if filename is None else convert_path(path) / filename
+    input_path = convert_path(path) if filename is None else convert_path(path) / filename
     return ad.read_h5ad(filename=input_path, **kwargs)
 
 
 def read_zarr(
-    path: str | Path,
+    path: PathLike,
     filename: str = None,
     backend: Literal["anndata", "spatialdata"] = "anndata",
 ) -> "ad.AnnData | st.SpatialData":
@@ -66,7 +69,8 @@ def read_zarr(
         Returns an `ad.AnnData` Object.
 
     """
-    input_path: Path = convert_path(path) if filename is None else convert_path(path) / filename
+    _check_backend(backend, ["anndata", "spatialdata"])
+    input_path = convert_path(path) if filename is None else convert_path(path) / filename
     if backend == "spatialdata":
         try:
             import spatialdata as st
@@ -82,7 +86,7 @@ def read_zarr(
 
 
 def read_10x_h5(
-    path: str | Path,
+    path: PathLike,
     filename: str = None,
     **kwargs
 ) -> ad.AnnData:
@@ -103,12 +107,12 @@ def read_10x_h5(
 
     """
     import scanpy as sc
-    input_path: Path = convert_path(path) if filename is None else convert_path(path) / filename
+    input_path = convert_path(path) if filename is None else convert_path(path) / filename
     return sc.read_10x_h5(input_path, **kwargs)
 
 
 def read_10x_mtx(
-    path: str | Path,
+    path: PathLike,
     **kwargs
 ) -> ad.AnnData:
     """Read 10x-Genomics-formatted mtx directory.
@@ -130,7 +134,7 @@ def read_10x_mtx(
 
 
 def read_mtx(
-    path: str | Path,
+    path: PathLike,
     filename: str = None,
     **kwargs
 ) -> ad.AnnData:
@@ -150,12 +154,12 @@ def read_mtx(
     Returns an `AnnData` object.
 
     """
-    input_path: Path = convert_path(path) if filename is None else convert_path(path) / filename
+    input_path = convert_path(path) if filename is None else convert_path(path) / filename
     return ad.io.read_mtx(input_path, **kwargs)
 
 
 def _read_counts(
-    path: str | Path,
+    path: PathLike,
     counts_file: str,
     library_id: str | None = None,
     **kwargs,
@@ -198,11 +202,11 @@ def _read_counts(
 
 
 def read_visium(
-    path: str | Path,
+    path: PathLike,
     counts_file: str = "filtered_feature_bc_matrix.h5",
     library_id: str | None = None,
     load_images: bool = True,
-    source_image_path: str | Path | None = None,
+    source_image_path: PathLike | None = None,
     **kwargs,
 ) -> ad.AnnData:
     """Read SpaceRanger output into AnnData Object.
@@ -218,10 +222,7 @@ def read_visium(
     :return: Returns an AnnData Object.
 
     """
-    import json
-    from PIL import Image
-    import numpy as np
-    import pandas as pd
+
     path = convert_path(path)
     adata, library_id = _read_counts(path, counts_file=counts_file, library_id=library_id, **kwargs)
 
@@ -262,7 +263,7 @@ def read_visium(
     adata.obs.drop(columns=["pxl_row_in_fullres", "pxl_col_in_fullres"], inplace=True)
 
     if source_image_path is not None:
-        source_image_path = Path(source_image_path).absolute()
+        source_image_path = convert_path(source_image_path).absolute()
         if not source_image_path.exists():
             logger.warn(f"Path to the high-resolution tissue image `{source_image_path}` does not exist")
         adata.uns["spatial"][library_id]["metadata"]["source_image_path"] = str(source_image_path)
