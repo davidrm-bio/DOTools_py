@@ -4,7 +4,7 @@ import pandas as pd
 import scipy.sparse as sp
 from tqdm import tqdm
 
-from dotools_py.utils import require_dependencies
+from dotools_py._utils import require_dependencies
 
 
 def select_slide(

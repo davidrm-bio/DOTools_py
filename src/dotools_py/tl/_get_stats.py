@@ -3,7 +3,6 @@ import os
 import shutil
 import subprocess
 import uuid
-from pathlib import Path
 from typing import Literal
 
 import anndata as ad
@@ -12,7 +11,8 @@ import pandas as pd
 
 from dotools_py import logger
 from dotools_py.tl._rankGenes import rank_genes_groups
-from dotools_py.utils import convert_path, get_paths_utils, sanitize_anndata, iterase_input, check_r_package
+from dotools_py._utils import convert_path, get_paths_utils, sanitize_anndata, iterase_input, check_r_package
+from dotools_py._custom_class import PathLike
 from dotools_py.get import mean_expr, dge_results
 from dotools_py.get import log2fc as get_log2fc
 from dotools_py.get import pcts_cells as get_pct_cells
@@ -70,7 +70,7 @@ def run_mast(
 
     rscript = get_paths_utils("_Run_MAST.R")
 
-    tmpdir_path = Path("/tmp") / f"MAST_Test_{uuid.uuid4().hex}"
+    tmpdir_path = convert_path("/tmp") / f"MAST_Test_{uuid.uuid4().hex}"
     tmpdir_path.mkdir(parents=True, exist_ok=False)
 
     if "logcounts" not in adata.layers.keys():
@@ -184,7 +184,7 @@ def rank_genes_condition(
     method: Literal["wilcoxon", "mast", "t-test", "logreg", "t-test_overestim_var"] = "wilcoxon",
     pval_cutoff: float = 0.05,
     log2fc_cutoff: float = 0.25,
-    path: str = None,
+    path: PathLike = None,
     filename: str = "DGE.xlsx",
     layer: str = None,
     covariates: list = None,
@@ -390,7 +390,7 @@ def go_analysis(
     log2fc_key: str,
     pval_cutoff: float = 0.05,
     log2fc_cutoff: float = 0.25,
-    path: str = None,
+    path: PathLike = None,
     filename: str = "",
     specie: Literal["Mouse", "Human"] = "Mouse",
     go_catgs: str | list = ("GO_Molecular_Function_2023", "GO_Cellular_Component_2023", "GO_Biological_Process_2023"),
@@ -449,7 +449,7 @@ def rank_genes_pseudobulk(
     technical_replicates: int = 1,
     min_counts: int = 10,
     workers: int = 8,
-    path: str = None,
+    path: PathLike = None,
     filename: str = "DEA_Pseudobulk.xlsx",
     get_results: bool = True,
     key_added: str = "rank_genes_pseudobulk",
@@ -541,7 +541,7 @@ def rank_genes_pseudobulk(
     elif method == "edger":
         logger.info("Run edgeR")
         rscript = get_paths_utils("_run_edgeR.R")
-        tmpdir_path = Path("/tmp") / f"EdgeR_Test_{uuid.uuid4().hex}"
+        tmpdir_path = convert_path("/tmp") / f"EdgeR_Test_{uuid.uuid4().hex}"
         tmpdir_path.mkdir(parents=True, exist_ok=False)
 
         df_main = pd.DataFrame()
@@ -597,7 +597,7 @@ def rank_genes_consensus(
     technical_replicates: int = 1,
     min_counts: int = 10,
     workers: int = 8,
-    path: str | Path = None,
+    path: PathLike = None,
     filename: str = "DEA.xlsx",
     test_pseudobulk: Literal["deseq2", "edger"] = "deseq2",
     test: Literal["wilcoxon", "mast", "t-test", "logreg", "t-test_overestim_var"] = "wilcoxon",

@@ -2,7 +2,6 @@ import os
 from typing import Literal
 import subprocess
 import uuid
-from pathlib import Path
 
 import anndata as ad
 import matplotlib.pyplot as plt
@@ -11,11 +10,10 @@ import pandas as pd
 
 from dotools_py import logger
 from dotools_py.dt import standard_ct_labels_heart
-from dotools_py.utils import convert_path, get_paths_utils, transfer_labels, check_missing
 from typing import TYPE_CHECKING
 
-from dotools_py.utils import sanitize_anndata
-from dotools_py._custom_class import  InputError
+from dotools_py._utils import sanitize_anndata, convert_path, get_paths_utils, check_missing, transfer_labels
+from dotools_py._custom_class import  InputError, PathLike
 
 if TYPE_CHECKING:
     from scvi.model._scvi import SCVI
@@ -40,7 +38,7 @@ def _run_cca(
 
     rscript = get_paths_utils("_run_CCA.R")
 
-    tmpdir_path = Path("/tmp") / f"CCA_{uuid.uuid4().hex}"
+    tmpdir_path = convert_path("/tmp") / f"CCA_{uuid.uuid4().hex}"
     tmpdir_path.mkdir(parents=True, exist_ok=False)
 
     logger.info("Preprocessing to export to Seurat")
@@ -599,7 +597,7 @@ def auto_annot(
     update_models: bool = False,
     dict_labels: dict | str = "default",
     pl_cell_prob: bool = False,
-    path: str | None = None,
+    path: PathLike = None,
     filename: str | None = "Dotplot_CellProbabilities.svg",
 ) -> None:
     """Semi-automatic annotation based on CellTypist.

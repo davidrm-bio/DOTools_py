@@ -12,8 +12,8 @@ from dotools_py.pl._StatsPlotter import StatsPlotter, TestData
 from dotools_py.get import mean_expr
 from dotools_py.get._generic import expr as get_expr
 
-from dotools_py.utils import convert_path, sanitize_anndata, make_grid_spec
-
+from dotools_py._utils import convert_path, sanitize_anndata
+from dotools_py.pl._plot_utils import make_grid_spec
 
 def barplot(
     adata: ad.AnnData,

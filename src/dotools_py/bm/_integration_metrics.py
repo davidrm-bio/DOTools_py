@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 from scipy.sparse.csgraph import connected_components
 from numba import njit
-from dotools_py.utils import check_missing, require_dependencies, iterase_input, make_grid_spec, convert_path, return_axis, save_plot
+from dotools_py._utils import check_missing, require_dependencies, iterase_input
+from dotools_py.pl._plot_utils import  make_grid_spec, return_axis, save_plot
 from dotools_py.utility._plotting import get_hex_colormaps
 from dotools_py.get import subset as get_subset
 from typing import Literal

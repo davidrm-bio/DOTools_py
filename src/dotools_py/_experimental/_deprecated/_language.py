@@ -5,7 +5,7 @@ from pathlib import Path
 import anndata as ad
 
 from dotools_py import logger
-from dotools_py.utils import convert_path
+from dotools_py._utils import convert_path
 
 class RDSConverter:
     """Class to convert between AnnData and Seurat/SCE.

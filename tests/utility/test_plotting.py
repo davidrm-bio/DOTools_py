@@ -32,7 +32,7 @@ def test_spine_format():
     plt.close()
 
 
-    from dotools_py.utils import  spine_format
+    from dotools_py.pl._plot_utils import  spine_format
 
     fig, axs = plt.subplots(1, 1)
     axs.spines["top"].set_visible(True)

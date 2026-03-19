@@ -28,7 +28,7 @@ from scanpy.plotting._anndata import VarGroups, _plot_var_groups_brackets
 from dotools_py import logger
 from dotools_py.get._generic import expr as get_expr
 from dotools_py.pl._plot_utils import save_plot, return_axis
-from dotools_py.utils import sanitize_anndata
+from dotools_py._utils import sanitize_anndata
 from dotools_py.pl._heatmap import small_squares
 from dotools_py.tl._get_stats import rank_genes_groups
 from dotools_py._custom_class import PathLike

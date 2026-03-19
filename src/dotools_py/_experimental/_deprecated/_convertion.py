@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 from scipy.sparse import issparse
 
-from dotools_py.utils import get_paths_utils
+from dotools_py._utils import get_paths_utils
 from dotools_py import logger
 
 

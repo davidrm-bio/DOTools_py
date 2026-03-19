@@ -2,7 +2,6 @@ import os
 import shutil
 import uuid
 import subprocess
-from pathlib import Path
 from typing import Literal
 
 import anndata as ad
@@ -15,8 +14,8 @@ from dotools_py.get import pcts_cells as get_pcts_cells
 from dotools_py.get import log2fc as get_log2fc
 
 from dotools_py import logger
-from dotools_py.utils import check_missing, iterase_input, get_paths_utils, sanitize_anndata, check_r_package
 from dotools_py.tl._rankGenes import rank_genes_groups
+from dotools_py._utils import check_missing, iterase_input, get_paths_utils, sanitize_anndata, check_r_package, convert_path
 
 
 def tag(tag_name):
@@ -319,7 +318,7 @@ class DGEAnalysis:
 
         rscript = get_paths_utils("_Run_MAST.R")
 
-        tmpdir_path = Path("/tmp") / f"MAST_Test_{uuid.uuid4().hex}"
+        tmpdir_path = convert_path("/tmp") / f"MAST_Test_{uuid.uuid4().hex}"
         tmpdir_path.mkdir(parents=True, exist_ok=False)
 
         if "logcounts" not in adata.layers.keys():

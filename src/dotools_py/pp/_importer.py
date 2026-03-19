@@ -440,7 +440,7 @@ class Importer:
         :param batch_name: Name of the batch
         :return: Returns None.
         """
-        from dotools_py.utils import make_grid_spec
+        from dotools_py.pl._plot_utils import make_grid_spec
         from dotools_py.utility import get_hex_colormaps
         import matplotlib.lines as mlines
 
