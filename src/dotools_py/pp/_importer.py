@@ -11,7 +11,8 @@ import seaborn as sns
 
 from dotools_py import logger
 from dotools_py.io import read_10x_h5, read_visium, read_10x_mtx
-from dotools_py.utils import (
+
+from dotools_py._utils import (
     convert_path,
     get_paths_utils,
     iterase_input,
@@ -19,9 +20,9 @@ from dotools_py.utils import (
     is_none
 )
 
-from dotools_py._custom_class import InputError
+from dotools_py._custom_class import InputError, PathLike
 from typing import TYPE_CHECKING, Any, Literal, Dict
-from ._utils import _qc_vln, _filter_quantiles, _normalise, _lower_strings, _run_sc_dbl_finder, _run_ovrlpy
+from dotools_py.pp._utils import _qc_vln, _filter_quantiles, _normalise, _lower_strings, _run_sc_dbl_finder, _run_ovrlpy
 
 if TYPE_CHECKING:
     try:
@@ -38,7 +39,7 @@ def find_doublets(
     scdblfinder_metric: Literal['merror', 'logloss', 'auc', 'aucpr'] = "logloss",
     method: Literal["scDblFinder", "DoubletDetection", "Scrublet", "Ovrlpy"] = "scDblFinder",
     ovrlpy_keys: Dict = None,
-    ovrlpy_report_path: str | Path = None,
+    ovrlpy_report_path: PathLike = None,
     random_state: int = 0,
 ) -> None:
     """Detect doublets in scRNAseq and iST.
@@ -298,7 +299,6 @@ def pearson_residuals_normalize(
     return adata
 
 
-
 class Importer:
     def __init__(
         self,
@@ -379,7 +379,7 @@ class Importer:
         self.history = []
         self.adata = None
 
-    def _read_data(self, path: str | Path, batch_name: str) -> ad.AnnData:
+    def _read_data(self, path: PathLike, batch_name: str) -> ad.AnnData:
         """Reads data into an AnnData object.
 
         Reads data in H5 format or a 10x-Genomics-formated mtx directory into an AnnData object. If

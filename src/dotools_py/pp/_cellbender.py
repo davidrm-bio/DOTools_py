@@ -5,7 +5,7 @@ import anndata as ad
 import numpy as np
 
 from dotools_py import logger
-from dotools_py.utils import convert_path, get_paths_utils
+from dotools_py._utils import convert_path, get_paths_utils
 
 # TODO implement scAR for ambient RNA detection
 

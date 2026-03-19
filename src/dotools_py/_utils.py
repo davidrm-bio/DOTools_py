@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 import importlib
 import functools
-
+from typing import Any
 from pathlib import Path
 
 import anndata as ad
@@ -176,3 +176,15 @@ def logsem(x):
     from scipy.stats import sem
     return np.log1p(sem(np.expm1(x)))
 
+
+def is_none(variable: Any, default: Any = None):
+    return variable if variable is not None else default
+
+
+def x_is_raw_counts(adata: ad.AnnData) -> None:
+    from scipy.sparse import issparse
+    matrix = adata.X.data if issparse(adata.X) else adata.X.flatten()
+    if (matrix % 1 != 0).any():
+        raise ValueError("The count matrix should only contain integers.")
+    if (matrix < 0).any():
+        raise ValueError("The count matrix should only contain non-negative values.")

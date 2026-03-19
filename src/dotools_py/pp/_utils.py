@@ -1,21 +1,22 @@
 import os
-from pathlib import Path
 from typing import Literal, Dict
 
 import anndata as ad
 import numpy as np
 import pandas as pd
 
-from dotools_py.utils import iterase_input, check_missing, save_plot, sanitize_anndata, check_r_package, convert_path
 from dotools_py.logger import  logger
 import matplotlib.pyplot as plt
 import seaborn as sns
+from dotools_py._utils import iterase_input, check_missing, sanitize_anndata, check_r_package, convert_path
+from dotools_py.pl._plot_utils import save_plot
+from dotools_py._custom_class import  PathLike
 
 
 def _qc_vln(
     adata: ad.AnnData,
     title: str = "ViolinPlots - Quality Metrics",
-    path: str | Path | None = None,
+    path: PathLike = None,
     filename: str = "ViolinPlots.png",
     stats: list = ("total_counts", "n_genes_by_counts", "pct_counts_mt"),
     colors: str = "lightsteelblue",
@@ -182,7 +183,7 @@ def _run_sc_dbl_finder(
 def _run_ovrlpy(
     df: pd.DataFrame,
     batch_key: str,
-    ovrlpy_report_path: str | Path,
+    ovrlpy_report_path: PathLike,
     ovrlpy_keys: Dict,
     random_state: int = 0
 ) -> None:
