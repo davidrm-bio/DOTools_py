@@ -32,12 +32,12 @@ from dotools_py._utils import sanitize_anndata
 from dotools_py.pl._heatmap import small_squares
 from dotools_py.tl._get_stats import rank_genes_groups
 from dotools_py._custom_class import PathLike
+import pandas as pd
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
     from typing import Literal
 
-    import pandas as pd
     from anndata import AnnData
     from matplotlib.axes import Axes
     from matplotlib.colors import Colormap, Normalize
