@@ -9,7 +9,7 @@ from numba import njit
 
 from dotools_py import logger
 from dotools_py.utility._general import free_memory
-from dotools_py.utils import sanitize_anndata, iterase_input, check_missing
+from dotools_py._utils import sanitize_anndata, iterase_input, check_missing
 from dotools_py.settings._global_parameters import FAST_ARRAY_UTILS
 
 
@@ -34,7 +34,7 @@ def _expm1_anndata(adata: ad.AnnData) -> None:
 
 def expr(
     adata: ad.AnnData,
-    features: str | list,
+    features: str | list | None,
     groups: str | list | None = None,
     out_format: Literal["long", "wide"] = "long",
     layer: str | None = None,
@@ -47,7 +47,7 @@ def expr(
 
     :param adata: Annotated data matrix.
     :param groups: Metadata column in `obs` to include in the DataFrame.
-    :param features: Name of the features in `var_names` to extract the expression of.
+    :param features: Name of the features in `var_names` to extract the expression of. If set to `None`, extract all genes.
     :param out_format: Format of the dataframe. The `wide` format will generate a DataFrame with shape n_obs x n_vars,
                       while the `long` format will generate an unpivot version.
     :param layer: Layer in the AnnData object to extract the expression from. If set to `None` the expression in
@@ -88,6 +88,9 @@ def expr(
     """
 
     sanitize_anndata(adata)
+    if features is None:
+        features = adata.var_names
+
     features = iterase_input(features)
     groups = iterase_input(groups)
 
@@ -98,7 +101,8 @@ def expr(
     check_missing(adata, features=features, groups=groups)
 
     # Set-up configuration
-    adata = adata[:, features]  # Retain only the specified features
+    if len(features) != adata.n_vars:
+        adata = adata[:, features]  # Retain only the specified features
     if layer is not None:
         adata.X = adata.layers[layer].copy()  # Select the specified layer
 
@@ -231,6 +235,9 @@ def mean_expr(
 def dge_results(
     adata: ad.AnnData,
     key: str = "rank_genes_groups",
+    min_log2fc: float = None,
+    padj_cutoff: float = None,
+    max_log2fc: float = None
 ) -> pd.DataFrame:
     """Extract DEGs from AnnData object.
 
@@ -239,6 +246,9 @@ def dge_results(
 
     :param adata: Annotated data matrix.
     :param key: Key in `uns` with DGE results.
+    :param min_log2fc: Minimum log2-foldchange.
+    :param max_log2fc: Maximum log2-foldchange.
+    :param padj_cutoff: Cutoff for the adjusted p-value.
 
     Returns
     -------
@@ -289,6 +299,13 @@ def dge_results(
                 df_results["pts_ref"] = pts_ref.reindex(index=df_results.GeneName).tolist()
     except KeyError as e:
         logger.warn(f"Problem generating the DGE Table: {e}")
+
+    if min_log2fc is not None:
+        df_results = df_results[df_results["log2fc"] >= min_log2fc]
+    if max_log2fc is not None:
+        df_results = df_results[df_results["log2fc"] <= max_log2fc]
+    if padj_cutoff is not None:
+        df_results = df_results[df_results["padj"] <= padj_cutoff]
     return df_results
 
 
@@ -424,6 +441,8 @@ def log2fc(
 
     """
 
+    sanitize_anndata(adata)
+    check_missing(adata, groups=group_by)
     # Get the data
     features = list(adata.var_names) if len(iterase_input(features)) == 0 else iterase_input(features)
     groups = list(adata.obs[group_by].unique()) if len(iterase_input(groups)) == 0 else iterase_input(groups)
@@ -474,6 +493,9 @@ def pcts_cells(
     [5 rows x 11 columns]
 
     """
+
+    sanitize_anndata(adata)
+    check_missing(adata, groups=group_by)
     features = list(adata.var_names) if len(iterase_input(features)) == 0 else iterase_input(features)
     group_by = iterase_input(group_by)
     df_expr = expr(
@@ -550,6 +572,8 @@ def pseudobulk(
     import scanpy as sc
     from tqdm import tqdm
     import random
+    sanitize_anndata(adata)
+
     random.seed(random_state)
 
     keep_metadata = [] if keep_metadata is None else keep_metadata
@@ -638,7 +662,7 @@ def pseudobulk(
 def layer_swap(
     adata: ad.AnnData,
     layer_key: str,
-    x_key: str  | None = "X",
+    x_key: str | None = "X",
     inplace: bool = True,
 ) -> ad.AnnData | None:
     """Swap `adata.X` with `adata.layers`.
