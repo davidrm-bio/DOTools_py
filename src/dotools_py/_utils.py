@@ -1,8 +1,11 @@
 from collections.abc import Iterable
+import importlib
+import functools
 
 from pathlib import Path
 
 import anndata as ad
+import numpy as np
 
 from dotools_py._custom_class import PathLike, InputError
 import matplotlib.pyplot as plt
@@ -105,7 +108,7 @@ def get_paths_utils(script: str) -> PathLike:
 
 
 
-def check_r_package(package: str | list) -> None:
+def check_r_package(package: PathLike) -> None:
     from rpy2.robjects.packages import importr
 
     package = iterase_input(package)
@@ -119,3 +122,57 @@ def check_r_package(package: str | list) -> None:
     if len(missing) != 0:
         raise ModuleNotFoundError(f"The R packages: {missing} are not installed")
     return None
+
+
+def require_dependencies(required_packages):
+    """Display required dependencies and ask if the user wants to install it.
+
+    :param required_packages: name of the package required
+    :return:
+    """
+
+    def decorator(func):
+        import subprocess
+        import sys
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            missing = []
+            for pkg in required_packages:
+                import_name = pkg.get("import", pkg["name"])
+                try:
+                    importlib.import_module(import_name)
+                except ImportError:
+                    missing.append(pkg["name"])
+
+            if missing:
+                print("The following packages are missing:")
+                for pkg in missing:
+                    print(f" - {pkg}")
+                subprocess.check_call([sys.executable, "-m", "pip", "install", *missing])
+                raise ImportError("Missing required packages.")
+
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def logmean(x):
+    """Calculate mean expression of log data.
+
+    :param x: Values in log space.
+    :return: Returns the mean expression in log space.
+    """
+    return np.log1p(np.mean(np.expm1(x)))
+
+
+def logsem(x):
+    """Calculate standard error of the mean of log data.
+
+    :param x: Values in log space
+    :return: Returns the SEM in log space
+    """
+    from scipy.stats import sem
+    return np.log1p(sem(np.expm1(x)))
+

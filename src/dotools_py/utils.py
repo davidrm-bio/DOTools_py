@@ -1,5 +1,4 @@
 import functools
-import importlib
 from pathlib import Path
 from collections.abc import Iterable
 from typing import Any
@@ -208,38 +207,6 @@ def transfer_labels(
     return None
 
 
-def require_dependencies(required_packages):
-    """Display required dependencies and ask if the user wants to install it.
-
-    :param required_packages: name of the package required
-    :return:
-    """
-
-    def decorator(func):
-        import subprocess
-        import sys
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            missing = []
-            for pkg in required_packages:
-                import_name = pkg.get("import", pkg["name"])
-                try:
-                    importlib.import_module(import_name)
-                except ImportError:
-                    missing.append(pkg["name"])
-
-            if missing:
-                print("The following packages are missing:")
-                for pkg in missing:
-                    print(f" - {pkg}")
-                subprocess.check_call([sys.executable, "-m", "pip", "install", *missing])
-                raise ImportError("Missing required packages.")
-
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
 
 
 # def deprecated_function(func):
