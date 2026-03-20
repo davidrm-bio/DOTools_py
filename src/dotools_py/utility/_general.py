@@ -341,7 +341,7 @@ def create_report(
 _default_console = Console()
 
 def live_display(
-    console: Console | None = None,
+    console:  None = None,
     current: int | None = None,
     total: int | None = None,
     msg: str | None = None
@@ -361,11 +361,20 @@ def live_display(
     --------
     >>> import dotools_py as do
     >>> import  time
-    >>> @do.utility.live_display()
-    ... def testing():
-    ...     time.sleep(10)
+    >>> @do.utility.live_display(current=1, total=2)
+    ... def step1():
+    ...     time.sleep(2)
+    >>> @do.utility.live_display(current=2, total=2)
+    ... def step2():
+    ...     time.sleep(3)
+    >>> def testing():
+    ...     step1()
+    ...     step2()
     >>> testing()
-    (1/1) testing [✔] (0:00:10.001053)
+    (1/2) step1 ...
+    (1/2) step1 ✔ (0:00:02.001059)
+    (2/2) step2 ...
+    (2/2) step2 ✔ (0:00:03.000399)
 
     """
     console = console if console is not None else  _default_console
@@ -375,16 +384,17 @@ def live_display(
         display_msg = msg if msg is not None else func.__name__
         @functools.wraps(func)
         def wrapper_decorator(*args, **kwargs):
+            console.print(f"({current}/{total}) {display_msg} ...")
             with Live(console=console, screen=False, auto_refresh=False) as live:
-                live.update(f"({current}/{total}) {msg} ...", refresh=True)
                 start = timer()
                 value = func(*args, **kwargs)
                 end = timer()
                 elapsed = datetime.timedelta(seconds=end - start)
-                live.update(
-                    f"({current}/{total}) {display_msg} [:heavy_check_mark:] ({elapsed})",
-                    refresh=True,
-                )
+                console.print(f"({current}/{total}) {display_msg} ✔ ({elapsed})")
+                #live.update(
+                #    f"({current}/{total}) {display_msg} [:heavy_check_mark:] ({elapsed})",
+                #    refresh=True,
+                #)
             return value
 
         return wrapper_decorator
