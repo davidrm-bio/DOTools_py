@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning][].
 - Rename ``do.pp.sctransform_normalize`` to ``do.pp.pearson_residuals_normalize`` allowing python and r backends.
 - Improve ``do.pl.slides`` allowing to plot one or multiple slides.
 - Allow basic quality control of visium 10x data in ``dotools_py.pp.importer_py`` and ``dotools_py.pp.quality_control``.
+- Add extrac functions to ``do.utility``
 
 ### Bug Fixes
 - Fix Bug in ``dotools_py.pl.density`` related to axes ticks, colorbar and multiple feature plotting.

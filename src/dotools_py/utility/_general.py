@@ -2,6 +2,11 @@ import os.path
 from pathlib import Path
 import platform
 from typing import Literal
+from rich.live import Live
+import functools
+from timeit import default_timer as timer
+import datetime
+from rich.console import Console
 
 import anndata as ad
 import pandas as pd
@@ -333,6 +338,58 @@ def create_report(
 
 
 
+_default_console = Console()
+
+def live_display(
+    console: Console | None = None,
+    current: int | None = None,
+    total: int | None = None,
+    msg: str | None = None
+):
+    """Decorator that displays a live status line and execution time for a function.
+
+    .. note::
+        This decorator is best suited for single-step or phase-based tasks.
+
+    :param console: The Rich Console to use for output. If set to `None` a default console is used.
+    :param current: The current step index.
+    :param total: The total number of steps
+    :param msg: Message to display. If not set, the name of the function will be displayed.
+    :return: Returns a decorator that wraps the target function.
+
+    Examples
+    --------
+    >>> import dotools_py as do
+    >>> import  time
+    >>> @do.utility.live_display()
+    ... def testing():
+    ...     time.sleep(10)
+    >>> testing()
+    (1/1) testing [✔] (0:00:10.001053)
+
+    """
+    console = console if console is not None else  _default_console
+    current = 1 if current  is None else current
+    total = 1 if total is None else total
+    def decorator_live_display(func):
+        display_msg = msg if msg is not None else func.__name__
+        @functools.wraps(func)
+        def wrapper_decorator(*args, **kwargs):
+            with Live(console=console, screen=False, auto_refresh=False) as live:
+                live.update(f"({current}/{total}) {msg} ...", refresh=True)
+                start = timer()
+                value = func(*args, **kwargs)
+                end = timer()
+                elapsed = datetime.timedelta(seconds=end - start)
+                live.update(
+                    f"({current}/{total}) {display_msg} [:heavy_check_mark:] ({elapsed})",
+                    refresh=True,
+                )
+            return value
+
+        return wrapper_decorator
+
+    return decorator_live_display
 
 
 

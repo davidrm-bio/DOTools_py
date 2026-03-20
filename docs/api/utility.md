@@ -15,6 +15,7 @@ the analysis.
     utility.create_report
     utility.transfer_labels
     utility.add_gene_metadata
+    utility.live_display
 ```
 
 
