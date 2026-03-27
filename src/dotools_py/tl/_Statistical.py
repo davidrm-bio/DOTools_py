@@ -241,7 +241,9 @@ class DGEAnalysis:
         """
         import pertpy as pt
         pds2 = pt.tl.EdgeR(adata=adata, design=design)
-        return pds2.compare_groups(adata=adata, column=condition_key, baseline=reference, groups_to_compare=groups)
+        pds2.fit()
+        return pds2.test_contrasts(pds2.contrasts(column=condition_key, baseline = reference, groups_to_compare=groups))
+        #return pds2.compare_groups(adata=adata, column=condition_key, baseline=reference, groups_to_compare=groups)
 
     @staticmethod
     def _run_deseq(
@@ -262,7 +264,9 @@ class DGEAnalysis:
         """
         import pertpy as pt
         pds2 = pt.tl.PyDESeq2(adata=adata, design=design)
-        return pds2.compare_groups(adata=adata, column=condition_key, baseline=reference, groups_to_compare=groups)
+        pds2.fit()
+        return pds2.test_contrasts(pds2.contrasts(column=condition_key, baseline = reference, groups_to_compare=groups))
+        #return pds2.compare_groups(adata=adata, column=condition_key, baseline=reference, groups_to_compare=groups)
 
     @staticmethod
     def _run_ttest(
