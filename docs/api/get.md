@@ -23,6 +23,7 @@ AnnData object.
     :toctree: generated
 
     get.subset
+    get.subset_df
     get.pseudobulk
     get.layer_swap
 ```

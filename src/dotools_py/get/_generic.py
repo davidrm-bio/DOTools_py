@@ -11,7 +11,7 @@ from dotools_py import logger
 from dotools_py.utility._general import free_memory
 from dotools_py._utils import sanitize_anndata, iterase_input, check_missing
 from dotools_py.settings._global_parameters import FAST_ARRAY_UTILS
-
+from dotools_py._custom_class import InputError
 
 if FAST_ARRAY_UTILS:
     import fast_array_utils
@@ -398,6 +398,90 @@ def subset(
         return adata.copy()
     else:
         return adata
+
+
+def subset_df(
+    df: pd.DataFrame,
+    col: str | list | None = None,
+    col_groups: str | list | float | bool | None = None,
+    comparison:  Literal[">=", ">", "==", "<", "<=", "include", "exclude"] | list= "include",
+) -> pd.DataFrame:
+    """Subset Pandas DataFrame.
+
+    Subset a Pandas DataFrame based on one or multiple columns. To subset for multiple columns, provide a list to
+    `col` and `col_groups` in the same order. For example, you have a dataframe `df` with two columns: `sex` that conteins
+    "male" and "female" and `age` with values from 20 to 90. You can subset to select only males below 50 providing:
+    `col = ["sex", "age"]` and `col_groups = ["male", 50]` and then specifying the type of comparison for each column:
+    `comparison = ["include", "<"]`. More examples in the section below.
+
+    :param df: Pandas DataFrame
+    :param col: Name of the columns to use for subseting. To subset based on multiple columns provide a list.
+    :param col_groups: Values to use for subsetting each column. If several columns are provided, provide a list.
+    :param comparison: How the subset will be performed. If several columns are provided, provide a list.
+    :return: Returns a pandas DataFrame subsetted.
+
+    Examples
+    --------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> df = adata.obs.copy()
+    >>> df.shape
+    (700, 22)
+    >>> df_subset = subset_df(df, col=["condition", "annotation"],  col_groups=["healthy", "NK"], comparison="include")
+    >>> df_subset.shape
+    (111, 22)
+    >>> df_subset.value_counts(["condition", "annotation"])
+    condition  annotation
+    healthy    NK            111
+    Name: count, dtype: int64
+    >>> df_subset = subset_df(df, col=["total_counts", "annotation"], col_groups=[1000, ["B_cells", "T_cells"]], comparison=["<", "include"] )
+    >>> df_subset.shape
+    (1, 22)
+    >>> df_subset.head(5)[["total_counts", "annotation"]].sort_values("total_counts", ascending=False)
+                                   total_counts annotation
+    GGAGAACCAAAGCTCT-1-batch2         938.0    T_cells
+
+    """
+
+    columns = iterase_input(col)
+    comparison = iterase_input(comparison)
+    missing = [c for c in columns if c not in df.columns]
+    if len(missing) != 0:
+        raise  InputError(f"{col} not a valid column name")
+
+    if len(comparison) != 1 and len(comparison) != len(columns):
+        raise  InputError(f"{len(comparison)} comparisons were provided, but there are {len(columns)} columns, "
+                          f"provide a common subset approach or a specific for each column")
+
+    operations = {
+        "==": operator.eq, "!=": operator.ne, ">": operator.gt, ">=": operator.ge, "<": operator.lt, "<=": operator.le
+    }
+
+    df_subset = df.copy()  # Internal copy
+
+    if len(columns) == 1:  # We only subset by one column
+        comparison = comparison[0]
+        if comparison == "exclude":
+            df_subset = df_subset[~df_subset[columns].isin(col_groups)]
+        elif comparison == "include":
+            df_subset = df_subset[df_subset[columns].isin(col_groups)]
+        else:
+            mask = operations[comparison](df_subset[columns], col_groups).values
+            df_subset = df_subset[mask]
+    else:
+        common_comparison = None if len(comparison) != 1 else comparison  # We can provide one common comparison or one per column
+        for i, c in enumerate(columns):
+            current_comparison = common_comparison[0] if common_comparison is not None else comparison[i]
+
+            if current_comparison == "exclude":
+                df_subset = df_subset[~df_subset[c].isin(iterase_input(col_groups[i]))]
+            elif current_comparison == "include":
+                df_subset = df_subset[df_subset[c].isin(iterase_input(col_groups[i]))]
+            else:
+                mask = operations[current_comparison](df_subset[c], col_groups[i]).values
+                df_subset = df_subset[mask]
+
+    return df_subset
 
 
 @njit(parallel=True)
