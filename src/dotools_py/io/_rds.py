@@ -12,7 +12,7 @@ from scipy.sparse import issparse, csr_matrix
 
 from dotools_py._utils import get_paths_utils, check_r_package
 from dotools_py import logger
-from dotools_py._custom_class import PathLike
+from dotools_py._custom_class import PathLike, InputError
 
 
 def read_rds(
@@ -207,6 +207,13 @@ def save_rds(
     assert not (adata is not None and path_h5ad is not None), "Provide an AnnData or the path to an AnnData Object not both"
     assert out_type in ["seurat", "sce"], "Specify the object type for the RDS 'SingleCellExperiment' or 'SeuratObject''"
     object_type = "SeuratObject" if out_type == "seurat" else "sce"
+
+    if out_type == "seurat":
+        if "counts" not in adata.layers.keys():
+            raise InputError("Layer counts not found in adata.layers, but is required when out_type='seurat'")
+        if "logcounts" not in adata.layers.keys():
+            raise InputError("Layer logcounts not found in adata.layers, but is required when out_type='seurat'")
+
 
     tmp_path = None
     if adata is not None:  # If adata is provided, save in a tmp folder

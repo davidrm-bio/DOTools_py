@@ -181,7 +181,7 @@ if (opt$operation == 'read') {  # Convert RDS (SCE/Seurat) to AnnData
             hvg <- read.csv(paste0(tmp_folder, "/VariableFeatures.csv"))
             hvg <- hvg[hvg$highly_variable == "True", "X"]
         }, error = function(e) {
-            message("Error while transfering HVGs: ", e$message)
+            message("Skipping\nError while transfering HVGs: ", e$message)
             return(NULL) })
 
         if (!is.null(hvg)) {
@@ -238,11 +238,11 @@ if (opt$operation == 'read') {  # Convert RDS (SCE/Seurat) to AnnData
                         snn
                     },
                         error = function(e2) {  # If the second time does not work return NULL
-                            message("Error while transfering SNN Graph: ", e$message)
+                            message("Skipping\nError while transfering SNN Graph: ", e$message)
                             return(NULL)
                         })
                 } else {  # If it is another type of error return
-                    message("Error while transfering SNN Graph: ", e$message)
+                    message("Skipping\nError while transfering SNN Graph: ", e$message)
                     return(NULL)
                 }
             }
@@ -269,7 +269,7 @@ if (opt$operation == 'read') {  # Convert RDS (SCE/Seurat) to AnnData
             slot(nn, name = "assay.used") <- "RNA"
             nn
         }, error = function(e) {  # We already increase the size limit
-            message("Error while transfering NN Graph: ", e$message)
+            message("Skipping\nError while transfering NN Graph: ", e$message)
             return(NULL) })
 
         if (!is.null(nn)) {
