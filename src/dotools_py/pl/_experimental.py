@@ -238,6 +238,7 @@ def ridgeplot(
     alpha: float = 1,
     x_label: str = "Log(nUMI)",
     add_y_ticks: bool = True,
+    catgs_order: list = None,
 
     # Statistics
     reference: str = None,
@@ -278,6 +279,7 @@ def ridgeplot(
     :param alpha: Transparency level of the object, where 0 is fully transparent and 1 is fully opaque.
     :param x_label: Name of the X axis label.
     :param add_y_ticks: If set to `True` the groups will be shown in the y-ticks, otherwise the Y-axis is removed and the labels are displayed inside the plot.
+    :param catgs_order: order for the categories in `adata.obs[group_by]`
     :param reference: Reference condition to use when testing for significance.
     :param groups: List of the name of the groups to test against.
     :param groups_pvals: If provided, these values will be plotted. If not set, the p-values will be estimated. The order of the p-values should match the order of the `groups_cond` categories.
@@ -317,7 +319,11 @@ def ridgeplot(
     """
 
     sanitize_anndata(adata)
-    catgs = adata.obs[group_by].unique().tolist()
+    if catgs_order is None:
+        catgs = adata.obs[group_by].unique().tolist()
+    else:
+        catgs = catgs_order
+        assert len(catgs_order) == len(adata.obs[group_by].unique().tolist()), f"The groups provided does not match the groups in adata.obs[{group_by}]"
 
     # Palette selection for group_by categories
     if isinstance(palette, str):
