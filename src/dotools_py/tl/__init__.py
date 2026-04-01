@@ -1,5 +1,14 @@
 from dotools_py.tl._rankGenes import rank_genes_groups
-from dotools_py.tl._analysis import auto_annot, full_recluster, integrate_data, reclustering, run_scvi, run_scanvi, run_harmony
+from dotools_py.tl._analysis import (
+    auto_annot,
+    full_recluster,
+    integrate_data,
+    reclustering,
+    run_scvi,
+    run_scanvi,
+    run_harmony,
+    run_seurat_integration
+)
 from dotools_py.tl._get_stats import (
     go_analysis,
     grouped_ttest,

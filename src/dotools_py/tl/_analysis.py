@@ -378,6 +378,72 @@ def run_harmony(
     except Exception as e:
         adata.obsm[rep_added] = z.T
 
+
+def run_seurat_integration(
+    adata: ad.AnnData,
+    batch_key: str,
+    key_hvg: str = "highly_variable",
+    backend: Literal["python", "r"] = "r",
+    use_rep: str = "X_pca",
+    key_corrected: str = "X",
+    method: Literal["cca", "pca", "lsi", "lsi-cca", "rpca", "rlsi"] = "pca",
+    n_components: int = 50,
+    random_state: int = 0,
+    n_jobs: int = -1,
+) -> None:
+    """Run Seurat Integration methods.
+
+    The input object should contain a key in `adata.var` with the highly variable genes (HVG). When the ``python``
+    backend  is used, a re-implementation of the R code is used. To run CCA integration there are two modes.
+    To reproduce the behavior of Seurat v4 set `key_corrected = 'X'`. In this case, the expression of the HVGs
+    will be corrected. If `key_corrected` is a key in `adata.obsm` (e.g., `X_pca`), the behavior of Seurat v5 will
+    be reproduced and the embedding will be corrected.
+
+    .. warning::
+        Currently the python backend is experimental.
+
+    :param adata: Annotated data matrix.
+    :param batch_key: Key in `adata.obs` with batch information.
+    :param key_hvg: Key in `adata.var` with boolean indicating if a feature is highly variable or not.
+    :param backend: Backend to use. Currently, `python` is experimental.
+    :param use_rep: Representation to use to compute within batch KNN to find the anchors. Use when `backend = 'python'`
+    :param key_corrected: If set to `X` the expression values will be corrected (v4 approach), otherwise a key in `adata.obsm` needs to be set (v5 approach).
+    :param method: Method available in Seurat Integration. Use when `backend = 'python'`.
+    :param n_components: Number of components to consider. Use when `backend = 'python'`.
+    :param random_state: Random seed.
+    :param n_jobs: Number of threads to use. Use when `backend = 'python'`.
+    :return: Returns None. The corrected matrix will be saved in `adata.obsm`.
+
+    """
+    from dotools_py.tl._CCA._Original import SeuratIntegration
+
+    assert key_hvg in adata.var.columns, f"{key_hvg} not in adata.var"
+    hvg = adata[:, adata.var[key_hvg]].copy()
+    if backend == "python":
+        logger.info("This backend is currently experimental\n")
+
+        logger.info("Running CCA using Python backend")
+        batches = hvg.obs[batch_key].unique()
+        adata_list = [hvg[hvg.obs[batch_key] == batch].copy() for batch in batches]
+        # Code adapted from `Hanqing L., et al. Nature (2021) <https://www.nature.com/articles/s41586-020-03182-8>`_
+        integrator = SeuratIntegration(random_state=random_state, n_jobs=n_jobs)
+        integrator.find_anchor(adata_list, key_local=use_rep, dim_red=method, n_components=n_components)
+        corrected = integrator.integrate(key_correct=key_corrected)
+        corrected = np.concatenate(corrected)
+        adata.obsm["X_CCA"] = corrected
+    elif backend == "r":
+        logger.info("Running CCA using R backend")
+        if key_corrected == "X":
+            logger.info(f"key_corrected='{key_corrected}, Running CCA v4'")
+            adata.obsm["X_CCA"] = _run_cca(hvg, batch_key, version="v4")
+        else:
+            logger.info(f"key_corrected='{key_corrected}, Running CCA v5'")
+            adata.obsm["X_CCA"] = _run_cca(hvg, batch_key, version="v5")
+    else:
+        raise InputError(f"{backend} is not a valid backend, use: 'python' or 'r'")
+    return None
+
+
 def integrate_data(
     adata: ad.AnnData,
     batch_key: str,
@@ -476,6 +542,7 @@ def integrate_data(
     """
     import scanpy.external as sce
     import scanpy as sc
+
     logger.info("Computing HVGs")
     hvg_batch = batch_key if hvg_batch else None
     sc.pp.highly_variable_genes(adata, batch_key=hvg_batch)

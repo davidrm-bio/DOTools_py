@@ -568,7 +568,7 @@ class SeuratIntegration:
         n_features: int = 200,
         n_components: int = 50,
         max_cc_cells: int = 50_000,
-        chunk_size: int = 50_000,
+        chunk_size: int = 10_000,
         k_anchor: int = 5,
         k_score: int = 30,
         alignments: list = None,
@@ -747,7 +747,7 @@ class SeuratIntegration:
         npc: int = 30,
         k_weight: int = 100,
         sd: float = 1,
-        chunk_size: int = 50_000,
+        chunk_size: int = 10_000,
         row_normalize: bool = True,
     ) -> Any:
         """Transform query data to reference data.
@@ -973,46 +973,6 @@ class SeuratIntegration:
 
 
 
-def run_seurat_integration(
-    adata: ad.AnnData,
-    batch_key: str,
-    key_hvg: str = "highly_variable",
-    use_rep: str = "X_pca",
-    key_corrected: str = "X",
-    method: Literal["cca", "pca", "lsi", "lsi-cca", "rpca", "rlsi"] = "pca",
-    n_components: int = 50,
-    random_state: int = 0,
-    n_jobs: int = -1,
-) -> None:
-    """Run Seurat Integration methods.
 
-     Code adapted from `Hanqing L., et al. Nature (2021) <https://www.nature.com/articles/s41586-020-03182-8>`_
-
-    :param adata: Annotated data matrix.
-    :param batch_key: Key in `adata.obs` with batch information.
-    :param key_hvg: Key in `adata.var` with boolean indicating if a feature is highly variable or not.
-    :param use_rep: Representation to use to compute within batch KNN to find the anchors.
-    :param key_corrected: If set to `X` the expression values will be corrected, otherwise a key in `adata.obsm` needs to be set.
-    :param method: Method available in Seurat Integration.
-    :param n_components: Number of components to consider.
-    :param random_state: Random seed.
-    :param n_jobs: Number of threads to use.
-    :return: Returns None. The corrected matrix will be saved in `adata.obsm`.
-
-    """
-    logger.info("This method is currently experimental")
-
-    assert key_hvg in adata.var.columns, f"{key_hvg} not in adata.var"
-
-    hvg = adata[:, adata.var[key_hvg]].copy()
-    batches = hvg.obs[batch_key].unique()
-    adata_list = [hvg[hvg.obs[batch_key] == batch].copy() for batch in batches]
-
-    integrator = SeuratIntegration(random_state=random_state, n_jobs=n_jobs)
-    integrator.find_anchor(adata_list, key_local=use_rep, dim_red=method, n_components=n_components)
-    corrected = integrator.integrate(key_correct=key_corrected)
-    corrected = np.concatenate(corrected)
-    adata.obsm["X_cca"] = corrected
-    return None
 
 

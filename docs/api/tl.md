@@ -16,6 +16,7 @@ analysis and statistical methods.
     tl.run_scvi
     tl.run_scanvi
     tl.run_harmony
+    tl.run_seurat_integration
     tl.auto_annot
     tl.reclustering
     tl.full_recluster

@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning][].
 
 ## Version 0.0.4
 
+### News
+- The DoTools manuscript is published in [Bioinformatics Advances]().
+
 ### Features
 - Add `gridsize` parameter to ``dotools_py.pl.density`` to control the number of points calculated in each dimension.
 - Add spatial related functions such as ``do.io.read_visium``, ``do.dt.example_visium``,
@@ -17,6 +20,7 @@ and this project adheres to [Semantic Versioning][].
 - Improve ``do.pl.slides`` allowing to plot one or multiple slides.
 - Allow basic quality control of visium 10x data in ``dotools_py.pp.importer_py`` and ``dotools_py.pp.quality_control``.
 - Add extra functions to ``do.utility`` and ``do.get``
+- Add ``do.tl.run_seurat_integration`` allowing both python (experimental) and r backend
 
 ### Bug Fixes
 - Fix Bug in ``dotools_py.pl.density`` related to axes ticks, colorbar and multiple feature plotting.
@@ -29,6 +33,7 @@ and this project adheres to [Semantic Versioning][].
 ### Documentation
 - Update scRNA-seq tutorial
 - Add Visium tutorial
+- Update citation and README
 
 
 ## Version 0.0.3 {small}`2026-01-30`
