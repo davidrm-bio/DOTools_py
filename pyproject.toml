@@ -58,13 +58,11 @@ dependencies = [
   "tqdm",
   "scanpro",
   "numba",
-  "beartype",
   "fastexcel",
   "scib",
   "harmony-pytorch",
 ]
 
-# scanpro missing and failts if added here
 
 optional-dependencies.dev = [
   "pre-commit",
@@ -99,7 +97,6 @@ optional-dependencies.doc = [
   "sphinxcontrib-bibtex>=1",
   "sphinxext-opengraph",
   "tqdm",
-  "beartype",
   "spatialdata",
   "scib"
 ]
@@ -124,7 +121,6 @@ optional-dependencies.test = [
   "seaborn",
   "tqdm",
   "pyarrow",
-  "beartype",
   "fastexcel",
   "zarr"
 ]
