@@ -113,6 +113,8 @@ def expr(
     if groups is not None:
         table_expr[groups] = adata.obs[groups]
     if out_format == "long":
+        if len(features) == adata.n_vars:
+            logger.warn("When all features are extracted, long format can lead to high running time")
         table_expr = pd.melt(table_expr, id_vars=groups, var_name="genes", value_name="expr")
     free_memory()
     return table_expr
