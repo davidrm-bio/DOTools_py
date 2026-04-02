@@ -414,6 +414,25 @@ def run_seurat_integration(
     :param n_jobs: Number of threads to use. Use when `backend = 'python'`.
     :return: Returns None. The corrected matrix will be saved in `adata.obsm`.
 
+    Examples
+    --------
+    >>> import  dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> del adata.obsm
+    >>> adata.obsm_keys()
+    []
+    >>> do.tl.run_seurat_integration(adata, batch_key="batch", backend="python")
+    >>> integrator.find_anchor(adata_list=adata_list, n_components=50)
+    2026-04-01 16:51:37,581 - This backend is currently experimental
+    2026-04-01 16:51:37,581 - Running CCA using Python backend
+    2026-04-01 16:51:37,585 - Finding anchors across datasets
+    Batches : 100%|██████████| 1/1 [00:15<00:00, 15.51s/it]
+    Batch alignment:   0%|          | 0/1 [00:00<?, ?it/s]
+    2026-04-01 16:51:53,101 - Integrating datasets
+    Batch alignment: 100%|██████████| 1/1 [00:01<00:00,  1.15s/it]
+    >>> adata.obsm_keys()
+    ['X_CCA']
+
     """
     from dotools_py.tl._CCA._Original import SeuratIntegration
 
