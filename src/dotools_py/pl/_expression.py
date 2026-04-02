@@ -33,7 +33,7 @@ def barplot(
     title: str = None,
     title_fontproperties: Dict[Literal["size", "weight"], str | int] = None,
     xticks_order: list = None,
-    xticks_rotation: int = None,
+    xticks_rotation: int = 45,
     ylabel: str = "LogMean(nUMI)",
     ylim_max: float = None,
 
@@ -246,7 +246,7 @@ def boxplot(
     title: str = None,
     title_fontproperties: Dict[Literal["size", "weight"], str | int] = None,
     xticks_order: list = None,
-    xticks_rotation: int = None,
+    xticks_rotation: int = 45,
     ylabel: str = "LogMean(nUMI)",
 
     # Legend Parameters
@@ -273,7 +273,7 @@ def boxplot(
 
     # Fx Specific
     showfliers: bool = False,
-    scatter: bool = True,
+    scatter: bool = False,
     marker_size: float = 2,
     **kwargs
 ) -> plt.Axes | dict | None:
@@ -317,14 +317,14 @@ def boxplot(
 
         # Take only lymphoid cells
         lymphoid = adata[adata.obs['annotation'].isin(['T_cells', 'NK', 'B_cells'])].copy()
-        do.pl.boxplot(lymphoid, 'annotation', 'RPL11', hue = 'condition', reference = 'healthy', groups=['disease'], hue_order=['healthy', 'disease'], xticks_rotation=45, figsize=(6, 4))
+        do.pl.boxplot(lymphoid, 'annotation', 'RPL11', hue = 'condition', reference = 'healthy', groups=['disease'], hue_order=['healthy', 'disease'], xticks_rotation=45, figsize=(6, 4), scatter=True)
 
     Plot a continuous value in `adata.obs`.
 
     .. plot::
         :context: close-figs
 
-        do.pl.boxplot(adata,'annotation','total_counts', figsize=(6, 4))
+        do.pl.boxplot(adata,'annotation','total_counts', figsize=(6, 4), scatter=True)
 
     """
 
@@ -428,7 +428,7 @@ def violinplot(
     title: str = None,
     title_fontproperties: Dict[Literal["size", "weight"], str | int] = None,
     xticks_order: list = None,
-    xticks_rotation: int = None,
+    xticks_rotation: int = 45,
     ylabel: str = "LogMean(nUMI)",
 
     # Legend Parameters
