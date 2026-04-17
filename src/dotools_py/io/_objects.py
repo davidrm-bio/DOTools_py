@@ -49,7 +49,7 @@ def read_h5ad(
 def read_zarr(
     path: PathLike,
     filename: str = None,
-    backend: Literal["anndata", "spatialdata"] = "anndata",
+    backend: Literal["anndata", "spatialdata"] = "spatialdata",
 ) -> "ad.AnnData | st.SpatialData":
     """Read from a hierarchical Zarr array store into an AnnData Object.
 
