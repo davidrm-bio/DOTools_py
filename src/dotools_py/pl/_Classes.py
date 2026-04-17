@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import anndata as ad
 import pandas as pd
 import numpy as np
@@ -8,8 +6,9 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 
 from dotools_py._utils import sanitize_anndata, iterase_input, convert_path
+from dotools_py._custom_class import PathLike
 from dotools_py.pl._plot_utils import _AxesSubplot
-
+from dotools_py.utility import get_hex_colormaps
 from matplotlib.colors import Colormap
 from collections.abc import Sequence
 from matplotlib.axes import Axes
@@ -55,7 +54,7 @@ class BaseSeaborn:
         title_fontproperties: dict = None,
         xticks_properties: dict = None,
         legend_properties: dict = None,
-        path: str | Path = None,
+        path: PathLike = None,
         filename: str = "figure.svg",
         show: bool = True
     ):
@@ -88,8 +87,6 @@ class BaseSeaborn:
         :param filename: Name of file to use when saving the figure.
         :param show: If set to `False`, returns a dictionary with the matplotlib axes.
         """
-        from dotools_py.utility._plotting import get_hex_colormaps
-
         sanitize_anndata(adata)
 
         # Data Section
