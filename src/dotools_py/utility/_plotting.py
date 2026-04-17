@@ -1,6 +1,6 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import LinearSegmentedColormap, ListedColormap
 
 
 def generate_cmap(*args) -> LinearSegmentedColormap:
@@ -110,30 +110,37 @@ def _get_ticks_defaults(properties: dict) -> tuple:
     return size, weight, rotation, ha, va
 
 
-def set_plot_layout(ax: plt.Axes,
-                    show_spines: tuple[bool, bool, bool, bool] = (True, True, False, False),
-                    xticks_fontproperties: dict = None,
-                    yticks_fontproperties: dict = None,
-                    title_fontproperties: dict = None,
-                    legend_fontproperties: dict = None,
-                    legend_location: str = None,
-                    ):
-    # Set the Spines
-    ax.spines["bottom"].set_visible(show_spines[0])
-    ax.spines["left"].set_visible(show_spines[1])
-    ax.spines["top"].set_visible(show_spines[2])
-    ax.spines["right"].set_visible(show_spines[3])
 
-    # Set X-ticks properties
-    x_size, x_weight, x_rotation, x_ha, x_va = _get_ticks_defaults(xticks_fontproperties)
-    ax.set_xticklabels(
-        ax.get_xticklabels(), fontsize=x_size, fontweight=x_weight, rotation=x_rotation, ha=x_ha, va=x_va
-    )
+def tab30() -> None:
+    """Create a tab30 colormap.
 
-    # Set Y-ticks properties
-    y_size, y_weight, y_rotation, y_ha, y_va = _get_ticks_defaults(yticks_fontproperties)
-    ax.set_yticklabels(
-        ax.get_yticklabels(), fontsize=y_size, fontweight=y_weight, rotation=y_rotation, ha=y_ha, va=y_va
-    )
+    The colormap can be access using `tab30`
 
+    :return: Returns `None`
+
+    Example
+    -------
+
+    .. plot::
+        :context: close-figs
+
+        import dotools_py as do
+        import matplotlib.pyplot as plt
+        import numpy as np
+        do.utility.tab30()
+        plt.figure(figsize=(6, 2))
+        gradient = np.linspace(0, 1, 256).reshape(1, -1)
+        gradient = np.vstack([gradient] * 10)  # Stack to make it thicker
+        plt.imshow(gradient, aspect='auto', cmap="tab30")
+        plt.axis('off')
+
+    """
+    cmap = ListedColormap([
+        "#1f77b4", "#ff7f0e", "#2ca02c", "#ee5c42", "#9467bd", "#cd661d", "#e377c2", "#ffbb78", "#bcbd22", "#17becf",
+        "#eead0e", "#aec7e8", "#98df8a", "#ff9896", "#c5b0d5", "#c49c94", "#f7b6d2", "#c7c7c7", "#dbdb8d",
+        "#9edae5", "#f4a460", "#ffe4b5", "#b0c4de", "#9932cc", "#ee8262", "#228b22", "#ffe4c4",
+        "#b22222", "#cd853f", "#6a5acd"
+    ], "tab30")
+    mpl.colormaps.register(cmap, name="tab30")
+    return None
 
