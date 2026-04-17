@@ -1,93 +1,179 @@
 import tqdm
-import subprocess
+import appdirs
+from typing import Literal, Self
 
 import anndata as ad
 
 from dotools_py import logger
-from dotools_py._custom_class import PathLike
+from dotools_py._custom_class import PathLike, InputError
 from dotools_py._utils import convert_path
 
 HERE = convert_path(__file__).parent
 
 
-def example_10x(path: PathLike = "/tmp/dotools_datasets/") -> None:
-    """Download 10X datasets.
+class LoadData:
+    DEFAULT_PATH = appdirs.user_cache_dir("dotools_datasets")
 
-    Downloads a dataset of PBMC from healty and malignant B cells. Two H5 files will be downloaded
-    (`raw_feature_bc_matrix.h5`) and (`filtered_feature_bc_matrix.h5`) for each condition (healthy and disease). They
-    will be saved following the structure output from CellRanger (e.g., `healhty/outs/*.h5` or `disease/outs/*.h5`).
+    def __init__(
+        self,
+        path: PathLike = None,
+        technology: Literal["scrna", "visium"] = "scrna"
+    ):
+        """Initiate the class
 
-    :param path: Path where the data is downloaded. Two subfolders will be created.
-    :return: Returns `None`. H5 files are saved under the provided path. For each condition a subfolder will be created
-            in the provided path.
+        :param path: Absolute path to where the data is saved. The default directory is the Cache directory.
+        :param technology: The type of dataset that will be downloaded
+        """
+
+        self.technology = technology
+        self.paths = self._create_dir(path)
+        self._get_links()
+
+    def _get_links(self) -> Self:
+        """Get the links for the data.
+
+        :return: The links and prefix attributes will be initialized
+        """
+        website = "https://cf.10xgenomics.com/samples/"
+        if self.technology == "scrna":
+            links = (
+                ("healthy filtered",
+                 f"{website}cell-exp/3.0.0/pbmc_10k_protein_v3/pbmc_10k_protein_v3_filtered_feature_bc_matrix.h5"),
+                ("healthy raw",
+                 f"{website}cell-exp/3.0.0/pbmc_10k_protein_v3/pbmc_10k_protein_v3_raw_feature_bc_matrix.h5"),
+                ("disease filtered",
+                 f"{website}cell-exp/3.0.0/malt_10k_protein_v3/malt_10k_protein_v3_filtered_feature_bc_matrix.h5"),
+                ("disease raw",
+                 f"{website}cell-exp/3.0.0/malt_10k_protein_v3/malt_10k_protein_v3_raw_feature_bc_matrix.h5")
+            )
+            prefix = "10k_protein_v3_"
+        elif self.technology == "visium":
+            links = (
+            ("Molecule info", f"{website}spatial-exp/1.1.0/V1_Human_Heart/V1_Human_Heart_molecule_info.h5"),
+            ("filtered matrix", f"{website}spatial-exp/1.1.0/V1_Human_Heart/V1_Human_Heart_filtered_feature_bc_matrix.h5"),
+            ("raw matrix", f"{website}spatial-exp/1.1.0/V1_Human_Heart/V1_Human_Heart_raw_feature_bc_matrix.h5"),
+            ("spatial", f"{website}spatial-exp/1.1.0/V1_Human_Heart/V1_Human_Heart_spatial.tar.gz"),
+            ("metrics", f"{website}spatial-exp/1.1.0/V1_Human_Heart/V1_Human_Heart_metrics_summary.csv"),
+            ("web summary", f"{website}spatial-exp/1.1.0/V1_Human_Heart/V1_Human_Heart_web_summary.html")
+            )
+            prefix = "V1_Human_Heart_"
+        else:
+            raise InputError(f"{self.technology} is not a valid value for technology")
+
+        self.links = links
+        self.prefix = prefix
+        return  self
+
+
+    def _create_dir(self, path: PathLike = None) -> tuple | PathLike:
+        """Create a directory in path to save the data
+
+        :param path: Absolute path where the data is going to be saved. If set to `None` save in the Cache folder.
+        :return:  Returns a tuple or a pathlike object
+        """
+        path = path if path is not None else self.DEFAULT_PATH
+        logger.info(f"Downloading data to {path}")
+        path = convert_path(path)
+        path.mkdir(parents=True, exist_ok=True)
+
+        if self.technology == "scrna":
+            healthy_path = path / "healthy" / "outs"
+            healthy_path.mkdir(parents=True, exist_ok=True)
+            disease_path = path / "disease" / "outs"
+            disease_path.mkdir(parents=True, exist_ok=True)
+            paths = (healthy_path, disease_path)
+        elif self.technology == "visium":
+            visium_path = path / "visium"
+            visium_path.mkdir(parents=True, exist_ok=True)
+            paths = visium_path
+        else:
+            raise InputError(f"{self.technology} is not a valid value for technology")
+        return paths
+
+
+    def download_data(self) -> None:
+        """Downloads the data.
+
+        :return: Returns `None`
+        """
+        import requests
+        import subprocess
+
+        for name, link in self.links:
+            filename = link.split(self.prefix)[-1]
+            response = requests.get(link, stream=True)  # Download in chunks
+            total_size = int(response.headers.get("content-length", 0))
+
+            if isinstance(self.paths, tuple):
+                current_path = self.paths[0] if "healthy" in name else self.paths[1]
+            else:
+                current_path = self.paths
+
+            with (
+                open(current_path / filename, "wb") as file,
+                tqdm.tqdm(
+                    desc=f"Downloading {name}",
+                    total=total_size,
+                    unit="iB",
+                    unit_scale=True,
+                    unit_divisor=1024,
+                ) as bar,
+            ):
+                for data in response.iter_content(1024):
+                    file.write(data)
+                    bar.update(len(data))
+
+        if self.technology == "visium":
+            try:
+                command = [
+                    f"tar -xf {self.paths / 'spatial.tar.gz'}"
+                ]
+                _ = subprocess.run(command, shell=True, check=True, cwd=str(self.paths))
+            except Exception as e:
+                logger.warn(
+                    f"Could not uncompressed {self.paths / 'spatial.tar.gz'}, please do it manually\nError: {e}"
+                )
+        return None
+
+
+def example_10x(path: PathLike = None) -> None:
+    """Download scRNA 10x dataset.
+
+    Downloads an example dataset of PBMC from healthy donors and malignant B cells. Two H5 files for each dataset
+    will be downloaded (`raw_feature_bc_matrix.h5`) and (`filtered_feature_bc_matrix.h5`) and will be saved
+    following the CellRanger output format (e.g., `dataset/outs/*.h5`).
+
+    :param path: Absolute path where the data is saved. If set to `None`, it will be saved to the user cache folder.
+    :return: Returns `None`.
 
     Example
     -------
+
     >>> import dotools_py as do
-    >>> do.dt.example_10x("/tmp/dotools_datasets/")
-    2025-10-22 13:29:52,730 - Downloading data to /tmp/dotools_datasets/
-    Downloading healthy filtered: 100%|██████████| 20.8M/20.8M [00:00<00:00, 97.5MiB/s]
-    Downloading healthy raw: 100%|██████████| 147M/147M [00:01<00:00, 88.1MiB/s]
-    Downloading disease filtered: 100%|██████████| 18.7M/18.7M [00:00<00:00, 104MiB/s]
-    Downloading disease raw: 100%|██████████| 144M/144M [00:01<00:00, 85.1MiB/s]
-    >>> adata = do.io.read_10x_h5("/tmp/dotools_datasets/healthy/outs/filtered_feature_bc_matrix.h5")
+    >>> do.dt.example_10x()
+    2026-04-17 14:37:49,503 - Downloading data to /Users/david/Library/Caches/dotools_datasets
+    Downloading healthy filtered: 100%|██████████| 20.8M/20.8M [00:01<00:00, 14.0MiB/s]
+    Downloading healthy raw: 100%|██████████| 147M/147M [00:01<00:00, 117MiB/s]
+    Downloading disease filtered: 100%|██████████| 18.7M/18.7M [00:01<00:00, 12.7MiB/s]
+    Downloading disease raw: 100%|██████████| 144M/144M [00:06<00:00, 22.9MiB/s]
+    >>> adata = do.io.read_10x_h5("/Users/david/Library/Caches/dotools_datasets/healthy/outs/filtered_feature_bc_matrix.h5")
     >>> adata
     AnnData object with n_obs × n_vars = 7865 × 33538
     var: 'gene_ids', 'feature_types', 'genome', 'pattern', 'read', 'sequence'
 
     """
-    import requests
-
-    logger.info(f"Downloading data to {path}")
-    path = convert_path(path)
-    path.mkdir(parents=True, exist_ok=True)
-    healthy_path = path / "healthy" / "outs"
-    healthy_path.mkdir(parents=True, exist_ok=True)
-    disease_path = path / "disease" / "outs"
-    disease_path.mkdir(parents=True, exist_ok=True)
-
-    healthy_link1 = ("https://cf.10xgenomics.com/samples/cell-exp/"
-                     "3.0.0/pbmc_10k_protein_v3/pbmc_10k_protein_v3_filtered_feature_bc_matrix.h5")
-    healthy_link2 = ("https://cf.10xgenomics.com/samples/cell-exp/"
-                     "3.0.0/pbmc_10k_protein_v3/pbmc_10k_protein_v3_raw_feature_bc_matrix.h5")
-    disease_link1 = ("https://cf.10xgenomics.com/samples/cell-exp/"
-                     "3.0.0/malt_10k_protein_v3/malt_10k_protein_v3_filtered_feature_bc_matrix.h5")
-    disease_link2 = ("https://cf.10xgenomics.com/samples/cell-exp/"
-                     "3.0.0/malt_10k_protein_v3/malt_10k_protein_v3_raw_feature_bc_matrix.h5")
-    for name, link in [
-        ("healthy filtered", healthy_link1),
-        ("healthy raw", healthy_link2),
-        ("disease filtered", disease_link1),
-        ("disease raw", disease_link2),
-    ]:
-        filename = link.split("10k_protein_v3_")[-1]
-        response = requests.get(link, stream=True)  # Download in chunks
-        total_size = int(response.headers.get("content-length", 0))
-        block_size = 1024  # 1 Kibibyte
-        current_path = healthy_path if "healthy" in name else disease_path
-        with (
-            open(current_path / filename, "wb") as file,
-            tqdm.tqdm(
-                desc=f"Downloading {name}",
-                total=total_size,
-                unit="iB",
-                unit_scale=True,
-                unit_divisor=1024,
-            ) as bar,
-        ):
-            for data in response.iter_content(block_size):
-                file.write(data)
-                bar.update(len(data))
+    loader = LoadData(path=path, technology="scrna")
+    loader.download_data()
     return None
 
 
 def example_10x_processed() -> ad.AnnData:
-    """Load example datasets from 10x processed.
+    """Load example scRNAseq from 10x processed.
 
     Loads a reduced version of the example datasets from healthy and malignant B cells from 10x used in the
     tutorial of the package.
 
-    :return: Returns an AnnData object processed with 700 cells and 1851 genes.
+    :return: Returns an `AnnData` object processed with 700 cells and 1851 genes.
 
     Example
     -------
@@ -112,29 +198,27 @@ def example_10x_processed() -> ad.AnnData:
     return ad.read_h5ad(HERE / "example_reduced.h5ad")
 
 
-def example_visium(path: PathLike = "tmp/dotools_datasets/") -> None:
-    """Download 10X Visium datasets.
+def example_visium(path: PathLike = None) -> None:
+    """ Download a 10x Visium dataset from the heart.
 
-    Downloads a dataset of the human heart fresh frozen tissue including H&E image.
+    Downloads a dataset of the human heart. The sample comes from fresh frozen tissue and includes the H&E image.
 
-    :param path: Path where the data is downloaded.
+    :param path: Absolute path where the data is saved. If set to `None`, it will be saved to the user cache folder.
     :return: Returns `None`.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import dotools_py as do
-    >>> do.dt.example_visium("/tmp/dotools_datasets/")
-    2026-03-03 11:53:51,993 - Downloading data to /tmp/dotools_datasets/
-    Downloading Molecule info: 100%|██████████| 142M/142M [00:07<00:00, 20.8MiB/s]
-    Downloading filtered matrix: 100%|██████████| 11.6M/11.6M [00:01<00:00, 7.77MiB/s]
-    Downloading raw matrix: 100%|██████████| 13.4M/13.4M [00:01<00:00, 11.0MiB/s]
-    Downloading spatial: 100%|██████████| 8.78M/8.78M [00:01<00:00, 8.02MiB/s]
-    Downloading metrics: 100%|██████████| 945/945 [00:00<00:00, 4.36MiB/s]
-    Downloading web summary: 7.29MiB [00:01, 6.73MiB/s]
-    >>> adata = do.io.read_visium("/tmp/dotools_datasets")
+    >>> do.dt.example_visium()
+    2026-04-17 14:45:48,428 - Downloading data to /Users/david/Library/Caches/dotools_datasets
+    Downloading Molecule info: 100%|██████████| 142M/142M [00:01<00:00, 118MiB/s]
+    Downloading filtered matrix: 100%|██████████| 11.6M/11.6M [00:00<00:00, 112MiB/s]
+    Downloading raw matrix: 100%|██████████| 13.4M/13.4M [00:00<00:00, 115MiB/s]
+    Downloading spatial: 100%|██████████| 8.78M/8.78M [00:00<00:00, 111MiB/s]
+    Downloading metrics: 100%|██████████| 945/945 [00:00<00:00, 19.3MiB/s]
+    Downloading web summary: 7.29MiB [00:00, 13.7MiB/s]
+    >>> adata = do.io.read_visium("/Users/david/Library/Caches/dotools_datasets/visium")
     >>> adata
-    reading /tmp/dotools_datasets/filtered_feature_bc_matrix.h5
-    (0:00:00)
     AnnData object with n_obs × n_vars = 4247 × 36601
     obs: 'in_tissue', 'array_row', 'array_col'
     var: 'gene_ids', 'feature_types', 'genome'
@@ -142,65 +226,17 @@ def example_visium(path: PathLike = "tmp/dotools_datasets/") -> None:
     obsm: 'spatial'
 
     """
-    import requests
-
-    logger.info(f"Downloading data to {path}")
-    path = convert_path(path)
-    path.mkdir(parents=True, exist_ok=True)
-
-    visium_path = path
-    visium_path.mkdir(parents=True, exist_ok=True)
-
-    link1 = "https://cf.10xgenomics.com/samples/spatial-exp/1.1.0/V1_Human_Heart/V1_Human_Heart_molecule_info.h5"
-    link2 = (
-        "https://cf.10xgenomics.com/samples/spatial-exp/1.1.0/V1_Human_Heart/V1_Human_Heart_filtered_feature_bc_matrix.h5"
-    )
-    link3 = "https://cf.10xgenomics.com/samples/spatial-exp/1.1.0/V1_Human_Heart/V1_Human_Heart_raw_feature_bc_matrix.h5"
-    link4 = "https://cf.10xgenomics.com/samples/spatial-exp/1.1.0/V1_Human_Heart/V1_Human_Heart_spatial.tar.gz"
-    link5 = "https://cf.10xgenomics.com/samples/spatial-exp/1.1.0/V1_Human_Heart/V1_Human_Heart_metrics_summary.csv"
-    link6 = "https://cf.10xgenomics.com/samples/spatial-exp/1.1.0/V1_Human_Heart/V1_Human_Heart_web_summary.html"
-
-    for name, link in [
-        ("Molecule info", link1),
-        ("filtered matrix", link2),
-        ("raw matrix", link3),
-        ("spatial", link4),
-        ("metrics", link5),
-        ("web summary", link6),
-    ]:
-        filename = link.split("V1_Human_Heart_")[-1]
-        response = requests.get(link, stream=True)  # Download in chunks
-        total_size = int(response.headers.get("content-length", 0))
-        block_size = 1024  # 1 Kibibyte
-        with (
-            open(visium_path / filename, "wb") as file,
-            tqdm.tqdm(
-                desc=f"Downloading {name}",
-                total=total_size,
-                unit="iB",
-                unit_scale=True,
-                unit_divisor=1024,
-            ) as bar,
-        ):
-            for data in response.iter_content(block_size):
-                file.write(data)
-                bar.update(len(data))
-    try:
-        command = [
-            f"tar -xf {visium_path / 'spatial.tar.gz'}"
-        ]
-        _ = subprocess.run(command, shell=True, check=True, cwd=visium_path)
-    except Exception as e:
-        logger.warn(f"Could not uncompressed {visium_path / 'spatial.tar.gz'}, please do it manually")
+    loader = LoadData(path=path, technology="visium")
+    loader.download_data()
     return None
 
 
 def example_visium_processed()-> ad.AnnData:
-    """Load example datasets from Visium processed.
+    """Load example Visium datasets processed.
 
     Loads a reduced version of the example datasets from Visium used in the tutorial of the package.
 
-    :return: Returns an AnnData object processed with 1046 cells and 1000 genes.
+    :return: Returns an `AnnData` object processed with 1046 cells and 1000 genes.
 
     Example
     -------

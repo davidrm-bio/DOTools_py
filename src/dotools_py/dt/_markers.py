@@ -26,7 +26,6 @@ def heart_markers(
 
     """
     logger.info(f"Getting {species} markers")
-    species = species.lower()
 
     mouse = {
         "Art_EC": ["Rbp7", "Ly6a", "Id1", "Stmn2", "Fbln5", "Glul", "Cxcl12", "Sox17", "Hey1", "Mgll", "Dusp1",
@@ -58,12 +57,10 @@ def heart_markers(
                  "Rab27b"],  # Refined
     }  # Cell Type Markers in Mouse Format
 
-    human = {cell: [gene.upper() for gene in mouse[cell]] for cell in mouse}  # Cell Type Markers in Human Format
-
     if species == "mouse":
         return mouse
     elif species == "human":
-        return human
+        return {cell: [gene.upper() for gene in mouse[cell]] for cell in mouse}
     else:
         raise InputError(f"{species} is not a valid species")
 
