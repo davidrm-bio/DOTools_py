@@ -113,7 +113,7 @@ Alternatively you can write to my email: [rodriguezmorales@med.uni-frankfurt.de]
 
 ## Citation
 
-> t.b.a
+>  DOI: https://doi.org/10.1093/bioadv/vbag098
 
 [uv]: https://github.com/astral-sh/uv
 [scverse discourse]: https://discourse.scverse.org/
