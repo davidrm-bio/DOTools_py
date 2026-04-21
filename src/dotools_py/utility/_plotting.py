@@ -2,6 +2,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap, ListedColormap
 
+from dotools_py.logger import  logger
 
 def generate_cmap(*args) -> LinearSegmentedColormap:
     """Generate a custom colormap.
@@ -141,6 +142,10 @@ def tab30() -> None:
         "#9edae5", "#f4a460", "#ffe4b5", "#b0c4de", "#9932cc", "#ee8262", "#228b22", "#ffe4c4",
         "#b22222", "#cd853f", "#6a5acd"
     ], "tab30")
-    mpl.colormaps.register(cmap, name="tab30")
+    try:
+        mpl.colormaps.register(cmap, name="tab30")
+    except ValueError as e:
+        logger.debug("tab30 is already registered")
     return None
 
+tab30()
