@@ -550,7 +550,7 @@ def _density_individual_continuous(
         if color in adata.var_names:
             df_tmp = get_expr(adata, color)
         else:
-            df_tmp = adata.obs[color]
+            df_tmp = adata.obs[color].to_frame()
             df_tmp["expr"] = df_tmp[color]
 
 
@@ -570,7 +570,7 @@ def _density_individual_continuous(
     if color in adata.var_names:
         df_density = get_expr(adata, color, out_format="wide")
     else:
-        df_density = pd.DataFrame(adata.obs[color])
+        df_density = adata.obs[color].to_frame()
 
     df_density[["x", "y"]] = adata.obsm[basis].copy()
     kwargs_kde = {} if kwargs_kde is None else kwargs_kde
