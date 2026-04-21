@@ -182,13 +182,26 @@ def is_none(variable: Any, default: Any = None):
     return variable if variable is not None else default
 
 
-def x_is_raw_counts(adata: ad.AnnData) -> None:
+def x_is_raw_counts(adata: ad.AnnData, inverse: bool =False, layer: str = None) -> None:
     from scipy.sparse import issparse
-    matrix = adata.X.data if issparse(adata.X) else adata.X.flatten()
-    if (matrix % 1 != 0).any():
-        raise ValueError("The count matrix should only contain integers.")
-    if (matrix < 0).any():
-        raise ValueError("The count matrix should only contain non-negative values.")
+    if layer is None:
+        matrix = adata.X.data if issparse(adata.X) else adata.X.flatten()
+    else:
+        matrix = adata.layers[layer].data if issparse(adata.layers[layer]) else adata.layers[layer].flatten()
+
+    if not inverse:
+        if (matrix % 1 != 0).any():
+            raise ValueError("The count matrix should only contain integers.")
+        if (matrix < 0).any():
+            raise ValueError("The count matrix should only contain non-negative values.")
+    else:
+        if (matrix % 1 == 0).any():
+            raise ValueError("The count matrix should contain log-normalised values.")
+        if (matrix < 0).any():
+            raise ValueError("The count matrix should only contain non-negative values.")
+
+
+
 
 
 def transfer_labels(
