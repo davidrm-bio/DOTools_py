@@ -61,6 +61,7 @@ dependencies = [
   "fastexcel",
   "scib",
   "harmony-pytorch",
+  "appdirs"
 ]
 
 
@@ -122,7 +123,8 @@ optional-dependencies.test = [
   "tqdm",
   "pyarrow",
   "fastexcel",
-  "zarr"
+  "zarr",
+  "appdirs"
 ]
 # https://docs.pypi.org/project_metadata/#project-urls
 urls.Documentation = "https://DOTools_py.readthedocs.io/"
