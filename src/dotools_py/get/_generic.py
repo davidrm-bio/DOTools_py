@@ -94,6 +94,9 @@ def expr(
     features = iterase_input(features)
     groups = iterase_input(groups)
 
+    if len(features) == adata.n_vars:
+        logger.warn("When all features are extracted, long format can lead to high running time")
+
     assert len(features) != 0, "No features provided"
     assert out_format == "wide" or out_format == "long", f'{out_format} not recognize, try "long" or "wide"'
 
@@ -113,8 +116,6 @@ def expr(
     if groups is not None:
         table_expr[groups] = adata.obs[groups]
     if out_format == "long":
-        if len(features) == adata.n_vars:
-            logger.warn("When all features are extracted, long format can lead to high running time")
         table_expr = pd.melt(table_expr, id_vars=groups, var_name="genes", value_name="expr")
     free_memory()
     return table_expr
@@ -127,6 +128,7 @@ def mean_expr(
     out_format: Literal["long", "wide"] = "long",
     layer: str | None = None,
     logcounts: bool = True,
+    logmean: bool = True,
 ) -> pd.DataFrame:
     """Calculate the average expression in an AnnData objects for features.
 
@@ -141,12 +143,14 @@ def mean_expr(
     :param out_format: Format of the Dataframe returned. This can be wide or long format.
     :param layer: Layer of the AnnData to use. If not set use `X`.
     :param logcounts: Set to `True` if the input is in log space.
+    :param logmean: If set to `True` the calculated mean will be `log1p` transform.
+                    For expression data it would return the LogMean(nUMI) if set to `True` and Mean(nUMI) if set to `False`.
 
     Returns
     -------
-    Returns a `DataFrame` with the mean expression in log1p transformation. If `out_format` is set to `wide`, the index
-    will be set to the gene names and the column names will be set to the groups. If `out_format` is set to `long`,
-    the following fields are included:
+    Returns a `DataFrame` with the mean expression woth log1p transformation if logmean is set to `True`.
+    If `out_format` is set to `wide`, the index will be set to the gene names and the column names will be set to the groups.
+    If `out_format` is set to `long`, the following fields are included:
 
     `gene`
         Contains the gene names.
@@ -223,8 +227,10 @@ def mean_expr(
 
     # Move expr column to last position
     expr_col = main_df.pop("expr")
-    main_df["expr"] = expr_col
-
+    if logmean:
+        main_df["expr"] = expr_col
+    else:
+        main_df["expr"] = np.expm1(expr_col)
     # Change to wide format
     if out_format == "wide":
         main_df = pd.pivot_table(main_df, index="gene", columns=group_by, values="expr")
