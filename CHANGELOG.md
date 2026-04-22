@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning][].
 ## Version 0.0.4
 
 ### News
-- The DoTools manuscript is published in [Bioinformatics Advances]().
+- The DoTools manuscript is published in [Bioinformatics Advances](https://doi.org/10.1093/bioadv/vbag098).
 
 ### Features
 - Add `gridsize` parameter to ``dotools_py.pl.density`` to control the number of points calculated in each dimension.
