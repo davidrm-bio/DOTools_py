@@ -300,6 +300,7 @@ def boxplot(
 
     .. plot::
         :context: close-figs
+        
         do.pl.boxplot(adata, "condition", "RPL11", batch_key="annotation", pseudobulk=True, scatter=True, marker_size=5)
 
 

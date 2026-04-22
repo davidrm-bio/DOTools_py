@@ -776,8 +776,7 @@ def split_bar_gsea(
     Example
     -------
 
-    .. plot::
-        :context: close-figs
+    .. code-block:: python
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
@@ -787,6 +786,10 @@ def split_bar_gsea(
         table_go = do.tl.go_analysis(table, 'GeneName', 'padj', 'log2fc', specie='Human', go_catgs = ['GO_Molecular_Function_2023', 'GO_Cellular_Component_2023', 'GO_Biological_Process_2023'])
         table_go = table_go[table_go['P-value'] < 0.25]
         do.pl.split_bar_gsea(table_go, 'Term', 'Combined Score', 'state', 'enriched', show=True)
+
+    .. image:: ../../figures/split_bar_gsea_example.png
+        :width: 600px
+        :align: center
 
     """
     if len(df[cond_col].unique()) != 2:
