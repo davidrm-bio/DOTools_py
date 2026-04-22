@@ -164,6 +164,7 @@ def barplot(
     axis = plotter.barplot(
         estimator=estimator, capsize=capsize, marker_size=marker_size, ylabel=ylabel, ylim_max=ylim_max, **kwargs
     )
+    axis = axis if len(axis) != 1 else axis["mainplot_ax"]
 
     save_plot(path, filename)
     return return_axis(show, axis=axis)
@@ -321,6 +322,7 @@ def boxplot(
         corr_method=corr_method, line_offset=line_offset, txt_size=txt_size, txt=txt
     )
     axis = plotter.boxplot(showfliers=showfliers, scatter=scatter, marker_size=marker_size, ylabel=ylabel, **kwargs)
+    axis = axis if len(axis) != 1 else axis["mainplot_ax"]
 
     save_plot(path, filename)
     return return_axis(show, axis=axis)
@@ -469,6 +471,7 @@ def violinplot(
         corr_method=corr_method, line_offset=line_offset, txt_size=txt_size, txt=txt
     )
     axis = plotter.violinplot(scatter=scatter, marker_size=marker_size, cut=cut, ylabel=ylabel, **kwargs)
+    axis = axis if len(axis) != 1 else axis["mainplot_ax"]
 
     save_plot(path, filename)
     return return_axis(show, axis=axis)
