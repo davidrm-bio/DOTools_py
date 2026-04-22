@@ -1,6 +1,6 @@
 import tqdm
 import appdirs
-from typing import Literal, Self
+from typing import Literal
 
 import anndata as ad
 
@@ -29,7 +29,7 @@ class LoadData:
         self.paths = self._create_dir(path)
         self._get_links()
 
-    def _get_links(self) -> Self:
+    def _get_links(self):
         """Get the links for the data.
 
         :return: The links and prefix attributes will be initialized
