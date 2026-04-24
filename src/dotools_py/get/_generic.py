@@ -469,10 +469,11 @@ def subset_df(
 
     if len(columns) == 1:  # We only subset by one column
         comparison = comparison[0]
+        columns = columns[0]
         if comparison == "exclude":
-            df_subset = df_subset[~df_subset[columns].isin(col_groups)]
+            df_subset = df_subset[~df_subset[columns].isin(iterase_input(col_groups))]
         elif comparison == "include":
-            df_subset = df_subset[df_subset[columns].isin(col_groups)]
+            df_subset = df_subset[df_subset[columns].isin(iterase_input(col_groups))]
         else:
             mask = operations[comparison](df_subset[columns], col_groups).values
             df_subset = df_subset[mask]
