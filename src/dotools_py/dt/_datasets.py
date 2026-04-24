@@ -126,9 +126,9 @@ class LoadData:
         if self.technology == "visium":
             try:
                 command = [
-                    f"tar -xf {self.paths / 'spatial.tar.gz'}"
+                    f"tar -xf {str(self.paths / 'spatial.tar.gz')}"
                 ]
-                _ = subprocess.run(command, shell=True, check=True, cwd=str(self.paths))
+                _ = subprocess.run(command, check=True, cwd=str(self.paths))
             except Exception as e:
                 logger.warn(
                     f"Could not uncompressed {self.paths / 'spatial.tar.gz'}, please do it manually\nError: {e}"
