@@ -61,7 +61,8 @@ dependencies = [
   "fastexcel",
   "scib",
   "harmony-pytorch",
-  "appdirs"
+  "appdirs",
+  "rich<14",
 ]
 
 
