@@ -62,7 +62,7 @@ jobs:
 
     name: ${{ matrix.env.label }}
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ contains(matrix.env.name, 'pre') }}
+    # continue-on-error: ${{ contains(matrix.env.name, 'pre') }}
 
     steps:
       - uses: actions/checkout@v5
@@ -81,8 +81,8 @@ jobs:
           MPLBACKEND: agg
           PLATFORM: ${{ matrix.os }}
           DISPLAY: :42
-        # run: uvx hatch run ${{ matrix.env.name }}:run-cov
-        run: uvx hatch run ${{ matrix.env.name }}:run-cov -v --color=yes -n auto
+        run: uvx hatch run ${{ matrix.env.name }}:run-cov
+        #run: uvx hatch run ${{ matrix.env.name }}:run-cov -v --color=yes -n auto
       - name: generate coverage report
         run: uvx hatch run ${{ matrix.env.name }}:coverage xml
         #run: |
