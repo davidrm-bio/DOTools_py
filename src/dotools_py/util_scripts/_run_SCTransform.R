@@ -33,15 +33,32 @@ adata <- readH5AD(paste0(opt$input, '/adata_tmp.h5ad'))
 
 Seu <- as.Seurat(adata, counts = "counts", data = 'counts')
 
+adata <- NULL
+invisible(gc())
+
 message('Applying SCTransform')
 Seu <- tryCatch(
-    Seu <- Seurat::SCTransform(Seu, vst.flavor="v2", assay = 'originalexp', return.only.var.genes = F,
-                               min_cells=5,  batch_var='batch',   new.assay.name = "SCT"),
+    {
+    Seurat::SCTransform(
+        Seu,
+        vst.flavor="v2",
+        assay = 'originalexp',
+        return.only.var.genes = F,
+        #min_cells=5,
+        batch_var='batch',
+        new.assay.name = "SCT"
+        )
+    },
     error = function (e){
         message('Running for only one batch')
-        Seu <- Seurat::SCTransform(Seu, vst.flavor="v2", assay = 'originalexp', return.only.var.genes = F,
-                                    min_cells=5,   new.assay.name = "SCT")
-        return(Seu)
+        Seurat::SCTransform(
+            Seu,
+            vst.flavor="v2",
+            assay = 'originalexp',
+            return.only.var.genes = F,
+            #min_cells=5,
+            new.assay.name = "SCT"
+        )
     }
 )
 
