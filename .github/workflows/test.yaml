@@ -84,12 +84,12 @@ jobs:
         # run: uvx hatch run ${{ matrix.env.name }}:run-cov
         run: uvx hatch run ${{ matrix.env.name }}:run-cov -v --color=yes -n auto
       - name: generate coverage report
-        # run: uvx hatch run ${{ matrix.env.name }}:coverage xml
-        run: |
-          # See https://coverage.readthedocs.io/en/latest/config.html#run-patch
-          test -f .coverage || uvx hatch run ${{ matrix.env.name }}:cov-combine
-          uvx hatch run ${{ matrix.env.name }}:cov-report   # report visibly
-          uvx hatch run ${{ matrix.env.name }}:coverage xml # create report for upload
+        run: uvx hatch run ${{ matrix.env.name }}:coverage xml
+        #run: |
+        #  # See https://coverage.readthedocs.io/en/latest/config.html#run-patch
+        #  test -f .coverage || uvx hatch run ${{ matrix.env.name }}:cov-combine
+        #  uvx hatch run ${{ matrix.env.name }}:cov-report   # report visibly
+        #  uvx hatch run ${{ matrix.env.name }}:coverage xml # create report for upload
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:

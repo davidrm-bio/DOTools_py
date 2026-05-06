@@ -42,16 +42,15 @@ def test_integrate():
 def test_autoannot():
     adata = do.dt.example_10x_processed()
 
-    os.makedirs("./tmp", exist_ok=True)
-
+    os.makedirs("./tmp_autoannot", exist_ok=True)
     del adata.obs["autoAnnot"]
     do.tl.auto_annot(adata, "leiden", convert=False, pl_cell_prob=True,
-                     path="./tmp", filename="test.svg")
+                     path="./tmp_autoannot", filename="test.svg")
     plt.close()
     assert "autoAnnot" in adata.obs.columns
-    files = os.listdir("./tmp")
+    files = os.listdir("./tmp_autoannot")
     assert "test.svg" in files
-    shutil.rmtree('./tmp')
+    shutil.rmtree('./tmp_autoannot')
     return None
 
 
