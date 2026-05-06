@@ -113,7 +113,7 @@ Alternatively you can write to my email: [rodriguezmorales@med.uni-frankfurt.de]
 
 ## Citation
 
->  DOI: https://doi.org/10.1093/bioadv/vbag098
+ > Ruz Jurado, Mariano, David Rodriguez Morales, Lukas Zanders, Elijah Genetzakis, Stefanie Dimmeler, and David John. 2026. “DoTools: A Cross Platform Framework to Streamline Common Single Cell Workflows.” Bioinformatics Advances: vbag098. https://doi.org/10.1093/bioadv/vbag098
 
 [uv]: https://github.com/astral-sh/uv
 [scverse discourse]: https://discourse.scverse.org/

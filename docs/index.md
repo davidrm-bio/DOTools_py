@@ -74,4 +74,4 @@ do.utility.create_report("History.log")
 ```
 
 ## Citation
-> t.b.a
+> Ruz Jurado, Mariano, David Rodriguez Morales, Lukas Zanders, Elijah Genetzakis, Stefanie Dimmeler, and David John. 2026. “DoTools: A Cross Platform Framework to Streamline Common Single Cell Workflows.” Bioinformatics Advances: vbag098. https://doi.org/10.1093/bioadv/vbag098
