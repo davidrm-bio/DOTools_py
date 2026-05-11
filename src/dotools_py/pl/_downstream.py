@@ -13,7 +13,7 @@ from matplotlib.colors import LinearSegmentedColormap, ListedColormap
 
 from dotools_py import logger
 from dotools_py.get import mean_expr
-from dotools_py.utility import generate_cmap
+from dotools_py.utility import generate_cmap, free_memory
 from dotools_py._custom_class import PathLike
 from dotools_py._utils import sanitize_anndata, convert_path, require_dependencies
 from dotools_py.pl._plot_utils import save_plot, return_axis, make_grid_spec
@@ -298,7 +298,7 @@ def cell_composition(
     from scanpro import scanpro
 
     transform = transform if batch_key is not None else "arcsin"
-    adata = adata.copy()  # Do not modify input
+    # adata = adata.copy()  # Do not modify input
     sanitize_anndata(adata)
 
     if annot_order is not None:
@@ -481,7 +481,7 @@ def cell_composition(
     axs_legend.tick_params(axis="both", left=False, labelleft=False, labelright=False, bottom=False, labelbottom=False)
     axs_legend.spines[["right", "left", "top", "bottom"]].set_visible(False)
     axs_legend.grid(visible=False)
-
+    free_memory()
     # Save if specified
     if path is not None:
         plt.savefig(convert_path(path) / filename, bbox_inches="tight")
