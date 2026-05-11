@@ -31,7 +31,7 @@ def _expm1_anndata(adata: ad.AnnData) -> None:
         adata.X = np.expm1(adata.X)
     return  None
 
-
+#TODO Improve speed
 def expr(
     adata: ad.AnnData,
     features: str | list | None,
@@ -120,7 +120,7 @@ def expr(
     free_memory()
     return table_expr
 
-
+# TODO Improve speed
 def mean_expr(
     adata: ad.AnnData,
     group_by: str | list,
