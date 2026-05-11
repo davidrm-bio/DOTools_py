@@ -402,6 +402,7 @@ def subset(
         else:
             mask = operations[comparison](adata.var[var_key], var_groups).values
             adata = adata[:, mask]
+    free_memory()
     if copy:
         return adata.copy()
     else:
