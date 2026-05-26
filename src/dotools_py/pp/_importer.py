@@ -238,7 +238,7 @@ def pearson_residuals_normalize(
     obsp: 'connectivities', 'distances'
 
     """
-    x_is_raw_counts(adata)
+    x_is_raw_counts(adata, layer=layer)
 
     if "counts" not in adata.layers.keys():
         adata.layers["counts"] = adata.X.copy()
