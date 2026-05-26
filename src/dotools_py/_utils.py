@@ -195,8 +195,8 @@ def x_is_raw_counts(adata: ad.AnnData, inverse: bool =False, layer: str = None) 
         if (matrix < 0).any():
             raise ValueError("The count matrix should only contain non-negative values.")
     else:
-        if (matrix % 1 == 0).any():
-            raise ValueError("The count matrix should contain log-normalised values.")
+        # if (matrix % 1 == 0).any():
+        #     raise ValueError("The count matrix should contain log-normalised values.")
         if (matrix < 0).any():
             raise ValueError("The count matrix should only contain non-negative values.")
 
