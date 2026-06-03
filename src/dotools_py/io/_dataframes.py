@@ -12,8 +12,8 @@ _Empty = EmptyType()
 
 def read_excel(
     path: PathLike,
-    filename: str = None,
-    sheet_name: str = "Sheet1",
+    filename: str | None = None,
+    sheet_name: str = "Sheet 1",
     backend: Literal["pandas", "polars"] = "pandas",
     **kwargs
 ) -> pd.DataFrame:
@@ -64,7 +64,7 @@ def read_excel(
 
 def read_csv(
     path: PathLike,
-    filename: str = None,
+    filename: str | None = None,
     delimiter: str = ",",
     backend: Literal["pandas", "polars"] = "pandas",
     **kwargs
@@ -117,7 +117,7 @@ def read_csv(
 
 def read_parquet(
     path: PathLike,
-    filename: str = None,
+    filename: str | None = None,
     backend: Literal["pandas", "polars"] = "pandas",
     **kwargs
 ) -> pd.DataFrame:
