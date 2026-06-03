@@ -80,6 +80,7 @@ def _run_scvi(
     gene_likelihood: Literal["zinb", "nb", "poisson", "normal"] = "zinb",
     get_model: bool = False,
     gene_key: str = "highly_variable",
+    batch_size: int = 128,
     **kwargs,
 ) -> "SCVI | None":
     """Run scVI.
@@ -98,6 +99,8 @@ def _run_scvi(
     :param dispersion: dispersion mode for scVI.
     :param gene_likelihood: gene likelihood.
     :param get_model: return the trained model.
+    :param gene_key: column in adata.var with mask
+    :param batch_size: batch size to use during training
     :param kwargs: additional arguments for `scvi.model.SCVI`.
     :return: None or the model, the latent space is saved in the anndata under X_scVI.
     """
@@ -130,7 +133,7 @@ def _run_scvi(
     )
 
     model_scvi.view_anndata_setup()
-    model_scvi.train()  # Train
+    model_scvi.train(batch_size=batch_size)  # Train
     adata.obsm["X_scVI"] = model_scvi.get_latent_representation()
 
     if get_model:
@@ -153,6 +156,7 @@ def run_scvi(
     dispersion: Literal["gene", "gene-batch", "gene-label", "gene-cell"] = "gene-batch",
     gene_likelihood: Literal["zinb", "nb", "poisson", "normal"] = "zinb",
     get_model: bool = False,
+    batch_size: int = 128,
     **kwargs,
 ) -> "SCVI | None":
     """Run scVI.
@@ -186,6 +190,8 @@ def run_scvi(
         Gene likelihood.
     get_model
         Return the trained model.
+    batch_size
+        Batch size to use during training
     kwargs
         Additional arguments for `scvi.model.SCVI <https://docs.scvi-tools.org/en/stable/api/reference/scvi.model.SCVI.html#scvi.model.SCVI>`_.
 
@@ -213,6 +219,7 @@ def run_scvi(
         gene_likelihood=gene_likelihood,
         get_model=get_model,
         gene_key=gene_key,
+        batch_size=batch_size,
         **kwargs,
     )
 
@@ -235,6 +242,7 @@ def run_scanvi(
     dispersion: Literal["gene", "gene-batch", "gene-label", "gene-cell"] = "gene-batch",
     gene_likelihood: Literal["zinb", "nb", "poisson", "normal"] = "zinb",
     get_model: bool = False,
+    batch_size: int = 128,
     scvi_kwargs: dict = None,
     scanvi_kwargs: dict = None
 ) -> "None | SCANVI":
@@ -275,6 +283,8 @@ def run_scanvi(
         Gene likelihood.
     get_model
         Return the trained scANVI model.
+    batch_size
+        Batch size to use during training
     scvi_kwargs
         Additional arguments for `scvi.model.SCVI <https://docs.scvi-tools.org/en/stable/api/reference/scvi.model.SCVI.html#scvi.model.SCVI>`_.
     scanvi_kwargs
@@ -305,6 +315,7 @@ def run_scanvi(
             gene_likelihood=gene_likelihood,
             get_model=True,
             gene_key=gene_key,
+            batch_size=batch_size,
             **scvi_kwargs
         )
 
@@ -314,7 +325,7 @@ def run_scanvi(
         scvi_model, labels_key=label_key, unlabeled_category=unlabel_group, **scanvi_kwargs
     )
     model_scanvi.view_anndata_setup()
-    model_scanvi.train()
+    model_scanvi.train(batch_size=batch_size)
     adata.obsm["X_scANVI"] = model_scanvi.get_latent_representation()
 
     if get_model:
