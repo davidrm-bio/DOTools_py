@@ -25,8 +25,8 @@ def _expm1_anndata(adata: ad.AnnData) -> None:
     """
 
     if issparse(adata.X):
-        adata.X = adata.X.copy()
-        adata.X.data = np.expm1(adata.X.data)
+        adata.X = adata.X.expm1()
+        # adata.X.data = np.expm1(adata.X.data)
     else:
         adata.X = np.expm1(adata.X)
     return  None
@@ -120,7 +120,7 @@ def expr(
     free_memory()
     return table_expr
 
-# TODO Improve speed
+
 def mean_expr(
     adata: ad.AnnData,
     group_by: str | list,
