@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning][].
 - Add ``do.tl.run_seurat_integration`` allowing both python (experimental) and r backend
 - The behavior of `logcounts` changed for `do.pl.barplot()` use `estimator` instead to adapt the calculation.
 - Add `logmean` to `do.get.mean_expr()` to control if  the mean or log-transformed mean is returned
-
+- Add ``do.tl.umap_clustering`` to compute neighbors, umap and clusters
 
 ### Bug Fixes
 - Fix Bug in ``dotools_py.pl.density`` related to axes ticks, colorbar and multiple feature plotting.

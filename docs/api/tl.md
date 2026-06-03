@@ -20,6 +20,7 @@ analysis and statistical methods.
     tl.auto_annot
     tl.reclustering
     tl.full_recluster
+    tl.umap_clustering
     tl.go_analysis
 ```
 

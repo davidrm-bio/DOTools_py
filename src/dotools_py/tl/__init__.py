@@ -7,7 +7,8 @@ from dotools_py.tl._analysis import (
     run_scvi,
     run_scanvi,
     run_harmony,
-    run_seurat_integration
+    run_seurat_integration,
+    umap_clustering
 )
 from dotools_py.tl._get_stats import (
     go_analysis,

@@ -1134,3 +1134,107 @@ def full_recluster(
         )
     del adata.obs["annotation_recluster"]
     return None
+
+
+
+def umap_clustering(
+    adata: ad.AnnData,
+    use_rep: str,
+    batch_key: str = "batch",
+    compute_neighbors: bool = True,
+    compute_umap: bool = True,
+    compute_clusters: bool = True,
+    resolution: float = 0.3,
+    cluster_key: str = "leiden",
+    neighbors_kwg: dict | None = None,
+) -> None:
+    """Compute UMAP embedding and identify clusters.
+
+    This function allows to compute the neighbors, UMAP embedding and identify clusters.
+    The neighbors will be computed based on a low dimentional representation present in
+    `adata.obsm`.
+
+    :param adata: Annotated data matrix
+    :param use_rep: Low dimentional representation to use to compute neighbors.
+    :param batch_key: Column in adata.obs with batch information
+    :param compute_neighbors: If set to `True` compute neighbors.
+    :param compute_umap: If set to `True`, the UMAP embeddings will be computed.
+    :param compute_clusters: If set to `True`, the leiden clustering algorithm will be run.
+    :param resolution: Resolution to use for clustering
+    :param cluster_key: Key in `adata.obs` with clustering information
+    :param neighbors_kwg: Additional parameters pass to `sc.pp.neighbors()`
+    :return: Returns None.
+
+    Example
+    -------
+
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> del adata.obsm["X_umap"],  adata.obs["leiden"]
+    >>> do.tl.umap_clustering(adata, "X_CCA")
+    2026-06-03 14:14:04,044 - Computing neighbors
+    computing neighbors
+        finished: added to `.uns['neighbors']`
+        `.obsp['distances']`, distances for each pair of neighbors
+        `.obsp['connectivities']`, weighted adjacency matrix (0:00:06)
+    2026-06-03 14:14:10,621 - Computing UMAP
+    computing UMAP
+        finished: added
+        'X_umap', UMAP coordinates (adata.obsm)
+        'umap', UMAP parameters (adata.uns) (0:00:00)
+    2026-06-03 14:14:11,579 - Computing clusters
+    running Leiden clustering
+        finished: found 5 clusters and added
+        'leiden', the cluster labels (adata.obs, categorical) (0:00:00)
+    >>> adata
+    AnnData object with n_obs × n_vars = 700 × 1851
+        obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts',
+             'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo',
+             'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'cell_type', 'autoAnnot',
+             'celltypist_conf_score', 'annotation', 'annotation_recluster', 'leiden'
+        var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches',
+             'highly_variable_intersection'
+        uns: 'annotation_colors', 'annotation_recluster_colors', 'batch_colors', 'hvg', 'leiden', 'leiden_colors',
+             'log1p', 'neighbors', 'pca', 'umap'
+        obsm: 'X_CCA', 'X_pca', 'X_umap'
+        varm: 'PCs'
+        layers: 'counts', 'logcounts'
+        obsp: 'connectivities', 'distances'
+    """
+    # TODO complete docstrings
+    import scanpy as sc  # TODO check the actual source
+
+    if use_rep == "X_pca" and use_rep not in adata.obsm.keys():
+        logger.warn(f"{use_rep} is not present in adata.obsm")
+        logger.warn("Computing PCA on HVGs")
+
+        try:
+            hvg = adata[:, adata.var["highly_variable"]]
+        except KeyError:
+            if batch_key not in adata.obs.columns:
+                raise InputError(f"{batch_key} is not a valid column in adata.obs")
+            sc.pp.highly_variable_genes(adata, batch_key=batch_key)
+            hvg  = adata[:, adata.var["highly_variable"]]
+        sc.pp.scale(hvg)
+        sc.pp.pca(hvg)
+        adata.obsm["X_pca"] = hvg.obsm["X_pca"]
+
+    if compute_neighbors:
+        logger.info("Computing neighbors")
+        neighbors_kwg = {} if neighbors_kwg is None else neighbors_kwg
+        sc.pp.neighbors(adata, use_rep=use_rep, **neighbors_kwg)
+
+    if compute_umap:
+        logger.info("Computing UMAP")
+        sc.tl.umap(adata)
+
+    if compute_clusters:
+        logger.info("Computing clusters")
+        sc.tl.leiden(
+            adata, n_iterations=2, flavor="igraph", directed=False, key_added=cluster_key, resolution=resolution
+        )
+    return None
+
+
+
+
