@@ -34,19 +34,19 @@ a dedicated [conda](https://www.anaconda.com/docs/getting-started/miniconda/main
 ```bash
 conda create -n scrna_py11 python=3.11 -y
 conda activate scrna_py11
+pip install uv
 ```
 
 There are several alternative options to install DOTools_py:
 
 1. Install the latest release of `DOTools_py` from [PyPI](https://pypi.org/project/DOTools-py/):
 ```bash
-pip install uv
 uv pip install dotools-py
 ```
 
 2. Install the latest development version:
 ```bash
-pip install git+https://github.com/davidrm-bio/DOTools_py.git@main
+uv pip install git+https://github.com/davidrm-bio/DOTools_py.git@main
 ```
 
 Finally, to use this environment in jupyter notebook, add jupyter kernel for this environment:
@@ -113,7 +113,9 @@ Alternatively you can write to my email: [rodriguezmorales@med.uni-frankfurt.de]
 
 ## Citation
 
- > Ruz Jurado, Mariano, David Rodriguez Morales, Lukas Zanders, Elijah Genetzakis, Stefanie Dimmeler, and David John. 2026. “DoTools: A Cross Platform Framework to Streamline Common Single Cell Workflows.” Bioinformatics Advances: vbag098. https://doi.org/10.1093/bioadv/vbag098
+ > Ruz Jurado, Mariano, David Rodriguez Morales, Lukas Zanders, Elijah Genetzakis, Stefanie Dimmeler, and David John. 2026.
+ > “DoTools: A Cross Platform Framework to Streamline Common Single Cell Workflows.” Bioinformatics Advances: vbag098.
+ > https://doi.org/10.1093/bioadv/vbag098
 
 [uv]: https://github.com/astral-sh/uv
 [scverse discourse]: https://discourse.scverse.org/
