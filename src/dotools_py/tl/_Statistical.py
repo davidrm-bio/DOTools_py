@@ -71,7 +71,7 @@ class DGEAnalysis:
                  batch_key: str = "batch",
                  pseudobulk_mode: Literal["sum", "mean"] = "sum",
                  pseudobulk_groups: str | None = None,
-                 technical_replicates: int = None,
+                 technical_replicates: int | None = None,
                  is_pseudobulk: bool = False,
                  ):
         """Initialize class.
@@ -148,7 +148,7 @@ class DGEAnalysis:
                     logger.info(f"Removed {n_obs - pdata.n_obs} samples and "
                                 f"{n_vars - pdata.n_vars} genes that did not pass the filtering process")
                 else:
-                    raise NotImplemented("Not a valid decoupler version, run: \npip install decoupler>=2")
+                    raise NotImplementedError("Not a valid decoupler version, run: \npip install decoupler>=2")
             else:
                 raise NotImplementedError("technical_replicates is experimental and therefore is not recommended")
                 #n_cores = int(multiprocessing.cpu_count() / 2)
