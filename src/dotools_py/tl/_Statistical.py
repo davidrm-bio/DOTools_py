@@ -242,8 +242,8 @@ class DGEAnalysis:
         import pertpy as pt
         pds2 = pt.tl.EdgeR(adata=adata, design=design)
         pds2.fit()
-        return pds2.test_contrasts(pds2.contrast(column=condition_key, baseline = reference, group_to_compare=groups))
-        #return pds2.compare_groups(adata=adata, column=condition_key, baseline=reference, groups_to_compare=groups)
+        #return pds2.test_contrasts(pds2.contrast(column=condition_key, baseline = reference, group_to_compare=groups))
+        return pds2.compare_groups(adata=adata, column=condition_key, baseline=reference, groups_to_compare=iterase_input(groups))
 
     @staticmethod
     def _run_deseq(
@@ -265,8 +265,8 @@ class DGEAnalysis:
         import pertpy as pt
         pds2 = pt.tl.PyDESeq2(adata=adata, design=design)
         pds2.fit()
-        return pds2.test_contrasts(pds2.contrast(column=condition_key, baseline = reference, group_to_compare=groups))
-        #return pds2.compare_groups(adata=adata, column=condition_key, baseline=reference, groups_to_compare=groups)
+        #return pds2.test_contrasts(pds2.contrast(column=condition_key, baseline = reference, group_to_compare=groups))
+        return pds2.compare_groups(adata=adata, column=condition_key, baseline=reference, groups_to_compare=iterase_input(groups))
 
     @staticmethod
     def _run_ttest(
@@ -528,7 +528,7 @@ class DGEAnalysis:
                 try:
                     df_current = self._run_edger(
                         adata=pdata_clust, condition_key=self.groupby, design=design, reference=reference,
-                        groups=iterase_input(groups)
+                        groups=groups
                     )
                     df_current[self.pseudobulk_groups] = clust
                     res_df.append(df_current)
@@ -539,7 +539,7 @@ class DGEAnalysis:
         else:
             res_df = self._run_edger(
                 adata=self.pdata, condition_key=self.groupby, design=design, reference=reference,
-                groups=iterase_input(groups)
+                groups=groups
             )
 
         del res_df["logCPM"]
@@ -588,7 +588,7 @@ class DGEAnalysis:
                 try:
                     df_current = self._run_deseq(
                         adata=pdata_clust, condition_key=self.groupby, design=design, reference=reference,
-                        groups=iterase_input(groups)
+                        groups=groups
                     )
                     df_current[self.pseudobulk_groups] = clust
                     res_df.append(df_current)
@@ -600,7 +600,7 @@ class DGEAnalysis:
         else:
             res_df = self._run_deseq(
                 adata=self.pdata, condition_key=self.groupby, design=design, reference=reference,
-                groups=iterase_input(groups))
+                groups=groups)
 
         del res_df["baseMean"]
         res_df.rename(columns={
