@@ -14,6 +14,8 @@ suppressWarnings(suppressMessages(library(SingleCellExperiment)))
 suppressWarnings(suppressMessages(library(Biobase)))
 suppressWarnings(suppressMessages(library(MAST)))
 
+options(mc.cores = 5)  # TODO Allow to choose
+
 
 option_list <- list(
     make_option(c("--input"), type = "character", default = NULL,
