@@ -206,6 +206,8 @@ def heatmap(
     features = [features] if isinstance(features, str) else features
     features = features if isinstance(features, list) else list(features)
     missing = [g for g in features if g not in adata.var_names]
+    if len(missing) != 0:
+        missing = [g for g in missing if g not in adata.obs.columns]
     assert len(missing) == 0, f'{missing} features missing in the object'
 
     # Get Data for the Heatmap
