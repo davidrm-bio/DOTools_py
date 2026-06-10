@@ -9,7 +9,7 @@ from dotools_py.io._utils import _check_backend
 
 _Empty = EmptyType()
 
-def _check_sheet_name(path):
+def _check_sheet_name(path: PathLike):
     from openpyxl import load_workbook
     wb = load_workbook(path, read_only=True, keep_links=False)
     return wb.sheetnames
