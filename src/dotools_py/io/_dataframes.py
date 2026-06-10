@@ -4,11 +4,15 @@ import pandas as pd
 
 from dotools_py.logger import logger
 from dotools_py._utils import convert_path
-from dotools_py._custom_class import PathLike, EmptyType
+from dotools_py._custom_class import PathLike, EmptyType, InputError
 from dotools_py.io._utils import _check_backend
 
 _Empty = EmptyType()
 
+def _check_sheet_name(path):
+    from openpyxl import load_workbook
+    wb = load_workbook(path, read_only=True, keep_links=False)
+    return wb.sheetnames
 
 def read_excel(
     path: PathLike,
@@ -45,6 +49,17 @@ def read_excel(
     _check_backend(backend, ["pandas","polars"])
     input_path = convert_path(path) if filename is None else convert_path(path) / filename
     df = _Empty
+
+    sheets = _check_sheet_name(input_path)
+    if len(sheets) == 1:
+        sheets = sheets[0]
+        if sheets != sheet_name:
+            logger.warn(f"{sheet_name} is not present, using {sheets}")
+            sheet_name = sheets
+    else:
+        if sheet_name not in sheets:
+            raise InputError(f"{sheet_name} is not a valid Sheet. Available sheets: {sheets}")
+
     if backend == "polars":
         try:
             df = pl.read_excel(source=input_path, sheet_name=sheet_name, **kwargs)
