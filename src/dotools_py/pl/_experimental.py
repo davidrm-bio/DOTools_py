@@ -102,6 +102,11 @@ def lineplot(
     sanitize_anndata(adata)
 
     features = iterase_input(features)
+
+    dummy = [True if g in adata.obs.columns else False for g in features]
+    if any(dummy):
+        raise NotImplementedError("Plotting values in adata.obs is currently not implemented")
+
     check_missing(adata, features=features, groups=x_axis)
     if len(features) > 1:
         assert hue == "features", "When multiple features are provided, use hue = 'features'"
