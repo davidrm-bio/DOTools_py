@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning][].
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
-## Version 0.0.4
+## Version 0.0.4 {small}`2026-06-10`
 
 ### News
 - The DoTools manuscript is published in [Bioinformatics Advances](https://doi.org/10.1093/bioadv/vbag098).
