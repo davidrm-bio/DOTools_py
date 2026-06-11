@@ -10,7 +10,7 @@
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/dotools-py?period=monthly&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=monthly+downloads)](https://pepy.tech/projects/dotools-py)
 
 [badge-tests]: https://img.shields.io/github/actions/workflow/status/davidrm-bio/DOTools_py/test.yaml?branch=main
-[badge-docs]:  https://img.shields.io/readthedocs/DOTools_py/stable
+[badge-docs]:  https://img.shields.io/readthedocs/DOTools_py/latest
 [badge-issues]: https://img.shields.io/github/issues/davidrm-bio/DOTools_py
 [badge-stars]: https://img.shields.io/github/stars/davidrm-bio/DOTools_py?style=flat&logo=github&color=yellow
 [badge-coverage]: https://codecov.io/gh/davidrm-bio/DOTools_py/branch/main/graph/badge.svg
@@ -23,8 +23,8 @@ analyze, and interpret single-cell data.
 
 ## Getting started
 
-Please refer to the [documentation](https://dotools-py.readthedocs.io/en/stable/index.html),
-in particular, the [API documentation](https://dotools-py.readthedocs.io/en/stable/api/index.html).
+Please refer to the [documentation](https://dotools-py.readthedocs.io/en/latest/index.html),
+in particular, the [API documentation](https://dotools-py.readthedocs.io/en/latest/api/index.html).
 
 ## Installation
 
