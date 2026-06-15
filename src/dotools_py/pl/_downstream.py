@@ -116,7 +116,7 @@ def correlation(
     # Define the colormap
     norm_palette = plt.Normalize(df_corr.min().min(), df_corr.max().min())
     if isinstance(palette, str):  # Assume is a cmap in matplotlib
-        palette = plt.cm.get_cmap(palette)
+        palette = plt.get_cmap(palette)
     elif isinstance(palette, list):
         palette = generate_cmap(*palette)
     elif isinstance(palette, LinearSegmentedColormap):
