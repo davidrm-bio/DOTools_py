@@ -328,7 +328,7 @@ def slides(
                 try:
                     expr = get_expr(adata, color)
                     vmax = np.percentile(expr["expr"], percentile)
-                except ValueError:
+                except KeyError:
                     vmax = np.percentile(adata.obs[color], percentile)
             else:
                 vmax = common_expr
@@ -354,7 +354,7 @@ def slides(
             title_color = "" if color is None else color
             if minimal_title:
                 axs[idx].set_title(sample, fontsize=title_fontsize, fontweight=title_fontweight)
-                fig.supylabel(color, fontsize=23, fontweight="bold")
+                fig.supylabel(color[0], fontsize=23, fontweight="bold")
             else:
                 axs[idx].set_title(sample + "\n" + title_color, fontsize=title_fontsize, fontweight=title_fontweight)
             spine_format(axs[idx], txt="SP")
