@@ -144,7 +144,8 @@ def _run_sc_dbl_finder(
     none_converter = conversion.Converter("None converter")
     none_converter.py2rpy.register(type(None), py_none_to_r)
     adata_copy = adata.copy()
-    adata_copy.raw, adata_copy.uns = None, None
+    del adata_copy.raw
+    adata_copy.uns.clear()
 
     with conversion.localconverter(anndata2ri.converter + none_converter + pandas2ri.converter):
         r.assign("adata", adata_copy)
