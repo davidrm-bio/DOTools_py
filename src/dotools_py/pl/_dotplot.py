@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 import anndata as ad
 import matplotlib.colorbar
@@ -24,7 +24,7 @@ from scanpy.plotting._utils import (
     savefig_or_show,
 )
 
-from scanpy.plotting._anndata import VarGroups, _plot_var_groups_brackets
+# from scanpy.plotting._anndata import VarGroups, _plot_var_groups_brackets
 from dotools_py import logger
 from dotools_py.get._generic import expr as get_expr
 from dotools_py.pl._plot_utils import save_plot, return_axis
@@ -44,6 +44,168 @@ if TYPE_CHECKING:
     from scanpy._utils import Empty
     from scanpy.plotting._utils import ColorLike, _AxesSubplot
     from typing_extensions import Self
+
+####
+# Other functions from scanpy
+###
+
+
+
+class VarGroups(NamedTuple):
+    labels: Sequence[str]
+    """Var labels."""
+    positions: Sequence[tuple[int, int]]
+    """Var positions.
+
+    Each item in the list should contain the start and end position that the bracket should cover.
+    Eg. `[(0, 4), (5, 8)]` means that there are two brackets,
+    one for the var_names (eg genes) in positions 0-4 and other for positions 5-8
+    """
+
+    @classmethod
+    def validate(
+        cls, labels: Sequence[str] | None, positions: Sequence[tuple[int, int]] | None
+    ) -> Self | None:
+        if labels is None and positions is None:
+            return None
+        if labels is None or positions is None:
+            msg = (
+                "If var_group_labels or var_group_positions are given, "
+                "both have to be given."
+            )
+            raise ValueError(msg)
+        if len(labels) != len(positions):
+            msg = (
+                "var_group_labels and var_group_positions must have the same length. "
+                f"Got {len(labels)=} and {len(positions)=}."
+            )
+            raise ValueError(msg)
+        return None if len(labels) == 0 else cls(labels, positions)
+
+
+def _plot_var_groups_brackets(
+    var_groups_ax: Axes,
+    *,
+    var_groups: VarGroups,
+    left_adjustment: float = -0.3,
+    right_adjustment: float = 0.3,
+    rotation: float | None = None,
+    orientation: Literal["top", "right"] = "top",
+    wide: bool = False,
+) -> None:
+    """Draw brackets that represent groups of genes on the give axis.
+
+    For best results, this axis is located on top of an image whose
+    x axis contains gene names.
+
+    The `var_groups_ax` should share the x axis with the main ax.
+
+    E.g: `var_groups_ax=fig.add_subplot(axs[0, 0], sharex=dot_ax)`
+
+    This function is used by dotplot, heatmap etc.
+
+    Parameters
+    ----------
+    var_groups_ax
+        In this axis the gene marks are drawn
+    var_groups
+        Group labels and positions
+    left_adjustment
+        adjustment to plot the bracket start slightly before or after the first gene position.
+        If the value is negative the start is moved before.
+    right_adjustment
+        adjustment to plot the bracket end slightly before or after the last gene position
+        If the value is negative the start is moved before.
+    rotation
+        rotation degrees for the labels. If not given, small labels (<4 characters) are not
+        rotated, otherwise, they are rotated 90 degrees
+    orientation
+        location of the brackets. Either `top` or `right`
+
+    Returns
+    -------
+    None
+
+    """
+    from matplotlib import patches
+    from matplotlib.path import Path
+
+    # get the 'brackets' coordinates as lists of start and end positions
+    left = [x[0] + left_adjustment for x in var_groups.positions]
+    right = [x[1] + right_adjustment for x in var_groups.positions]
+
+    # verts and codes are used by PathPatch to make the brackets
+    verts = []
+    codes = []
+    if orientation == "top":
+        # rotate labels if any of them is longer than 4 characters
+        if rotation is None:
+            rotation = 90 if max([len(x) for x in var_groups.labels]) > 4 else 0
+        for idx in range(len(left)):
+            verts.append((left[idx], 0))  # lower-left
+            verts.append((left[idx], 0.6))  # upper-left
+            verts.append((right[idx], 0.6))  # upper-right
+            verts.append((right[idx], 0))  # lower-right
+
+            codes.append(Path.MOVETO)
+            codes.append(Path.LINETO)
+            codes.append(Path.LINETO)
+            codes.append(Path.LINETO)
+
+            group_x_center = left[idx] + float(right[idx] - left[idx]) / 2
+            var_groups_ax.text(
+                group_x_center,
+                1.1,
+                var_groups.labels[idx],
+                ha="center",
+                va="bottom",
+                rotation=rotation,
+            )
+    else:
+        top = left
+        bottom = right
+        for idx in range(len(top)):
+            verts.append((0, top[idx]))  # upper-left
+            verts.append((0.4 if wide else 0.15, top[idx]))  # upper-right
+            verts.append((0.4 if wide else 0.15, bottom[idx]))  # lower-right
+            verts.append((0, bottom[idx]))  # lower-left
+
+            codes.append(Path.MOVETO)
+            codes.append(Path.LINETO)
+            codes.append(Path.LINETO)
+            codes.append(Path.LINETO)
+
+            diff = bottom[idx] - top[idx]
+            group_y_center = top[idx] + float(diff) / 2
+            # cut label to fit available space
+            label = (
+                f"{var_groups.labels[idx][: int(diff * 2)]}."
+                if diff * 2 < len(var_groups.labels[idx])
+                else var_groups.labels[idx]
+            )
+            var_groups_ax.text(
+                1.1 if wide else 0.6,
+                group_y_center,
+                label,
+                ha="right",
+                va="center",
+                rotation=270,
+                fontsize="small",
+            )
+
+    path = Path(verts, codes)
+
+    patch = patches.PathPatch(path, facecolor="none", lw=1.5)
+
+    var_groups_ax.add_patch(patch)
+    var_groups_ax.grid(visible=False)
+    var_groups_ax.axis("off")
+    # remove y ticks
+    var_groups_ax.tick_params(axis="y", left=False, labelleft=False)
+    # remove x ticks and labels
+    var_groups_ax.tick_params(axis="x", bottom=False, labelbottom=False, labeltop=False)
+
+
 
 
 ########################################################################################################################
@@ -171,7 +333,7 @@ class DotPlot(BasePlot):
 
     Using var_names as dict:
 
-    >>> markers = {{"T-cell": "CD3D", "B-cell": "CD79A", "myeloid": "CST3"}}
+    >>> markers = {"T-cell": "CD3D", "B-cell": "CD79A", "myeloid": "CST3"}
     >>> sc.pl.DotPlot(adata, markers, groupby="bulk_labels").show()
 
     """
