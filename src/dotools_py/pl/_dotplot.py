@@ -333,7 +333,7 @@ class DotPlot(BasePlot):
 
     Using var_names as dict:
 
-    >>> markers = {"T-cell": "CD3D", "B-cell": "CD79A", "myeloid": "CST3"}
+    >>> markers = {{"T-cell": "CD3D", "B-cell": "CD79A", "myeloid": "CST3"}}
     >>> sc.pl.DotPlot(adata, markers, groupby="bulk_labels").show()
 
     """
