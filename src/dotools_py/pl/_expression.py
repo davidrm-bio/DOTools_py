@@ -177,7 +177,6 @@ def boxplot(
     adata: ad.AnnData,
     x_axis: str,
     feature: str,
-    batch_key: str = "batch",
     hue: str = None,
     hue_order: list = None,
     layer: str = None,
@@ -228,7 +227,6 @@ def boxplot(
     :param adata: Annotated data matrix.
     :param x_axis: Name of a categorical column in `adata.obs` to groupby.
     :param feature: A valid feature in `adata.var_names` or column in `adata.obs` with continuous values.
-    :param batch_key: Name of a categorical column in `adata.obs` that contains the sample names.
     :param hue: Name of a second categorical column in `adata.obs` to use additionally to groupby.
     :param hue_order: List with orders for the categories in `hue`. If it is not set, the order will be inferred.
     :param layer: Name of the AnnData object layer that wants to be plotted. By default, `adata.X` is plotted.
@@ -300,7 +298,7 @@ def boxplot(
 
     .. plot::
         :context: close-figs
-        
+
         do.pl.boxplot(adata, "condition", "RPL11", batch_key="annotation", pseudobulk=True, scatter=True, marker_size=5)
 
 
@@ -308,7 +306,7 @@ def boxplot(
 
     plotter = BaseSeaborn(
         # Data and calculation
-        adata=adata, feature=feature, batch_key=batch_key, x_axis=x_axis, hue=hue, layer=layer,
+        adata=adata, feature=feature, batch_key=None, x_axis=x_axis, hue=hue, layer=layer,
         log1p_data=True, pseudobulk=pseudobulk,
         # Figure parameters
         figsize=figsize, ax=ax, cmap=palette,
