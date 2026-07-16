@@ -1,15 +1,18 @@
 import anndata as ad
 import pandas as pd
 import numpy as np
-from typing import Literal, Callable
+from typing import Literal, Callable, Dict
 
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
+import matplotlib.patches as patches
+from matplotlib.cm import ScalarMappable
 import seaborn as sns
+from scipy.stats import zscore
 
 from dotools_py._utils import sanitize_anndata, iterase_input, x_is_raw_counts
-from dotools_py._custom_class import  InputError
-from dotools_py.pl._plot_utils import make_grid_spec
+from dotools_py._custom_class import  InputError, PathLike
+from dotools_py.pl._plot_utils import make_grid_spec, return_axis, save_plot, check_colornorm, square_color, small_squares
 from dotools_py.utility import get_hex_colormaps
 from matplotlib.colors import Colormap
 from numpy.typing import NDArray
@@ -17,7 +20,7 @@ from dotools_py.pl._StatsPlotter import TestData, StatsPlotter
 from dotools_py.logger import  logger
 from dotools_py.get._generic import expr as get_expr
 from dotools_py.get._generic import mean_expr as get_mean_expr
-
+from dotools_py.tl import rank_genes_groups
 
 class BaseSeaborn:
 
@@ -443,294 +446,574 @@ class BaseSeaborn:
 
 
 
+class MatrixPlot:
+    MIN_FIGURE_HEIGHT = 4.2
+    DEFAULT_WSPACE = 0.0
+    DEFAULT_LEGEND_WIDTH = 1.5
+    DEFAULT_ANNOT_WIDTH = 0.3
+    DEFAULT_CMAP = "tab30"
 
-# class BaseSeaborn:
-#     """
-#     Utility class to plot data from an AnnData Object using seaborn.
-#     """
-#
-#     MIN_FIGURE_HEIGHT = 4.2
-#     DEFAULT_WSPACE = 0.0
-#     DEFAULT_LEGEND_WIDTH = 1.5
-#     DEFAULT_CMAP = "tab10"
-#
-#     DEFAULT_TITLE_SIZE = 20
-#     DEFAULT_TITLE_FONTWEIGHT = "bold"
-#
-#     DEFAULT_XTICKS_SIZE = 12
-#     DEFAULT_XTICKS_FONTWEIGHT = "bold"
-#     DEFAULT_XTICKS_ROTATION = None
-#
-#     DEFAULT_LEGEND_TITLE_FONTSIZE = 12
-#     DEFAULT_LEGEND_TITLE_FONTWEIGHT = "bold"
-#
-#     def __init__(
-#         self,
-#         adata: ad.AnnData,
-#         x_axis: str,
-#         feature: str,
-#         batch_key: str = None,
-#         xticks_order: list = None,
-#         hue: str = None,
-#         hue_order: list = None,
-#         layer: str = None,
-#         logcounts: bool = True,
-#         figsize: tuple = (3, 4.2),
-#         ax: plt.Axes = None,
-#         cmap: str | Colormap | dict = None,
-#         title: str = None,
-#         title_fontproperties: dict = None,
-#         xticks_properties: dict = None,
-#         legend_properties: dict = None,
-#         path: PathLike = None,
-#         filename: str = "figure.svg",
-#         show: bool = True
-#     ):
-#         """Initialize class.
-#
-#         :param adata: Annotated data matrix.
-#         :param x_axis: Name of a categorical column in `adata.obs` to groupby.
-#         :param feature: A valid feature in `adata.var_names` or column in `adata.obs` with continuous values.
-#         :param batch_key: Name of a categorical column in `adata.obs` that contains the sample names.
-#         :param xticks_order: Order for the categories in `adata.obs[x_axis]`.
-#         :param hue: Name of a second categorical column in `adata.obs` to use additionally to groupby.
-#         :param hue_order: List with orders for the categories in `hue`. If it is not set, the order will be inferred.
-#         :param layer: Name of the AnnData object layer that wants to be plotted. The default `adata.X` is plotted. If
-#                      layer is set to a valid layer name, then the layer is plotted.
-#         :param logcounts: If set to `True`, consider that the values in `adata.X` or `adata.layers[layer]` if layer is
-#                          set is log1p transformed.
-#         :param figsize: Figure size, the format is (width, height).
-#         :param ax: Matplotlib axes to use for plotting. If not set, a new figure will be generated.
-#         :param cmap: String denoting matplotlib colormap. A dictionary with the categories available in
-#                     `adata.obs[x_axis]` or `adata.obs[hue]` if hue is not None can also be provided. The format is
-#                     {category:color}.
-#         :param title: Title for the figure.
-#         :param title_fontproperties: Dictionary which should contain 'size' and 'weight' to define the fontsize and
-#                                     fontweight of the title of the figure.
-#         :param xticks_properties: Dictionary which should contain 'size' and 'weight' to define the fontsize and
-#                                  fontweight of the xticks of the figure.
-#         :param legend_properties: Dictionary which should contain 'size' and 'weight' to define the fontsize and
-#                                  fontweight of the title of the legend.
-#         :param path: Path to the folder to save the figure.
-#         :param filename: Name of file to use when saving the figure.
-#         :param show: If set to `False`, returns a dictionary with the matplotlib axes.
-#         """
-#         sanitize_anndata(adata)
-#
-#         # Data Section
-#         self.adata = adata
-#         self.x_axis = x_axis
-#         self.feature = iterase_input(feature)  # We always assume we have a list
-#         self.batch_key = batch_key
-#
-#         self.xticks_order = xticks_order if xticks_order is not None else list(adata.obs[x_axis].unique())
-#         self.hue = hue
-#         if hue is None:
-#             self.hue_order = None
-#         else:
-#             self.hue_order = hue_order if hue_order is not None else list(adata.obs[hue].unique())
-#
-#         self.layer = layer
-#         self.logcounts = logcounts
-#
-#
-#         # Figure parameters
-#         self.figsize = figsize
-#         self.fig = None,
-#         self.gs = None
-#         self.width, self.height = figsize if figsize is not None else (None, None)
-#         self.ax = ax
-#         self.legends_width = self.DEFAULT_LEGEND_WIDTH
-#         self.cmap = self.DEFAULT_CMAP if cmap is None else cmap
-#
-#         colors_dict = None  # Only used when hue is not None
-#         if hue is not None:
-#             if isinstance(self.cmap, str):
-#                 list_colors = get_hex_colormaps(self.cmap)
-#                 if len(list_colors) < len(self.hue_order):
-#                     list_colors *= 5
-#                 colors_dict = dict(zip(self.hue_order, get_hex_colormaps(self.cmap), strict=False))
-#             elif isinstance(self.cmap, dict):
-#                 colors_dict = self.cmap
-#             else:
-#                 raise Exception('palette can only be a string or dictionary')
-#
-#         self.cmap_dict = colors_dict
-#
-#         # Title Properties
-#         self.title = title if title is not None else feature
-#         title_fontproperties = {} if title_fontproperties is None else title_fontproperties
-#         self.title_size = title_fontproperties.get("size", self.DEFAULT_TITLE_SIZE)
-#         self.title_fontweight = title_fontproperties.get("weight", self.DEFAULT_TITLE_FONTWEIGHT)
-#
-#         # X-ticks Properties
-#         xticks_properties = {} if xticks_properties is None else xticks_properties
-#         self.xticks_fontsize = xticks_properties.get("size", self.DEFAULT_XTICKS_SIZE)
-#         self.xticks_fontweight = xticks_properties.get("weight", self.DEFAULT_XTICKS_FONTWEIGHT)
-#         rotation = xticks_properties.get("rotation", self.DEFAULT_XTICKS_ROTATION)
-#         self.rotation = {"rotation": rotation, "ha": "right", "va": "top"} if rotation is not None else {}
-#
-#         # Legend Properties
-#         legend_properties = {} if legend_properties is None else legend_properties
-#         self.legend_title = legend_properties.get("size", self.DEFAULT_LEGEND_TITLE_FONTSIZE)
-#         self.legend_title_fontweight = legend_properties.get("weight", self.DEFAULT_LEGEND_TITLE_FONTWEIGHT)
-#         self.legend_fontsize = legend_properties.get("size", self.DEFAULT_LEGEND_TITLE_FONTSIZE - 2)
-#
-#         # Saving
-#         self.path = path
-#         self.filename = filename
-#         self.show = show
-#         self.dict_axis = None
-#
-#         return
-#
-#     def make_figure(
-#         self,
-#         nrows: int = 1,
-#         ncols: int = 1
-#     ) -> None:
-#         """Generate figure.
-#
-#         :param nrows: Number of rows.
-#         :param ncols: Number of Columns
-#         :return: Returns None.
-#         """
-#         mainplot_width = self.width - self.legends_width
-#
-#         fig, gs = self.make_grid_spec(
-#             self.ax or (self.width, self.height),
-#             nrows=nrows, ncols=ncols, wspace=0.7 / self.width,
-#             width_ratios=[mainplot_width, self.legends_width] if ncols == 2 else [mainplot_width]
-#         )
-#
-#         self.fig = fig
-#         self.gs = gs
-#         return None
-#
-#     def legend(
-#         self,
-#         show: bool = False,
-#         width: float = 1.5,
-#         title: str = None,
-#     ) -> None:
-#         """Set legend parameters.
-#
-#         :param show: If set to `False`, the legend is deactivated.
-#         :param width: width of the figure reserve for the legend.
-#         :param title: title of the legend.
-#         :return: Returns None.
-#         """
-#         if not show:
-#             # Deactivate legend by setting the width to 0
-#             self.legends_width = 0
-#         else:
-#             self.legend_title = title
-#             self.legends_width = width
-#         return None
-#
-#     @staticmethod
-#     def make_grid_spec(
-#         ax_or_figsize: tuple[int, int] | _AxesSubplot,
-#         *,
-#         nrows: int,
-#         ncols: int,
-#         wspace: float | None = None,
-#         hspace: float | None = None,
-#         width_ratios: Sequence[float] | None = None,
-#         height_ratios: Sequence[float] | None = None,
-#     ) -> tuple[Figure, gridspec.GridSpecBase]:
-#         """Adapted from Scanpy"""
-#
-#         kw = dict(wspace=wspace, hspace=hspace, width_ratios=width_ratios, height_ratios=height_ratios)
-#         if isinstance(ax_or_figsize, tuple):
-#             fig = plt.figure(figsize=ax_or_figsize)
-#             return fig, gridspec.GridSpec(nrows, ncols, **kw)
-#         else:
-#             ax = ax_or_figsize
-#             ax.axis("off")
-#             ax.set_frame_on(False)
-#             ax.set_xticks([])
-#             ax.set_yticks([])
-#             return ax.figure, ax.get_subplotspec().subgridspec(nrows, ncols, **kw)
-#
-#     def saving_return_axis(self) -> dict[str, Axes] | plt.Axes | None:
-#         """Return axis and save figure.
-#
-#         :return: Returns a dictionary with the matplotlib axes or matplotlib axes if `show` is set to False.
-#         """
-#         if self.path is not None:
-#             plt.savefig(convert_path(self.path) / self.filename, bbox_inches="tight")
-#         if self.show:
-#             plt.tight_layout()
-#             return plt.show()
-#         else:
-#             return self.dict_axis
-#
-#
-#     def set_xticks(self, ax: plt.Axes) -> None:
-#         """Set properties for the xticks.
-#
-#         :param ax: Matplotlib Axes.
-#         :return: Returns None.
-#         """
-#         ax.set_xticklabels(ax.get_xticklabels(), fontweight=self.xticks_fontweight, **self.rotation)
-#         return None
-#
-#     def set_title(self, ax: plt.Axes) -> None:
-#         """Set the properties for the title.
-#
-#         :param ax: Matplotlib Axes.
-#         :return: Returns None
-#         """
-#         ax.set_title(self.title, fontsize=self.title_size, fontweight=self.title_fontweight)
-#         return None
-#
-#     def get_expression(self, keep: list) -> pd.DataFrame:
-#         """Get the expression.
-#
-#         :param keep: Columns in `adata.obs` to keep.
-#         :return: Returns a DataFrame with the expression extracted from the AnnData object.
-#         """
-#         from dotools_py.get._generic import expr as get_expr
-#         keep = iterase_input(keep)
-#         if all(feature in list(self.adata.var_names) for feature in self.feature):
-#             df = get_expr(self.adata, self.feature, groups=keep, layer=self.layer)
-#         elif all(feature in list(self.adata.obs.columns) for feature in self.feature):
-#             df = self.adata.obs[keep + self.feature]
-#             # df["expr"] = df[self.feature[0]]
-#             df = df.rename(columns={self.feature[0]: "expr"})
-#         else:
-#             raise ValueError(f"{self.feature} needs to be in adata.var_names or adata.obs")
-#         return df
-#
-#
-#     def get_mean_expression(self) -> pd.DataFrame:
-#         """Get the mean expression.
-#
-#         :return: Returns a DataFrame with the mean expression.
-#         """
-#         from dotools_py.get._generic import mean_expr as get_mean_expr
-#
-#         hue = iterase_input(self.hue)
-#         group_by = [self.x_axis, self.batch_key] + hue
-#
-#         if all(feature in list(self.adata.var_names) for feature in self.feature):
-#             df_mean = get_mean_expr(self.adata, group_by=group_by, features=self.feature, layer=self.layer)
-#         elif all(feature in list(self.adata.obs.columns) for feature in self.feature):
-#             df_mean = self.adata.obs[self.feature + group_by]
-#             df_mean = df_mean.groupby(group_by).agg(np.mean).fillna(0).reset_index()
-#             df_mean["gene"] = self.feature[0]
-#             df_mean["expr"] = df_mean[self.feature[0]]
-#         else:
-#             raise ValueError(f"{self.feature} is not in adata.var_names or adata.obs")
-#         return df_mean
-#
-#     @staticmethod
-#     def log_estimator(values: np.ndarray):
-#         """Compute mean of log1p transform data.
-#
-#         :param values: values to calculate the mean expression on.
-#         :return: Returns a numpy array with the mean expression log1p transform
-#         """
-#         return np.log1p(np.mean(np.expm1(values)))
+    DEFAULT_TITLE_SIZE = 20
+    DEFAULT_TITLE_FONTWEIGHT = "bold"
+
+    DEFAULT_XTICKS_SIZE = 12
+    DEFAULT_XTICKS_FONTWEIGHT = "bold"
+    DEFAULT_XTICKS_ROTATION = None
+
+    DEFAULT_LEGEND_TITLE_FONTSIZE = 12
+    DEFAULT_LEGEND_TITLE_FONTWEIGHT = "bold"
+
+
+    def __init__(
+        self,
+        adata: ad.AnnData,
+        x_axis: str,
+        features: str | list,
+        y_axis: str | None = None,
+        xticks_order: list | None = None,
+        yticks_order: list | None = None,
+        layer: str | None = None,
+        logcounts: bool = True,
+
+        # Figure parameters
+        figsize: tuple = (5, 6),
+        ax: plt.Axes | None = None,
+        swap_axes: bool = True,
+        title: str = "",
+        title_fontproperties: Dict[Literal["size", "weight"], str | int] | None = None,
+        palette: str = "Reds",
+
+        xticks_properties: dict | None = None,
+        yticks_properties: dict | None = None,
+        xticks_rotation: int = 45,
+        yticks_rotation: int = 0,
+        cluster_x_axis: bool = False,
+        cluster_y_axis: bool = False,
+
+        legend_title: str = "LogMean(nUMI)\nin group",
+
+        # IO
+        path: PathLike | None = None,
+        filename: str = "Heatmap.svg",
+        show: bool = True,
+
+        # Statistics
+        add_stats: Literal["x_axis", "y_axis"] | None = None,
+        test: Literal["wilcoxon", "t-test"] = "wilcoxon",
+        correction_method: Literal["benjamini-hochberg", "bonferroni"] = "benjamini-hochberg",
+        df_pvals: pd.DataFrame | None= None,
+        stats_x_size: float | None  = None,
+        square_x_size: dict | None  = None,
+        pval_cutoff: float = 0.05,
+        log2fc_cutoff: float = 0.0,
+
+        # Fx specific
+        z_score: Literal["x_axis", "y_axis"] | None  = None,
+        clustering_method: str = "complete",
+        clustering_metric: str = "euclidean",
+        linewidth: float = 0.1,
+        vmin: float | None = None,
+        vcenter: float | None= None,
+        vmax: float | None = None,
+        annot_fontsize: float = 12,
+        annot_ratio: float = 0.35,
+        **kwargs,
+    ):
+
+        sanitize_anndata(adata)
+
+        # region Data Section
+        self.adata = adata
+        self.x_axis, self.y_axis = x_axis, y_axis
+        self.swap_axes = swap_axes
+
+        features = iterase_input(features)
+        self._check_missing(adata, features)
+        self.features = features
+        self.z_score = z_score
+
+        self.layer = layer
+        self.logcounts = logcounts
+        # endregion
+
+
+        # region Figure parameters
+        self.figsize = figsize
+        self.width, self.height = figsize
+        self.fig, self.gs = None, None
+        self.ax = ax
+
+        self.legends_width = self.DEFAULT_LEGEND_WIDTH
+        self.annot_width = self.DEFAULT_ANNOT_WIDTH
+
+        min_figure_height = max([0.35, self.height])
+        cbar_legend_height = min_figure_height * 0.08
+        sig_legend = min_figure_height * 0.27
+        spacer_height = min_figure_height * 0.3
+
+        self.height_ratios_legend = [
+            self.height - sig_legend - cbar_legend_height - spacer_height,
+            sig_legend,
+            spacer_height,
+            cbar_legend_height,
+        ]
+
+        self.height_ratios_annot = [
+            annot_ratio,
+            self.height - annot_ratio,
+        ]
+
+        self.palette = palette
+        # endregion
+
+        # region Title properties
+        self.title = title
+        title_fontproperties = {} if title_fontproperties is None else title_fontproperties
+        self.title_size = title_fontproperties.get("size", self.DEFAULT_TITLE_SIZE)
+        self.title_fontweight = title_fontproperties.get("weight", self.DEFAULT_TITLE_FONTWEIGHT)
+        # endregion
+
+
+        # region Tick Properties
+        # Order for the X and Y ticks | Order for features is based on input
+        self.xticks_order = xticks_order if xticks_order is not None else self._get_categories(x_axis)
+        self.yticks_order = yticks_order if yticks_order is not None else self._get_categories(y_axis)
+
+        xticks_properties = {} if xticks_properties is None else xticks_properties
+        self.xticks_fontsize = xticks_properties.get("size", self.DEFAULT_XTICKS_SIZE)
+        self.xticks_fontweight = xticks_properties.get("weight", self.DEFAULT_XTICKS_FONTWEIGHT)
+        self.rotation_props_x = {"rotation": xticks_rotation} if xticks_rotation is not None else {}
+        if xticks_rotation != 90 and "ha" not in xticks_properties.keys():
+            self.rotation_props_x["ha"] = "right"
+            self.rotation_props_x["va"] = "top"
+
+        yticks_properties = {} if yticks_properties is None else yticks_properties
+        self.yticks_fontsize = yticks_properties.get("size", self.DEFAULT_XTICKS_SIZE)
+        self.yticks_fontweight = yticks_properties.get("weight", self.DEFAULT_XTICKS_FONTWEIGHT)
+        self.yticks_rotation = {"rotation": yticks_rotation} if yticks_rotation is not None else {}
+        # endregion
+
+
+        # region Legend Properties
+        self.legend_title = legend_title
+        # endregion
+
+
+        # region Saving
+        self.return_ax_dict = {}
+        self.path = path
+        self.filename = filename
+        self.show = show
+        # endregion
+
+
+        # region Statistics
+        self.add_stats = add_stats
+        self.test = test
+        self.correction_method = correction_method
+        self.df_pvals = df_pvals
+
+        square_x_size = {} if square_x_size is None else square_x_size
+        square_x_size = {"width": square_x_size.get("weight", 1), "size": square_x_size.get("size", 0.8)}
+        self.stats_x_size = stats_x_size
+        self.square_x_size = square_x_size
+        self.pval_cutoff = pval_cutoff
+        self.log2fc_cutoff = log2fc_cutoff
+        # endregion
+
+        # region Fx specific
+        self.cluster_x_axis = cluster_x_axis
+        self.cluster_y_axis = cluster_y_axis
+
+        self.clustering_method = clustering_method
+        self.clustering_metric = clustering_metric
+
+        self.linewidth = linewidth
+        self.kwargs = kwargs
+        self.vmin = vmin
+        self.vmax = vmax
+        self.vcenter = vcenter
+        self.annot_fontsize = annot_fontsize
+        # endregion
+
+
+    # Data operations
+    def _get_mean_expr(self) -> pd.DataFrame:
+        x_axis, y_axis = iterase_input(self.x_axis), iterase_input(self.y_axis)
+        group_by = x_axis + y_axis
+
+        if all(feature in list(self.adata.var_names) for feature in self.features):
+            df_mean = get_mean_expr(self.adata, group_by=group_by, features=self.features, layer=self.layer,
+                                    logcounts=self.logcounts)
+        elif all(feature in list(self.adata.obs.columns) for feature in self.features):
+            df_mean = self.adata.obs[self.features + group_by]
+            df_mean = df_mean.groupby(group_by).agg("mean").fillna(0).reset_index()
+            df_mean = df_mean.melt(id_vars=group_by, var_name="gene", value_name="expr")
+        else:
+            raise InputError(f"{self.features} are not in adata.var_names or adata.obs")
+        return df_mean
+
+    def _scale(self, df: pd.DataFrame) -> pd.DataFrame:
+        import scipy
+        if self.y_axis is None:
+            if self.z_score == "y_axis":
+                df = df.apply(zscore, axis=0, result_type="expand")
+            elif self.z_score == "x_axis":
+                df = df.apply(lambda row: pd.Series(zscore(row), index=df.columns), axis=1)
+            else:
+                raise InputError(f'{self.z_score} not a valid key for z_score, use "x_axis" or "y_axis"')
+        else:
+            if self.z_score == "y_axis":
+                df = df.groupby(level="gene", axis=1, group_keys=False).apply(
+                    lambda x: x.apply(scipy.stats.zscore, axis=0)
+                )
+            elif self.z_score =="x_axis":
+                _backup = df.columns
+                df = df.groupby(level="gene", axis=1, group_keys=False).apply(
+                    lambda x: pd.DataFrame(scipy.stats.zscore(x, axis=1), index=x.index, columns=x.columns)
+                )
+                df.columns = _backup
+
+            else:
+                raise InputError(f'{self.z_score} not a valid key for z_score, use "x_axis" or "y_axis"')
+
+        if self.palette == "Reds":
+            logger.warn("Z-score set to True, but the palette is Reds, setting to RdBu_r")  # Make sure to use divergent colormap
+            self.palette = "RdBu_r"
+        if self.legend_title == "LogMean(nUMI)\nin group":
+            self.legend_title = "Z-score"
+        df = df.fillna(0)
+        return df
+
+    def _get_categories(self, column: str | None) -> list | None:
+        if column is None:
+            return None
+        else:
+            return (
+                list(self.adata.obs[column].cat.categories) if self.adata.obs[column].dtype.name == "category"
+                else list(self.adata.obs[column].unique())
+            )
+
+    def _reindex(self, df: pd.DataFrame) -> tuple:
+        from scipy.cluster.hierarchy import dendrogram, linkage
+
+        # Sort based on categories
+        if self.y_axis is None:
+            new_index, new_cols = self.features, self.xticks_order
+        else:
+            new_index = self.yticks_order
+            new_cols = pd.MultiIndex.from_product([self.features, self.xticks_order], names=["gene", self.x_axis])
+
+        # Resort in case clustering is True
+        new_index = (
+            df.index[
+                dendrogram(
+                    linkage(df.values, method=self.clustering_method, metric=self.clustering_metric), no_plot=True
+                )["leaves"]]
+            if self.cluster_y_axis
+            else new_index
+        )
+
+        new_cols = (
+            df.columns[
+                dendrogram(
+                    linkage(df.T.values, method=self.clustering_method, metric=self.clustering_metric), no_plot=True
+                )["leaves"]
+            ]
+            if self.cluster_x_axis
+            else new_cols
+        )
+
+        return new_index, new_cols
+
+    @staticmethod
+    def _check_missing(adata: ad.AnnData, values: list):
+        missing = [g for g in values if g not in adata.var_names]
+        if len(missing) != 0:
+            missing = [g for g in missing if g not in adata.obs.columns]
+        assert len(missing) == 0, f'{missing} features missing in the object'
+
+    def _compute_stats(self, df):
+        import scanpy as sc
+        if self.add_stats is not None:
+            if self.add_stats == "y_axis" and self.y_axis is None:
+                raise ValueError("Testing y_axis but argument is None")
+            group_by = self.x_axis if self.add_stats == "x_axis" else self.y_axis
+            alternative = self.x_axis if self.add_stats == "y_axis" else self.y_axis
+            if self.df_pvals is None:
+                features = iterase_input(self.features)
+
+                if self.y_axis is None:
+                    if all(item in list(self.adata.var_names) for item in features):
+                        try:
+                            rank_genes_groups(
+                                self.adata, groupby=group_by, method=self.test, tie_correct=True,
+                                corr_method=self.correction_method, layer=self.layer
+                            )
+                            table = sc.get.rank_genes_groups_df(
+                                self.adata, group=None, pval_cutoff=self.pval_cutoff, log2fc_min=self.log2fc_cutoff
+                            )
+                            table_filt = table[table["names"].isin(features)]
+
+                            if len(table_filt) == 0:
+                                logger.warn("No significant groups")
+                        except Exception as e:
+                            logger.warn(f"Error testing, {e}")
+                            table_filt = pd.DataFrame(
+                                [], columns=[
+                                    'group', 'names', 'scores', 'logfoldchanges', 'pvals', 'pvals_adj', 'pct_nz_group',
+                                    'pct_nz_reference']
+                            )
+                    elif all(item in list(self.adata.obs.columns) for item in features):
+                        raise NotImplementedError("Testing for features in adata.obs is not implemented")
+                    else:
+                        raise InputError("Not a valid input for testing")
+                else:
+                    if all(item in list(self.adata.var_names) for item in features):
+                        table_filt = pd.DataFrame([])
+                        for alt in self.adata.obs[alternative].unique():
+                            sdata = self.adata[self.adata.obs[alternative] == alt].copy()
+                            try:
+                                rank_genes_groups(sdata, groupby=group_by, method=self.test, tie_correct=True,
+                                                  corr_method=self.correction_method, layer=self.layer)
+                                stable = sc.get.rank_genes_groups_df(
+                                    sdata, group=None, pval_cutoff=self.pval_cutoff, log2fc_min=self.log2fc_cutoff
+                                )
+                            except Exception as e:
+                                logger.warn(f'Error while testing: {e}')
+                                stable = pd.DataFrame(
+                                    [], columns=[
+                                        'group', 'names', 'scores', 'logfoldchanges', 'pvals', 'pvals_adj',
+                                        'pct_nz_group', 'pct_nz_reference']
+                                )
+                            stable_filt = stable[stable["names"].isin(features)]
+                            stable_filt['group2'] = alt
+                            table_filt = pd.concat([table_filt, stable_filt])
+                        if len(table_filt) == 0:
+                            logger.warn('No Significant group')
+                    elif all(item in list(self.adata.obs.columns) for item in features):
+                        raise NotImplementedError("Testing for features in adata.obs is not implemented")
+                    else:
+                        raise InputError("Not a valid input for testing")
+            else:
+                raise InputError("Not a valid input for testing")
+
+            columns = df.columns
+            index = df.index
+            df_pvals = pd.DataFrame([], index=index, columns=columns)
+
+            for idx, row in table_filt.iterrows():
+                if self.y_axis is None:
+                    if row["group"] in list(index):
+                        df_pvals.loc[row["group"], row["names"]] = row["pvals_adj"]
+                    else:
+                        df_pvals.loc[row["names"], row["group"]] = row["pvals_adj"]
+                else:
+                    if row["group"] in list(index):
+                        df_pvals.loc[row["group"], (row["names"], row["group2"])] = row["pvals_adj"]
+                    else:
+                        df_pvals.loc[row["group2"], (row["names"], row["group"])] = row["pvals_adj"]
+            df_pvals[df_pvals.isna()] = 1
+            annot_pvals = df_pvals.applymap(lambda x: "*" if x < self.pval_cutoff else "")
+            self.annot_pvals = annot_pvals
+            self.df_pvals = df_pvals
+        else:
+            self.annot_pvals = None
+        return None
+
+    # Visualisation
+    def make_figure(self, nrows: int = 1, ncols: int = 1, height_ratios: list | None = None, hspace: float | None = None) -> None:
+        self.fig, self.gs = make_grid_spec(
+            self.ax or (self.width, self.height), nrows=nrows, ncols=ncols, wspace=0.7/self.width,
+            width_ratios =(
+                [self.width - self.legends_width, self.legends_width] if ncols==2 else [self.width - self.legends_width]
+            ),
+            height_ratios=height_ratios, hspace=hspace,
+        )
+        return None
+
+    def _create_colorbar(self, df, axis):
+        from matplotlib.colorbar import Colorbar
+
+        if self.z_score is None:
+            vmin = 0.0 if self.vmin is None else self.vmin
+            vmax = round(df.max().max() * 20) / 20 if self.vmax is None else self.vmax
+            txt = ""
+        else:
+            vmin = round(df.min().min() * 20) / 20 if self.vmin is None else self.vmin
+            vmax = round(df.max().max() * 20) / 20 if self.vmax is None else self.vmax
+
+            if self.y_axis is None:
+                n = self.x_axis if self.z_score == "x_axis" else "features"
+            else:
+                n = self.x_axis if self.z_score == "x_axis" else self.y_axis
+            txt = f"\nacross {n}"
+
+        self.vmin, self.vmax = vmin, vmax
+
+        colormap = plt.get_cmap(self.palette)
+        normalize = check_colornorm(vmin=self.vmin, vmax=self.vmax, vcenter=self.vcenter)
+        mappable = ScalarMappable(norm=normalize, cmap=colormap)
+
+        Colorbar(axis, mappable=mappable, orientation="horizontal")
+        axis.set_title(self.legend_title + txt, fontsize="small", fontweight="bold")
+        axis.xaxis.set_tick_params(labelsize="small")
+        return axis
+
+    # Main Fxs
+    def heatmap(self):
+        df = self._get_mean_expr()
+
+        # stats_x_size = max(np.sqrt(height * width), 14) if stats_x_size is None else stats_x_size
+        self.stats_x_size = min(self.width / df.shape[1], self.height / df.shape[1]) * 10 if self.stats_x_size is None else min(
+            self.width / df.shape[1], self.height / df.shape[1]) * self.stats_x_size
+
+        if self.y_axis is None:
+            # Features x Categories
+            df = df.pivot(index="gene", columns=self.x_axis, values="expr")
+
+            # Apply Z-score scaling
+            if self.z_score is not None:
+                df = self._scale(df)
+
+            # Reindex
+            new_idx, new_cols = self._reindex(df)
+            df = df.reindex(index=new_idx, columns=new_cols)
+
+            # Swap Axes --> Categories x Features
+            if self.swap_axes:
+                df = df.T
+
+            # Make figure
+            self.make_figure(nrows=1, ncols=2)
+            main_ax = self.fig.add_subplot(self.gs[0])
+            legend_ax = self.fig.add_subplot(self.gs[1])
+            annot_ax = None
+        else:
+            # XCategories x YCategories x Features
+            df = df.pivot(index=self.y_axis, columns=["gene", self.x_axis], values="expr")
+
+            if self.z_score is not None:
+                df = self._scale(df)
+
+            # Reindex
+            new_idx, new_cols = self._reindex(df)
+            df = df.reindex(index=new_idx, columns=new_cols)
+
+            # Make Figure
+            self.make_figure(nrows=2, ncols=2, height_ratios=self.height_ratios_annot, hspace=0)
+            annot_ax = self.fig.add_subplot(self.gs[0, 0])
+            main_ax = self.fig.add_subplot(self.gs[1, 0], sharex=annot_ax)
+            legend_ax = self.fig.add_subplot(self.gs[:, 1])
+
+        fig, legend_gs = make_grid_spec(legend_ax, nrows=4, ncols=1, height_ratios=self.height_ratios_legend)
+        color_legend_ax = fig.add_subplot(legend_gs[3])
+
+        if self.add_stats:
+            sig_ax = fig.add_subplot(legend_gs[2])
+
+        self._compute_stats(df)
+
+        # Plot data
+        # Add Legend
+        self.return_ax_dict["legend_ax"] = self._create_colorbar(df=df, axis=color_legend_ax)
+
+        hm = sns.heatmap(
+            df,
+            cmap=self.palette,
+            ax=main_ax,
+            linewidths=self.linewidth,
+            cbar=False,
+            annot_kws={"color": "black", "size": self.stats_x_size, "ha": "center", "va": "center", "fontfamily":'DejaVu Sans Mono'},
+            annot=self.annot_pvals,
+            fmt="s",
+            square=False,
+            vmin=self.vmin,
+            vmax=self.vmax,
+            center=self.vcenter,
+            **self.kwargs,
+        )
+
+        hm.spines[["top", "right", "bottom", "left"]].set_visible(True)
+        hm.set_xlabel("")
+        hm.set_ylabel("")
+        hm.set_xticklabels(
+            df.columns.get_level_values(self.x_axis), fontdict={"weight": self.xticks_fontweight, "size": self.xticks_fontsize}, **self.rotation_props_x)
+        hm.set_yticklabels(
+            hm.get_yticklabels(), fontdict={"weight": self.yticks_fontweight, "size": self.yticks_fontsize}, **self.yticks_rotation)
+        hm.set_title(self.title, fontdict={"size": self.title_size, "weight":self.title_fontweight})
+
+        self.return_ax_dict["mainplot_ax"] = hm
+
+        # Annotation Axis
+        if annot_ax is not None:
+            annot_ax.set_xlim(0, df.shape[1])
+            annot_ax.set_ylim(0, 1)
+            annot_ax.axis("off")
+            genes = df.columns.get_level_values("gene")
+
+            start, current = 0, genes[0]
+            for i in range(1, len(genes) + 1):
+                if i == len(genes) or genes[i] != current:
+                    width = i - start
+                    rect = patches.Rectangle(
+                        (start, 0), width,1, facecolor="lightgray", edgecolor="black",
+                        clip_on=False, linewidth=hm.spines["right"].get_linewidth()
+                    )
+                    annot_ax.add_patch(rect)
+                    annot_ax.text(
+                        start + width / 2, 0.5, current, ha="center", va="center", fontsize=self.annot_fontsize,
+                        fontweight="bold",
+                    )
+                    if i < len(genes):
+                        hm.axvline(i, color="black", linewidth=hm.spines["right"].get_linewidth())
+                        start, current = i, genes[i]
+            self.return_ax_dict["annot_ax"] = annot_ax
+
+        # Significance legend
+        if self.add_stats:
+            x, y = 0, 0.5
+            sig_ax.scatter(x, y, s=500, facecolors="none", edgecolors="black", marker="s")
+            sig_ax.text(x, y, "*", fontsize=18, ha="center", va="center", color="black", fontfamily='DejaVu Sans Mono')
+            sig_ax.text(x + 0.03, y, "FDR < 0.05", fontsize=12, va="center", fontweight="bold")
+            sig_ax.set_xlim(x - 0.02, x + 0.1)
+
+            n = self.x_axis if self.add_stats == "x_axis" else self.y_axis
+            txt = f"\nacross {n}"
+
+            sig_ax.set_title("Significance" + txt, fontsize="small", fontweight="bold")
+            plt.gca().set_aspect("equal")
+            sig_ax.axis("off")  # Hide axes for clean display
+            self.return_ax_dict["signifiance_ax"] = sig_ax
+
+        if self.add_stats:
+            colormap = plt.get_cmap(self.palette)
+            normalize = check_colornorm(vmin=self.vmin, vmax=self.vmax, vcenter=self.vcenter)
+
+            df_x = pd.DataFrame([], index=df.index, columns=df.columns)
+            df_x[df_x.isna()] = "black"
+            df_x = df.map(lambda x: square_color(colormap(normalize(x))))
+            pos_rows, pos_cols = np.where(self.df_pvals < 0.05)
+            pos = list(zip(pos_rows, pos_cols, strict=False))
+            colors = [df_x.iloc[row, col] for row, col in pos]
+
+            small_squares(
+                hm,
+                color=colors,
+                pos=pos,
+                size=self.square_x_size["size"],
+                linewidth=self.square_x_size["width"],
+            )
+
+            # Now set colors manually on each annotation text base on the background
+            for text, color in zip(hm.texts, df_x.values.flatten(), strict=False):
+                text.set_color(color)
+
+        save_plot(path = self.path, filename =self.filename)
+
+        if self.show:
+            return plt.show()
+        else:
+            return return_axis(self.show, self.return_ax_dict, tight=True)
+
 
