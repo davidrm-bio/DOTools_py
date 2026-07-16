@@ -23,8 +23,8 @@ analyze, and interpret single-cell data.
 
 ## Getting started
 
-Please refer to the [documentation](https://dotools-py.readthedocs.io/en/latest/index.html),
-in particular, the [API documentation](https://dotools-py.readthedocs.io/en/latest/api/index.html).
+Please refer to the [documentation](https://dotools-py.readthedocs.io/en/0.0.4/index.html),
+in particular, the [API documentation](https://dotools-py.readthedocs.io/en/0.0.4/api/index.html).
 
 ## Installation
 
