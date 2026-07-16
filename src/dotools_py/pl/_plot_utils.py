@@ -279,3 +279,72 @@ def draw_bracket(x_start, x_end, y_bottom=0, y_top=1, stem_length=0.2):
     codes = [matplotlib.path.Path.MOVETO, matplotlib.path.Path.LINETO,
              matplotlib.path.Path.LINETO, matplotlib.path.Path.LINETO]
     return matplotlib.path.Path(verts, codes)
+
+
+
+
+def check_colornorm(vmin=None, vmax=None, vcenter=None, norm=None):
+    from matplotlib.colors import Normalize
+
+    try:
+        from matplotlib.colors import TwoSlopeNorm as DivNorm
+    except ImportError:
+        # matplotlib<3.2
+        from matplotlib.colors import DivergingNorm as DivNorm
+
+    if norm is not None:
+        if (vmin is not None) or (vmax is not None) or (vcenter is not None):
+            raise ValueError("Passing both norm and vmin/vmax/vcenter is not allowed.")
+    else:
+        if vcenter is not None:
+            norm = DivNorm(vmin=vmin, vmax=vmax, vcenter=vcenter)
+        else:
+            norm = Normalize(vmin=vmin, vmax=vmax)
+
+    return norm
+
+
+def square_color(rgba: list) -> str:
+    """Determine if the background is dark or clear and return black or white.
+
+    :param rgba: list with rgba values
+    :return: black or white
+    """
+    r, g, b = rgba[:3]  # ignore alpha
+    # Convert from 0 to 1 float to 0–255 int
+    r, g, b = [int(c * 255) for c in (r, g, b)]
+    # Use brightness heuristic
+    brightness = (r * 299 + g * 587 + b * 114) / 1000
+    return "black" if brightness > 128 else "white"
+
+
+def small_squares(ax: plt.Axes, pos: list, color: list, size: float = 1, linewidth: float = 0.8,
+                  zorder: int = 20) -> None:
+    """Add small squares.
+
+    :param ax: matplotlib axis
+    :param pos: list of positions
+    :param color: list of colors
+    :param size:  size of the square
+    :param linewidth: linewith of the square
+    :param zorder: location of the square
+    :return: None
+    """
+    import matplotlib.patches as patches
+
+    for idx, xy in enumerate(pos):
+        x, y = xy
+        margin = (1 - size) / 2
+        rect = patches.Rectangle(
+            (y + margin, x + margin),
+            size,
+            size,
+            linewidth=linewidth,
+            edgecolor=color[idx],
+            facecolor="none",
+            zorder=zorder,
+        )
+        if zorder == 0:
+            rect.set_alpha(0)  # Hide square if they should be in the back, for the dotplot
+        ax.add_patch(rect)
+    return None
