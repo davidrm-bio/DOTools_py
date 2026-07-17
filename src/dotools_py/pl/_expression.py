@@ -181,6 +181,7 @@ def boxplot(
     hue_order: list = None,
     layer: str = None,
     pseudobulk: bool = False,
+    batch_key: str | None = None,
 
     # Figure Parameters
     figsize: tuple[float, float] = (3, 4.2),
@@ -232,6 +233,7 @@ def boxplot(
     :param layer: Name of the AnnData object layer that wants to be plotted. By default, `adata.X` is plotted.
               If layer is set to a valid layer name, then the layer is plotted.
     :param pseudobulk: If set to `True` the distribution of the mean across samples will be plotted.
+    :param batch_key: Column in adata.obs with batch information. Used when pseudobulk is set True.
     :param figsize: Figure size, the format is (width, height).
     :param palette:  String denoting matplotlib colormap.  If not set, it will try to access `adata.uns[hue_colors | x_axis_colors]`, if not
                  the colormap `do.utility.tab30()` will be used. A dictionary with the categories available in `adata.obs[x_axis]` or `adata.obs[hue]`
@@ -306,7 +308,7 @@ def boxplot(
 
     plotter = BaseSeaborn(
         # Data and calculation
-        adata=adata, feature=feature, batch_key=None, x_axis=x_axis, hue=hue, layer=layer,
+        adata=adata, feature=feature, batch_key=batch_key, x_axis=x_axis, hue=hue, layer=layer,
         log1p_data=True, pseudobulk=pseudobulk,
         # Figure parameters
         figsize=figsize, ax=ax, cmap=palette,
