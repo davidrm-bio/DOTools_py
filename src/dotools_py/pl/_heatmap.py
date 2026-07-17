@@ -18,6 +18,7 @@ from dotools_py.get import log2fc as get_log2fc
 from dotools_py._utils import  convert_path, sanitize_anndata, iterase_input, check_missing
 from dotools_py.pl._plot_utils import make_grid_spec
 from dotools_py._custom_class import PathLike
+from dotools_py.pl._Classes import MatrixPlot
 
 def check_colornorm(vmin=None, vmax=None, vcenter=None, norm=None):
     from matplotlib.colors import Normalize
@@ -88,7 +89,7 @@ def small_squares(ax: plt.Axes, pos: list, color: list, size: float = 1, linewid
 
 
 
-def heatmap(
+def heatmap_old(
     # Data
     adata: ad.AnnData,
     group_by: str | list,
@@ -294,7 +295,7 @@ def heatmap(
             else:
                 df_pvals = df_pvals.T
         # Replace pvals < 0.05 with an X
-        annot_pvals = df_pvals.applymap(lambda x: "*" if x < pval_cutoff else "")
+        annot_pvals = df_pvals.map(lambda x: "*" if x < pval_cutoff else "")
 
     # Data Transformation
     if z_score is not None:
@@ -459,6 +460,189 @@ def heatmap(
         return plt.show()
     else:
         return return_ax_dict
+
+
+def heatmap(
+    adata: ad.AnnData,
+    x_axis: str,
+    features: str | list,
+    y_axis: str | None = None,
+    xticks_order: list | None = None,
+    yticks_order: list | None = None,
+    layer: str | None = None,
+    logcounts: bool = True,
+
+    # Figure parameters
+    figsize: tuple = (5, 6),
+    ax: plt.Axes | None = None,
+    swap_axes: bool = True,
+    title: str = "",
+    title_fontproperties: Dict[Literal["size", "weight"], str | int] | None = None,
+    palette: str = "Reds",
+
+    xticks_properties: dict | None = None,
+    xticks_rotation: int = 45,
+    yticks_properties: dict | None = None,
+    yticks_rotation: int = 0,
+    cluster_x_axis: bool = False,
+    cluster_y_axis: bool = False,
+
+    legend_title: str = "LogMean(nUMI)\nin group",
+
+    # IO
+    path: PathLike | None = None,
+    filename: str = "Heatmap.svg",
+    show: bool = True,
+
+    # Statistics
+    add_stats: Literal["x_axis", "y_axis"] | None = None,
+    test: Literal["wilcoxon", "t-test"] = "wilcoxon",
+    correction_method: Literal["benjamini-hochberg", "bonferroni"] = "benjamini-hochberg",
+    df_pvals: pd.DataFrame | None = None,
+    stats_x_size: float | None = None,
+    square_x_size: dict | None = None,
+    pval_cutoff: float = 0.05,
+    log2fc_cutoff: float = 0.0,
+
+    # Fx specific
+    z_score: Literal["x_axis", "y_axis"] | None = None,
+    clustering_method: str = "complete",
+    clustering_metric: str = "euclidean",
+    linewidth: float = 0.1,
+    vmin: float | None = None,
+    vcenter: float | None = None,
+    vmax: float | None = None,
+    annot_fontsize: float = 12,
+    annot_ratio: float = 0.35,
+    **kwargs,
+):
+    """Makes a 2d or 3d heatmap.
+
+     There are two type of visualization:
+        * 2d heatmap: X_axis shows ``x_axis`` categories and Y_axis the ``features``. The color represents the logarithmize mean
+                    nUMI.
+        * 3d dotplot: X_axis shows ``x_axis`` categories and Y_axis shows ``y_axis`` categories. For each feature the
+                      ``x_axis`` categories will be duplicated, to show how is the expressing across 2 categorical columns
+                      in `.obs`. The color represents the logarithmize mean nUMI.
+
+    Differential gene expression analysis between the different groups can be performed.
+
+    :param adata: Annotated data matrix.
+    :param x_axis: Name of a categorical column in `adata.obs` to groupby.
+    :param features: A valid feature in `adara.var_names` or column in `adata.obs` with continuous values. The order of the features is maintained.
+    :param y_axis:  A valid feature in `adara.var_names` or column in `adata.obs` with continuous values.
+    :param xticks_order: Order for the categories in `adata.obs[x_axis]`
+    :param yticks_order: Order for the categories in `adata.obs[y_axis]`
+    :param layer: Name of the AnnData object layer that wants to be plotted. By default, `adata.X` is plotted.
+    :param logcounts: Set to `True` if the input data is in logspace.
+    :param figsize: Figure size, the format is (width, height).
+    :param ax: Matplotlib axes to use for plotting. If not set, a new figure will be generated.
+    :param swap_axes: Whether to swap the x_axis categories and features. Only used if y_axis is set to None.
+    :param title: Title for the figure.
+    :param title_fontproperties: Dictionary which should contain 'size' and 'weight' to define the fontsize and
+                                 fontweight of the title of the figure.
+    :param palette: String denoting matplotlib colormap.
+    :param xticks_properties: Dictionary which should contain 'size' and 'weight' to define the fontsize and fontweight of the font of the x-axis.
+    :param xticks_rotation: Rotation of the x-ticks.
+    :param yticks_properties: Dictionary which should contain 'size' and 'weight' to define the fontsize and fontweight of the font of the y-axis.
+    :param yticks_rotation: Rotations of the y-ticks.
+    :param cluster_x_axis:  Hierarchically clustering the x-axis.
+    :param cluster_y_axis: Hierarchically clustering the y-axis.
+    :param legend_title:  Title for the colorbar.
+    :param path:  Path to the folder to save the figure.
+    :param filename: Name of file to use when saving the figure.
+    :param show:  If set to `False`, returns a dictionary with the matplotlib axes.
+    :param add_stats:  Add statistical annotation. Will add a square with an '*' in the center if the expression is significantly different in a group with respect to the others.
+    :param test: Name of the method to test for significance.
+    :param correction_method: Correction method for multiple testing.
+    :param df_pvals: Dataframe with the pvals.
+    :param stats_x_size: Scaling factor to control the size of the asterisk.
+    :param square_x_size: Size and thickness of the square.
+    :param pval_cutoff: Cutoff for the p-value.
+    :param log2fc_cutoff: Minimum cutoff for the log2FC.
+    :param z_score: Apply z-score transformation.
+    :param clustering_method: Linkage method to use for calculating clusters. See `scipy.cluster.hierarchy.linkage <https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html#scipy.cluster.hierarchy.linkage>`_.
+    :param clustering_metric: Distance metric to use for the data. See `scipy.spatial.distance.pdist <https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html#scipy.spatial.distance.pdist>`_.
+    :param linewidth: Linewidth for the border of cells.
+    :param vmin: The value representing the lower limit of the color scale.
+    :param vcenter: The value representing the center of the color scale.
+    :param vmax: The value representing the upper limit of the color scale.
+    :param annot_fontsize: Fontsize of the features text in 3d heatmaps.
+    :param annot_ratio: Fraction of the figure reserved for the feature text in 3d heatmaps.
+    :param kwargs: Additional arguments pass to `sns.heatmap <https://seaborn.pydata.org/generated/seaborn.heatmap.html>`_.
+    :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
+
+    Example
+    -------
+    Create a 2d heatmap and add statistical information
+
+    .. plot::
+        :context: close-figs
+
+        import dotools_py as do
+        adata = do.dt.example_10x_processed()
+        do.pl.heatmap(adata, 'annotation', ['CD4', 'CD79A'], add_stats="x_axis")
+
+    Create a 3d heatmap grouping also by condition
+
+    .. plot::
+        :context: close-figs
+
+        do.pl.heatmap(adata, 'condition',  ['CD4', 'CD79A'], 'annotation', figsize=(6, 4))
+
+        # Add Statistical significance for groups with pvals < 0.05 and log2fc > 0.0
+        # Note, the object is quite small, some groups cannot be tested for having one condition only.
+        do.pl.heatmap(adata, 'condition', ['CD4', 'CD79A'], 'annotation', figsize=(6, 4), add_stats='y_axis')
+
+
+    """
+
+    plotter = MatrixPlot(
+        adata = adata,
+        x_axis = x_axis,
+        features = features,
+        y_axis = y_axis,
+        xticks_order = xticks_order,
+        yticks_order = yticks_order,
+        layer = layer,
+        logcounts = logcounts,
+        figsize = figsize,
+        ax = ax,
+        swap_axes = swap_axes,
+        title = title,
+        title_fontproperties = title_fontproperties,
+        palette = palette,
+        xticks_properties = xticks_properties,
+        yticks_properties=yticks_properties,
+        xticks_rotation = xticks_rotation,
+        yticks_rotation = yticks_rotation,
+        cluster_x_axis = cluster_x_axis,
+        cluster_y_axis = cluster_y_axis,
+        legend_title = legend_title,
+        path = path,
+        filename = filename,
+        show = show,
+        add_stats = add_stats,
+        test = test,
+        correction_method = correction_method,
+        df_pvals = df_pvals,
+        stats_x_size = stats_x_size,
+        square_x_size = square_x_size,
+        pval_cutoff = pval_cutoff,
+        log2fc_cutoff = log2fc_cutoff,
+        z_score = z_score,
+        clustering_method = clustering_method,
+        clustering_metric = clustering_metric,
+        linewidth = linewidth,
+        vmin = vmin,
+        vcenter = vcenter,
+        vmax = vmax,
+        annot_fontsize = annot_fontsize,
+        annot_ratio = annot_ratio,
+        **kwargs,
+    )
+    return plotter.heatmap()
+
 
 
 def heatmap_foldchange(
@@ -684,7 +868,7 @@ def heatmap_foldchange(
             else:
                 df_pvals = df_pvals.T
         # Replace pvals < 0.05 with an X
-        annot_pvals = df_pvals.applymap(lambda x: "*" if x < pval_cutoff else "")
+        annot_pvals = df_pvals.map(lambda x: "*" if x < pval_cutoff else "")
 
     # -------------------------------------------- Arguments for the layout --------------------------------------------
 
