@@ -27,7 +27,7 @@ def barplot(
 
     # Figure Parameters
     figsize: tuple[float, float] = (3, 4.2),
-    palette: str  | dict | Colormap = "tab10",
+    palette: str  | dict | Colormap | None = None,
     title: str = None,
     title_fontproperties: Dict[Literal["size", "weight"], str | int] = None,
     xticks_order: list = None,
@@ -185,7 +185,7 @@ def boxplot(
 
     # Figure Parameters
     figsize: tuple[float, float] = (3, 4.2),
-    palette: str  | dict | Colormap = "tab10",
+    palette: str  | dict | Colormap | None = None,
     title: str = None,
     title_fontproperties: Dict[Literal["size", "weight"], str | int] = None,
     xticks_order: list = None,
@@ -342,7 +342,7 @@ def violinplot(
 
     # Figure Parameters
     figsize: tuple[float, float] = (3, 4.2),
-    palette: str | dict | Colormap = "tab10",
+    palette: str | dict | Colormap | None = None,
     title: str = None,
     title_fontproperties: Dict[Literal["size", "weight"], str | int] = None,
     xticks_order: list = None,

@@ -103,15 +103,21 @@ class BaseSeaborn:
         self.legends_width = self.DEFAULT_LEGEND_WIDTH
 
         if self.hue is None:
-            if self.x_axis + "_colors" in adata.uns.keys():
-                _colormap = dict(zip(iterase_input(self.xticks_order), adata.uns[self.x_axis + "_colors"], strict=True))
+            if cmap is None:
+                if self.x_axis + "_colors" in adata.uns.keys():
+                    _colormap = dict(zip(iterase_input(self.xticks_order), adata.uns[self.x_axis + "_colors"], strict=True))
+                else:
+                    _colormap = self.DEFAULT_CMAP
             else:
-                _colormap = self.DEFAULT_CMAP if cmap is None else cmap
+                _colormap = cmap
         else:
-            if self.hue + "_colors" in adata.uns.keys():
-                _colormap = dict(zip(iterase_input(self.hue_order), adata.uns[self.hue + "_colors"], strict=True))
+            if cmap is None:
+                if self.hue + "_colors" in adata.uns.keys():
+                    _colormap = dict(zip(iterase_input(self.hue_order), adata.uns[self.hue + "_colors"], strict=True))
+                else:
+                    _colormap = self.DEFAULT_CMAP
             else:
-                _colormap = self.DEFAULT_CMAP if cmap is None else cmap
+                _colormap = cmap
         self.cmap = _colormap
 
         colors_dict = None
@@ -443,6 +449,13 @@ class BaseSeaborn:
         # Save Main Axis
         self.dict_axis["mainplot_ax"] = vln
         return self.dict_axis
+
+    def lineplot(
+        self,
+    ) -> dict:
+        ...
+
+
 
 
 
