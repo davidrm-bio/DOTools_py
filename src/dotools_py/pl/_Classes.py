@@ -937,8 +937,11 @@ class MatrixPlot:
         hm.spines[["top", "right", "bottom", "left"]].set_visible(True)
         hm.set_xlabel("")
         hm.set_ylabel("")
+
         hm.set_xticklabels(
-            df.columns.get_level_values(self.x_axis), fontdict={"weight": self.xticks_fontweight, "size": self.xticks_fontsize}, **self.rotation_props_x)
+            df.columns.get_level_values(self.x_axis) if annot_ax is not None else df.columns,
+            fontdict={"weight": self.xticks_fontweight, "size": self.xticks_fontsize}, **self.rotation_props_x)
+
         hm.set_yticklabels(
             hm.get_yticklabels(), fontdict={"weight": self.yticks_fontweight, "size": self.yticks_fontsize}, **self.yticks_rotation)
         hm.set_title(self.title, fontdict={"size": self.title_size, "weight":self.title_fontweight})
