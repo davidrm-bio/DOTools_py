@@ -171,7 +171,7 @@ def test_expression():
 def test_heatmap():
     adata = do.dt.example_10x_processed()
 
-    axs = do.pl.heatmap(adata, group_by="annotation", features="CD4", add_stats=True, show=False)
+    axs = do.pl.heatmap(adata, x_axis="annotation", features="CD4", add_stats="x_axis", show=False)
     plt.close()
     assert isinstance(axs, dict)
     assert "mainplot_ax" in axs
