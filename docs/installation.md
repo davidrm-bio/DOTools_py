@@ -53,7 +53,7 @@ For old CPU architectures there can be problems with [polars](https://docs.pola.
 when importing the package. In this case run
 
 ```bash
-pip install --no-cache polars-lts-cpu
+uv pip install --no-cache polars-lts-cpu
 ```
 
 # R version
@@ -66,7 +66,6 @@ if (!requireNamespace("BiocManager", quietly=TRUE)) {
     install.packages("BiocManager")
 }
 BiocManager::install("DOtools")
-devtools::install_github("MarianoRuzJurado/DOtools")
 ```
 
 The developmental version can be downloaded using `devtools`:
