@@ -1147,6 +1147,7 @@ def umap_clustering(
     resolution: float = 0.3,
     cluster_key: str = "leiden",
     neighbors_kwg: dict | None = None,
+    umap_kwg: dict | None = None
 ) -> None:
     """Compute UMAP embedding and identify clusters.
 
@@ -1163,6 +1164,7 @@ def umap_clustering(
     :param resolution: Resolution to use for clustering
     :param cluster_key: Key in `adata.obs` with clustering information
     :param neighbors_kwg: Additional parameters pass to `sc.pp.neighbors()`
+    :param umap_kwg: Additional parameters pass to `sc.tl.umap()`
     :return: Returns None.
 
     Example
@@ -1226,7 +1228,8 @@ def umap_clustering(
 
     if compute_umap:
         logger.info("Computing UMAP")
-        sc.tl.umap(adata)
+        umap_kwg = {} if umap_kwg is None else umap_kwg
+        sc.tl.umap(adata, **umap_kwg)
 
     if compute_clusters:
         logger.info("Computing clusters")
