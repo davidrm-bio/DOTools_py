@@ -1022,7 +1022,7 @@ def ora_network(
         table_go["Term"] = table_go["Term"].str.split("\(G").str[0]
 
         # Network with only the enriched terms
-        ora_network(
+        do.pl.ora_network(
             table_go[table_go["state"] == "enriched"], term_key="Term",
             pval_key="Adjusted P-value", score_key="Combined Score", genes_key="Genes", figsize=(10, 6),
             min_cluster_size=5
@@ -1037,7 +1037,7 @@ def ora_network(
         table_go = table_go[table_go['Adjusted P-value'] < 0.15]
         table_go["Term"] = table_go["Term"].str.split("\(G").str[0]
 
-        ora_network(
+        do.pl.ora_network(
             table_go, term_key="Term", color_key="state", shape_key="state",
             pval_key="Adjusted P-value", score_key="Combined Score", genes_key="Genes", figsize=(10, 6),
             min_cluster_size=2, palette={"enriched":"firebrick", "depleted":"royalblue"},
