@@ -14,6 +14,7 @@ heart and the dataset from PBMC from 10x used in the tutorial.
     dt.example_10x_processed
     dt.example_visium
     dt.example_visium_processed
+    dt.example_ora
 ```
 
 ## Utility for heart datasets

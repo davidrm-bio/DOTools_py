@@ -1013,11 +1013,7 @@ def ora_network(
         :context: close-figs
 
         import dotools_py as do
-        adata = do.dt.example_10x_processed()
-        do.tl.rank_genes_groups(adata,  'condition', method='wilcoxon', tie_correct=True, pts=True)
-        table = do.get.dge_results(adata)
-        table = table[table.group == 'disease']
-        table_go = do.tl.go_analysis(table, 'GeneName', 'padj', 'log2fc', specie='Human', go_catgs = ['GO_Molecular_Function_2023', 'GO_Cellular_Component_2023', 'GO_Biological_Process_2023'])
+        adata = do.dt.example_ora()
         table_go = table_go[table_go['Adjusted P-value'] < 0.2]
         table_go["Term"] = table_go["Term"].str.split("\(G").str[0]
 
@@ -1033,9 +1029,7 @@ def ora_network(
     .. plot::
         :context: close-figs
 
-        table_go = do.tl.go_analysis(table, 'GeneName', 'padj', 'log2fc', specie='Human', go_catgs = ['GO_Molecular_Function_2023', 'GO_Cellular_Component_2023', 'GO_Biological_Process_2023'])
         table_go = table_go[table_go['Adjusted P-value'] < 0.15]
-        table_go["Term"] = table_go["Term"].str.split("\(G").str[0]
 
         do.pl.ora_network(
             table_go, term_key="Term", color_key="state", shape_key="state",
