@@ -1013,7 +1013,7 @@ def ora_network(
         :context: close-figs
 
         import dotools_py as do
-        adata = do.dt.example_ora()
+        table_go = do.dt.example_ora()
         table_go = table_go[table_go['Adjusted P-value'] < 0.2]
         table_go["Term"] = table_go["Term"].str.split("\(G").str[0]
 
