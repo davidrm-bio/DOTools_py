@@ -1,14 +1,23 @@
 import anndata as ad
 import pandas as pd
 import numpy as np
-from typing import Literal, Callable, Dict
+from typing import Literal, Callable, Dict, Any
 
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 import matplotlib.patches as patches
 from matplotlib.cm import ScalarMappable
 import seaborn as sns
+import textwrap
+from adjustText import adjust_text
+
+import networkx as nx
+
 from scipy.stats import zscore
+from scipy.cluster.hierarchy import linkage, fcluster
+from scipy.spatial.distance import squareform
+from itertools import combinations
+
 
 from dotools_py._utils import sanitize_anndata, iterase_input, x_is_raw_counts
 from dotools_py._custom_class import  InputError, PathLike
@@ -454,8 +463,6 @@ class BaseSeaborn:
         self,
     ) -> dict:
         ...
-
-
 
 
 
@@ -1031,5 +1038,530 @@ class MatrixPlot:
             return plt.show()
         else:
             return return_axis(self.show, self.return_ax_dict, tight=True)
+
+
+class DrawNetwork:
+    DEFAULT_TITLE_SIZE = 20
+    DEFAULT_TITLE_FONTWEIGHT = "bold"
+
+    DEFAULT_LEGEND_TITLE_FONTSIZE = 12
+    DEFAULT_LEGEND_TITLE_FONTWEIGHT = "bold"
+    DEFAULT_LEGEND_WIDTH = 1.5
+
+    DEFAULT_LABEL_SIZE = 10
+    DEFAULT_LABEL_FONTWEIGHT = "bold"
+
+    SHAPES = [
+        "o", "v", "^", "<", ">", "1", "2", "3", "4", "8", "s", "p", "P", "*",
+        "h", "H", "+", "x", "X", "D"
+    ]
+
+    DEFAULT_NX_LAYOUT = {"k": 0.35, "iterations": 200}
+
+    def __init__(
+        self,
+        # Data
+        df: pd.DataFrame,
+        term_col: str,
+        padj_col: str,
+        score_col: str,
+        genes_col: str,
+        annot_col: str | None = None,
+        direction_col: str | None = None,
+
+        # Figure parameters
+        figsize: tuple = (6, 5),
+        palette: str | dict = "tab30",
+        title: str | None = None,
+        title_fontproperties: Dict[Literal["size", "weight"], str | int] | None = None,
+        ax: plt.Axes | None = None,
+
+        # Legend parameters
+        legend_title: str | None = None,
+        legend_properties: Dict[Literal["size", "weight"], str | int] | None = None,
+        legend_ncols: int = 1,
+        legend_loc: Literal[
+            "center left", "cemter right", "upper right", "upper left", "lower left", "lower right", "right", "lower center", "upper center", "center"] = 'center left',
+
+        # Fx specific
+        shapes: dict | None = None,
+        cluster_algorithm: Literal["hierarchical", "louvain", "connected_components"] = "hierarchical",
+        cluster_method: str = "complete",
+        cluster_t: float = 0.7,
+        resolution: float = 1,
+        cluster_criterion: str = "distance",
+        min_cluster_size: int = 3,
+        nx_layout: Any = nx.spring_layout,
+        nx_layout_kwargs: Dict | None = None,
+        labels_fontproperties: Dict[Literal["size", "weight"], str | int] | None = None,
+
+        # Customise
+        edge_color: str = "gray",
+        edge_alpha: float = 0.25,
+        textwrap_width: int = 25,
+    ):
+
+        # Data section
+        df = df.copy()  # Create a copy of the input
+        df["node_id"] = df.reset_index(drop=True).index  # Each row is a node
+        if annot_col is None:
+            df["no_annot_provided"] = "same"
+            annot_col = "no_annot_provided"
+
+        self.df = df
+        self.term_col = term_col
+        self.padj_col = padj_col
+        self.score_col = score_col
+        self.annot_col = annot_col
+        self.direction_col = direction_col
+        self.gene_col = genes_col
+
+        # Figure parameters
+        self.figsize = figsize
+        self.fig, self.gs = None, None
+        self.width, self.height = figsize
+        self.ax = ax
+
+        self.title = title
+        title_fontproperties = {} if title_fontproperties is None else title_fontproperties
+        self.title_size = title_fontproperties.get("size", self.DEFAULT_TITLE_SIZE)
+        self.title_fontweight = title_fontproperties.get("weight", self.DEFAULT_TITLE_FONTWEIGHT)
+
+        self.legend_title = legend_title
+        self.legends_width = self.DEFAULT_LEGEND_WIDTH
+
+        legend_properties = {} if legend_properties is None else legend_properties
+        self.legend_title = legend_title
+        self.legend_ncols = legend_ncols
+        self.legend_title_fontsize = legend_properties.get("size", self.DEFAULT_LEGEND_TITLE_FONTSIZE)
+        self.legend_title_fontweight = legend_properties.get("weight", self.DEFAULT_LEGEND_TITLE_FONTWEIGHT)
+        self.legend_fontsize = legend_properties.get("size", self.DEFAULT_LEGEND_TITLE_FONTSIZE - 2)
+        self.legend_loc = legend_loc
+
+        labels_fontproperties = {} if labels_fontproperties is None else labels_fontproperties
+        self.label_size = labels_fontproperties.get("size", self.DEFAULT_LABEL_SIZE)
+        self.label_fontweight = labels_fontproperties.get("weight", self.DEFAULT_LABEL_FONTWEIGHT)
+
+        # Define the palette
+        if isinstance(palette, str):
+            color_list = get_hex_colormaps(palette)
+            assert df[annot_col].nunique() < len(color_list), "There are more categories than colors in df[annot_col]"
+            palette = dict(zip(df[annot_col].unique(), color_list))
+        elif isinstance(palette, dict):
+            missing = [k for k in palette if k not in df[annot_col].unique()]
+            assert len(missing) == 0, f"{missing} is missing in palette"
+        else:
+            raise InputError("Not a valid palette input")
+        self.palette = palette
+
+        # IO
+        self.return_axis = {}
+
+        # Fx Specific
+        if shapes is None:
+            if direction_col is not None:
+                assert df[direction_col].nunique() < len(self.SHAPES), f"There cannot be more than {len(self.SHAPES)} directions"
+                shapes = dict(zip(df[direction_col].unique(), self.SHAPES[:df[direction_col].nunique()]))
+            else:
+                self.direction_col = "direction"
+                df["direction"] = "same"
+                shapes = {"same": "o"}
+        else:
+            if direction_col is None:
+                raise InputError("shapes is provided but direction_col is None")
+            else:
+                assert df[direction_col].nunique() == len(
+                    shapes), f"There are {len(shapes)} and {direction_col} has {df[direction_col].nunique()} values"
+        self.shapes = shapes
+
+        self.cluster_algorithm = cluster_algorithm
+        self.cluster_method = cluster_method
+        self.cluster_t = cluster_t
+        self.cluster_criterion = cluster_criterion
+        self.min_cluster_size = min_cluster_size
+        self.resolution = resolution
+
+        # Get df_filt and S
+        self._preprocess()
+        self.representatives = (self.df.sort_values(padj_col).groupby("cluster").first())
+        self.G = None
+        self.nx_layout = nx_layout
+
+        if nx_layout is nx.spring_layout:
+            self.nx_layout_kwargs = nx_layout_kwargs if nx_layout_kwargs is not None else self.DEFAULT_NX_LAYOUT
+        else:
+            self.nx_layout_kwargs = nx_layout_kwargs if nx_layout_kwargs is not None else {}
+        logger.info(f"There are {len(self.representatives)} representatives terms")
+
+        # Customize
+        self.edge_color = edge_color
+        self.edge_alpha = edge_alpha
+        self.textwrap = textwrap_width
+
+    @staticmethod
+    def kappa(a: NDArray, b: NDArray) -> NDArray:
+        N = len(a)
+        A = np.sum((a == 1) & (b == 1))
+        B = np.sum((a == 1) & (b == 0))
+        C = np.sum((a == 0) & (b == 1))
+        D = np.sum((a == 0) & (b == 0))
+        po = (A + D) / N
+        p_yes = ((A + B) / N) * ((A + C) / N)
+        p_no = ((C + D) / N) * ((B + D) / N)
+        pe = p_yes + p_no
+        if pe == 1:
+            return 1
+        return (po - pe) / (1 - pe)
+
+    @staticmethod
+    def louvain_clustering(s: NDArray, threshold: float = 0.3, resolution: float = 1) -> NDArray:
+        G = nx.Graph()
+        n = len(s)
+        G.add_nodes_from(range(n))
+        for i in range(n):
+            for j in range(i + 1, n):
+                if s[i, j] >= threshold:
+                    G.add_edge(i, j, weight=float(s[i, j]))
+
+        communities = nx.community.louvain_communities(G, weight="weight", resolution=resolution, seed=0)
+        clusters = np.zeros(n, dtype=int)
+        for cid, community in enumerate(communities, start=1):
+            for node in community:
+                clusters[node] = cid
+        return  clusters
+
+    @staticmethod
+    def connected_component_clustering(s: NDArray, threshold: float = 0.3) -> NDArray:
+        G = nx.Graph()
+        n = len(s)
+        G.add_nodes_from(range(n))
+        for i in range(n):
+            for j in range(i + 1, n):
+                if s[i, j] >= threshold:
+                    G.add_edge(i, j)
+        clusters = np.zeros(n, dtype=int)
+        for cid, component in enumerate(nx.connected_components(G), start=1):
+            for node in component:
+                clusters[node] = cid
+        return clusters
+
+    def _preprocess(self) -> None:
+        term2genes = {}
+        for _, row in self.df.iterrows():
+            genes = row[self.gene_col]
+            if isinstance(genes, str):
+                if ";" in genes:
+                    genes = genes.split(";")
+                elif "," in genes:
+                    genes = genes.split(",")
+                else:
+                    genes = genes.split()
+                term2genes[row["node_id"]] = set(g.strip() for g in genes if g.strip())
+            else:
+                raise InputError(f"{self.gene_col} is not a string column")
+
+        # Binary Matrix
+        all_genes = sorted(set.union(*term2genes.values()))
+        genes_idx = {g: idx for idx, g in enumerate(all_genes)}
+        x = np.zeros((len(term2genes), len(all_genes)), dtype=np.uint8)
+        for term, genes in term2genes.items():
+            idx = [genes_idx[g] for g in genes]
+            x[term, idx] = 1
+
+        # Cluster base on similarity
+        n = x.shape[0]
+        s = np.eye(n)
+        for i, j in combinations(range(n), 2):
+            k = self.kappa(x[i], x[j])
+            s[i, j], s[j, i] = k, k  # Similarity
+        distance = 1 - s
+
+        # Clustering
+        if self.cluster_algorithm == "hierarchical":
+            z = linkage(squareform(distance), method=self.cluster_method)
+            clusters = fcluster(z, t=self.cluster_t, criterion=self.cluster_criterion)
+        elif self.cluster_algorithm == "louvain":
+            clusters = self.louvain_clustering(s, threshold=self.cluster_t, resolution=self.resolution)
+        elif self.cluster_algorithm == "connected_components":
+            clusters = self.connected_component_clustering(s, threshold=self.cluster_t)
+        else:
+            raise InputError(f"{self.cluster_algorithm} is not a valid cluster_algorithm value")
+        self.df["cluster"] = clusters
+
+        # Remove singleton
+        cluster_sizes = self.df["cluster"].value_counts()
+        valid_clusters = cluster_sizes[cluster_sizes >= self.min_cluster_size].index
+        self.df = self.df[self.df["cluster"].isin(valid_clusters)].copy()
+
+        # Re-index nodes
+        old_to_new = dict(zip(self.df["node_id"], range(len(self.df))))
+        keep = self.df["node_id"].values
+        s = s[np.ix_(keep, keep)]
+        self.df["node_id"] = self.df["node_id"].map(old_to_new)
+
+        self.S = s
+        return None
+
+    def make_figure(self, nrows: int = 1, ncols: int = 2) -> None:
+        self.fig, self.gs = make_grid_spec(
+            self.ax or (self.width, self.height), nrows=nrows, ncols=ncols, wspace=0.7 / self.width,
+            width_ratios=(
+                [self.width - self.legends_width, self.legends_width] if ncols == 2 else [
+                    self.width - self.legends_width]
+            )
+        )
+        return None
+
+    def draw_graph(self) -> Dict | None:
+
+        self.G = nx.Graph()
+
+        # Add Nodes
+        for _, row in self.df.iterrows():
+            self.G.add_node(
+                row["node_id"],
+                term=row[self.term_col],
+                cluster=row["cluster"],
+                score=row[self.score_col],
+                annot=row[self.annot_col],
+                direction=row[self.direction_col]
+            )
+
+        # Add Edges
+        n = len(self.df)
+        for i in range(n):
+            for j in range(i + 1, n):
+                if self.S[i, j] >= 0.3:
+                    self.G.add_edge(i, j, weight=self.S[i, j])
+
+        # Data
+        scores = np.array([self.G.nodes[n]["score"] for n in self.G.nodes()])
+        sizes = 80 + 600 * (scores - scores.min()) / (scores.max() - scores.min())
+        # clusters = np.array([self.G.nodes[n]["cluster"] for n in self.G.nodes()])
+        weights = [2 * self.G[u][v]["weight"] for u, v in self.G.edges()]
+        pos = self.nx_layout(self.G, weight="weight", seed=0, **self.nx_layout_kwargs)
+
+        # Make the plot
+        if self.annot_col == "no_annot_provided":
+            self.make_figure(nrows=1, ncols=1)
+        else:
+            self.make_figure(nrows=1, ncols=2)
+        main_axis = self.fig.add_subplot(self.gs[0])
+
+        # Plot Edges
+        nx.draw_networkx_edges(self.G, pos, alpha=self.edge_alpha, width=weights, edge_color=self.edge_color,
+                               ax=main_axis)
+
+        # Plot Nodes
+        for direction, marker in self.shapes.items():
+            nodes = [n for n in self.G.nodes() if self.G.nodes[n]["direction"] == direction]
+            colors = [self.palette[self.G.nodes[n]["annot"]] for n in nodes]
+            node_sizes = [sizes[list(self.G.nodes()).index(n)] for n in nodes]
+            nx.draw_networkx_nodes(
+                self.G, pos, nodelist=nodes, node_color=colors, node_size=node_sizes,
+                node_shape=marker, edgecolors="black", linewidths=0.5, ax=main_axis
+            )
+
+        # Labels from representatives
+        labels = {
+            row["node_id"]: textwrap.fill(row[self.term_col], width=self.textwrap)
+            for _, row in self.representatives.iterrows()
+        }
+        texts = nx.draw_networkx_labels(
+            self.G, pos, labels, font_size=self.label_size, font_weight=self.label_fontweight, verticalalignment="top",
+            ax=main_axis
+        )
+        texts = list(texts.values())
+        # Adjust labels to not overlap text or nodes
+        x, y = [pos[n][0] for n in self.G.nodes()], [pos[n][1] for n in self.G.nodes()]
+
+        adjust_text(
+            texts, ax=main_axis, x=x, y=y, arrowprops=dict(arrowstyle="-", linestyle="--", color="k", lw=1.2, alpha=1),
+            expand_text=(1.2, 1.5), expand_points=(1.5, 1.5), force_text=(0.5, 0.8), force_points=(0.2, 0.5),
+        )
+
+        main_axis.set_title(self.title, fontsize=self.title_size, fontweight=self.title_fontweight)
+        # main_axis.axis("off")
+        main_axis.spines[["top", "bottom", "left", "right"]].set_visible(False)
+        main_axis.set(xticks=[], yticks=[], yticklabels=[], xticklabels=[])
+
+        # Add Legend
+        if self.annot_col != "no_annot_provided":
+            legend_axis = self.fig.add_subplot(self.gs[1])
+
+            legend_elements = []
+            for b in self.palette:
+                legend_elements.append(
+                    mlines.Line2D([0], [0], marker="o", color="w", markerfacecolor=self.palette[b],
+                           markersize=10, label=b)
+                )
+            if len(self.shapes) > 1:
+                for name, marker in self.shapes.items():
+                    legend_elements.append(
+                        mlines.Line2D(
+                            [0], [0], marker=marker, linestyle="", color="black",
+                            markerfacecolor="white", markersize=10, label=name)
+                    )
+
+            legend_axis.legend(handles=legend_elements, frameon=False)
+            sns.move_legend(legend_axis, loc=self.legend_loc, ncols=self.legend_ncols, title=self.legend_title,
+                            title_fontproperties={"size": self.legend_title_fontsize,
+                                                  "weight": self.legend_title_fontweight},
+                            fontsize=self.legend_fontsize, frameon=False)
+            # legend_axis.axis("off")
+            legend_axis.spines[["top", "bottom", "left", "right"]].set_visible(False)
+            legend_axis.set(xticks=[], yticks=[], yticklabels=[], xticklabels=[])
+            self.return_axis["legend_ax"] = legend_axis
+
+        self.return_axis["main_ax"] = main_axis
+        return
+
+
+
+class SeabornDataframes:
+    MIN_FIGURE_HEIGHT = 4.2
+    DEFAULT_WSPACE = 0.0
+    DEFAULT_LEGEND_WIDTH = 1.5
+    DEFAULT_CMAP = "tab30"
+
+    DEFAULT_TITLE_SIZE = 20
+    DEFAULT_TITLE_FONTWEIGHT = "bold"
+
+    DEFAULT_XTICKS_SIZE = 12
+    DEFAULT_XTICKS_FONTWEIGHT = "bold"
+    DEFAULT_XTICKS_ROTATION = None
+
+    DEFAULT_LEGEND_TITLE_FONTSIZE = 12
+    DEFAULT_LEGEND_TITLE_FONTWEIGHT = "bold"
+
+    def __init__(
+        self,
+        # Data
+        df: pd.DataFrame,
+        x_axis: str,
+        feature: str,
+        batch_key: str | None = None,
+        hue: str | None = None,
+
+        # Figure Parameters
+        figsize: tuple = (6, 5),
+        ax: plt.Axes | None = None,
+        cmap: str | Colormap | dict | None = None,
+
+        # Layout
+        xticks_order: list | None = None,
+        xticks_properties: dict = None,
+        hue_order: list | None = None,
+        title: str = None,
+        title_fontproperties: dict = None,
+        legend_properties: dict = None,
+        legend_title: str = None,
+        legend_ncols: int = 1,
+        legend_loc: str = None,
+
+        # Statistics
+        reference: str = None,
+        groups: str | list = None,
+        groups_pvals: float | list = None,
+        test: Literal["wilcoxon", "t-test", "kruskal", "anova", "logreg", "t-test_overestim_var"] = "wilcoxon",
+        corr_method: Literal["benjamini-hochberg", "bonferroni"] = "benjamini-hochberg",
+        line_offset: float = 0.05,
+        txt_size: int = 13,
+        txt: str = "p = ",
+    ):
+        # Data Section
+        self.df = df
+
+        self.x_axis = x_axis
+        self.hue = hue
+        self.batch_key = batch_key
+
+        self.feature = iterase_input(feature)
+
+        # Order for the Xticks
+        self.xticks_order = xticks_order if xticks_order is not None else self._get_categories(x_axis)
+        self.hue_order = hue_order if hue_order is not None else self._get_categories(hue)
+
+        # Figure parameters
+        self.figsize = figsize
+        self.fig, self.gs = None, None
+        self.width, self.height = figsize
+        self.ax = ax
+        self.legends_width = self.DEFAULT_LEGEND_WIDTH
+
+        self.cmap = cmap
+
+        colors_dict = None
+        if hue is not None:
+            if isinstance(self.cmap, str):
+                list_colors = get_hex_colormaps(self.cmap)
+                if len(list_colors) < len(iterase_input(self.hue_order)):
+                    list_colors *= 5
+                colors_dict = dict(zip(iterase_input(self.hue_order), list_colors, strict=False))
+            elif isinstance(self.cmap, dict):
+                colors_dict = self.cmap
+            else:
+                raise InputError("Currently palette only supports a string or dictionary")
+
+        self.cmap_dict = colors_dict
+
+        # Title Properties
+        self.title = title if title is not None else feature
+        title_fontproperties = {} if title_fontproperties is None else title_fontproperties
+        self.title_size = title_fontproperties.get("size", self.DEFAULT_TITLE_SIZE)
+        self.title_fontweight = title_fontproperties.get("weight", self.DEFAULT_TITLE_FONTWEIGHT)
+
+        # X-ticks Properties
+        xticks_properties = {} if xticks_properties is None else xticks_properties
+        self.xticks_fontsize = xticks_properties.get("size", self.DEFAULT_XTICKS_SIZE)
+        self.xticks_fontweight = xticks_properties.get("weight", self.DEFAULT_XTICKS_FONTWEIGHT)
+        rotation = xticks_properties.get("rotation", self.DEFAULT_XTICKS_ROTATION)
+        self.rotation = {"rotation": rotation} if rotation is not None else {}
+        if rotation != 90:
+            self.rotation["ha"] = "right"
+            self.rotation["va"] = "top"
+
+        # Legend Properties
+        legend_properties = {} if legend_properties is None else legend_properties
+        self.legend_title = legend_title
+        self.legend_ncols = legend_ncols
+        self.legend_title_fontsize = legend_properties.get("size", self.DEFAULT_LEGEND_TITLE_FONTSIZE)
+        self.legend_title_fontweight = legend_properties.get("weight", self.DEFAULT_LEGEND_TITLE_FONTWEIGHT)
+        self.legend_fontsize = legend_properties.get("size", self.DEFAULT_LEGEND_TITLE_FONTSIZE - 2)
+        self.legend_loc = legend_loc
+
+        # Saving
+        self.dict_axis = {}
+
+        # Statistics
+        self.groups_cond = iterase_input(groups)
+        self.groups_pvals = iterase_input(groups_pvals)
+        self.reference = reference
+        self.test = test
+        self.corr_method = corr_method
+        self.line_offset = line_offset
+        self.txt_size = txt_size
+        self.txt = txt
+
+    def _get_categories(self, column: str | None) -> list | None:
+        if column is None:
+            return None
+        else:
+            return (
+                list(self.df[column].cat.categories) if self.df[column].dtype.name == "category"
+                else list(self.df[column].unique())
+            )
+
+    def barplot(self):
+        ...
+    def boxplot(self):
+        ...
+    def violinplot(self):
+        ...
+    def lineplot(self):
+        ...
+    def heatmap(self):
+        ...
+
 
 

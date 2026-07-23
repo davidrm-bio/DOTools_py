@@ -47,6 +47,7 @@ functions for enhance visualization of sc/snRNA-seq data.
 
     pl.cell_composition
     pl.split_bar_gsea
+    pl.ora_network
     pl.correlation
     pl.volcano_plot
 ```

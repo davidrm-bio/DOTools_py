@@ -63,6 +63,7 @@ dependencies = [
   "harmony-pytorch",
   "appdirs",
   "rich<14",
+  "networkx",
 ]
 
 

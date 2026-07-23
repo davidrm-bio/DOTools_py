@@ -1,5 +1,5 @@
 import sys
-from typing import Literal, Dict
+from typing import Literal, Dict, Any
 
 import anndata as ad
 import matplotlib.lines as mlines
@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import networkx as nx
 
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import LinearSegmentedColormap, ListedColormap
@@ -17,7 +18,7 @@ from dotools_py.utility import generate_cmap, free_memory
 from dotools_py._custom_class import PathLike
 from dotools_py._utils import sanitize_anndata, convert_path, require_dependencies
 from dotools_py.pl._plot_utils import save_plot, return_axis, make_grid_spec
-
+from dotools_py.pl._Classes import DrawNetwork
 
 def correlation(
     # Data
@@ -909,3 +910,174 @@ def split_bar_gsea(
     #    return axs
     #else:
     #    return plt.show()
+
+
+def ora_network(
+    df: pd.DataFrame,
+    term_key: str,
+    pval_key: str,
+    score_key: str,
+    genes_key: str,
+    color_key: str | None = None,
+    shape_key: str | None = None,
+
+    # Figure parameters
+    figsize: tuple = (6, 5),
+    palette: str | dict = "tab30",
+    title: str | None = None,
+    title_fontproperties: Dict[Literal["size", "weight"], str | int] | None = None,
+    ax: plt.Axes | None = None,
+
+    # Legend parameters
+    legend_title: str | None = None,
+    legend_properties: Dict[Literal["size", "weight"], str | int] | None = None,
+    legend_ncols: int = 1,
+    legend_loc: Literal[
+        "center left", "cemter right", "upper right", "upper left", "lower left", "lower right", "right", "lower center", "upper center", "center"] = 'center left',
+
+    # IO
+    path: PathLike | None = None,
+    filename: str = "Network.svg",
+    show: bool = True,
+
+    # Fx specific
+    shapes: dict | None = None,
+    clustering_algorithm: Literal["hierarchical", "louvain", "connected_components"] = "hierarchical",
+    cluster_method: str = "complete",
+    cluster_threshold: float = 0.7,
+    cluster_resolution: float = 1,
+    cluster_criterion: str = "distance",
+    min_cluster_size: int = 3,
+    nx_layout: Any = nx.spring_layout,
+    nx_layout_kwargs: Dict | None = None,
+    labels_fontproperties: Dict[Literal["size", "weight"], str | int] | None = None,
+
+    # Customise
+    edge_color: str = "gray",
+    edge_alpha: float = 0.75,
+    textwrap_width: int = 25,
+):
+    """Similarity network of overrepresentation analysis results.
+
+    Construct a network in which each node represents an enriched term and edges
+    connect terms that share similar gene sets. Term similarity is computed from
+    the overlap of the genes associated with each term and is used to cluster the
+    network and determine the graph layout. Node size is scaled according to the
+    provided score.
+
+    :param df: Pandas dataframe with ora results.
+    :param term_key: Column in the dataframe with the term.
+    :param pval_key: Column in the dataframe with the p-values. After clustering the most significant term in each group
+                     will be selected as the representative.
+    :param score_key: Column in the dataframe with the score. This is used to determine the node size.
+    :param genes_key: Column in the dataframe with the genes associated to the term. Needs to be a string with genes
+                      comma, or semicolon separated.
+    :param color_key: Column in the dataframe with a first category to be used to determine the node color.
+    :param shape_key: Column in dataframe with a second category to be used to determine the shape of the nodes.
+    :param figsize: Figure size, the format is (width, height).
+    :param palette: String denoting matplotlib colormap.  If not set, it will try to access `adata.uns[hue_colors | x_axis_colors]`, if not
+                 the colormap `do.utility.tab30()` will be used. A dictionary with the categories available in `adata.obs[x_axis]` or `adata.obs[hue]`
+                 if hue is not None can also be provided. The format is {category:color}.
+    :param title: Title for the figure.
+    :param title_fontproperties:  Dictionary which should contain 'size' and 'weight' to define the fontsize and fontweight of the title of the figure.
+    :param ax: Matplotlib axes to use for plotting. If not set, a new figure will be generated.
+    :param legend_title: Title for the legend.
+    :param legend_properties: Dictionary which should contain 'size' and 'weight' to define the fontsize and fontweight of the title of the legend.
+    :param legend_ncols: Number of columns for the legend.
+    :param legend_loc: Location of the legend.
+    :param path: Path to the folder to save the figure.
+    :param filename: Name of file to use when saving the figure.
+    :param show: If set to `False`, returns a dictionary with the matplotlib axes.
+    :param shapes: Dictionary indicating the marker shape to use for each category in shape_key. The key is a category in df[shape_key] and
+                   the value is a valid `matplotlib marker <https://matplotlib.org/stable/api/markers_api.html>`_
+    :param clustering_algorithm: Algorithm to use to cluster the terms.
+    :param cluster_method: `Linkage method <https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html#scipy.cluster.hierarchy.linkage>`_ to use for calculating clusters.
+    :param cluster_threshold: depending on the criterion define the threshold to apply when forming flat clusters or specify the max number of clusters.
+    :param cluster_criterion: Criterion to form flat clusters using `fcluster <https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.fcluster.html>`_
+    :param cluster_resolution: Resolution to use when `cluster_algorithm` is set to `louvain`.
+    :param min_cluster_size: Keep terms present in clusters of at least this number of terms.
+    :param nx_layout: A valid `networkx layout <https://networkx.org/documentation/stable/reference/drawing.html#module-networkx.drawing.layout>`_.
+    :param nx_layout_kwargs: Additional arguments to pass to the network layout.
+    :param labels_fontproperties: Fontsize for the representative terms in each cluster.
+    :param edge_color: Color of the edges.
+    :param edge_alpha: Alpha value for the edges.
+    :param textwrap_width: The maximum width to use when wrapping text.
+    :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes
+
+    Example
+    -------
+
+    Create a network with the results of ORA
+
+    .. plot::
+        :context: close-figs
+
+        import dotools_py as do
+        adata = do.dt.example_10x_processed()
+        do.tl.rank_genes_groups(adata,  'condition', method='wilcoxon', tie_correct=True, pts=True)
+        table = do.get.dge_results(adata)
+        table = table[table.group == 'disease']
+        table_go = do.tl.go_analysis(table, 'GeneName', 'padj', 'log2fc', specie='Human', go_catgs = ['GO_Molecular_Function_2023', 'GO_Cellular_Component_2023', 'GO_Biological_Process_2023'])
+        table_go = table_go[table_go['Adjusted P-value'] < 0.2]
+        table_go["Term"] = table_go["Term"].str.split("\(G").str[0]
+
+        # Network with only the enriched terms
+        ora_network(
+            table_go[table_go["state"] == "enriched"], term_key="Term",
+            pval_key="Adjusted P-value", score_key="Combined Score", genes_key="Genes", figsize=(10, 6),
+            min_cluster_size=5
+        )
+
+    Create a network and color by a categorical column
+
+    .. plot::
+        :context: close-figs
+
+        table_go = do.tl.go_analysis(table, 'GeneName', 'padj', 'log2fc', specie='Human', go_catgs = ['GO_Molecular_Function_2023', 'GO_Cellular_Component_2023', 'GO_Biological_Process_2023'])
+        table_go = table_go[table_go['Adjusted P-value'] < 0.15]
+        table_go["Term"] = table_go["Term"].str.split("\(G").str[0]
+
+        ora_network(
+            table_go, term_key="Term", color_key="state", shape_key="state",
+            pval_key="Adjusted P-value", score_key="Combined Score", genes_key="Genes", figsize=(10, 6),
+            min_cluster_size=2, palette={"enriched":"firebrick", "depleted":"royalblue"},
+            clustering_algorithm="louvain", nx_layout_kwargs={"k":0.5}, edge_alpha=0.75,
+        )  # Keep clusters with at least 2 terms
+
+    """
+
+    plotter = DrawNetwork(
+        df=df,
+        term_col=term_key,
+        padj_col=pval_key,
+        score_col=score_key,
+        genes_col=genes_key,
+        annot_col=color_key,
+        direction_col=shape_key,
+        figsize=figsize,
+        palette=palette,
+        title=title,
+        title_fontproperties=title_fontproperties,
+        ax=ax,
+        legend_title=legend_title,
+        legend_properties=legend_properties,
+        legend_ncols=legend_ncols,
+        legend_loc=legend_loc,
+        shapes=shapes,
+        cluster_method=cluster_method,
+        cluster_t=cluster_threshold,
+        cluster_criterion=cluster_criterion,
+        cluster_algorithm=clustering_algorithm,
+        resolution=cluster_resolution,
+        min_cluster_size=min_cluster_size,
+        nx_layout=nx_layout,
+        nx_layout_kwargs=nx_layout_kwargs,
+        labels_fontproperties=labels_fontproperties,
+        edge_color=edge_color,
+        edge_alpha=edge_alpha,
+        textwrap_width=textwrap_width,
+    )
+    plotter.draw_graph()
+    save_plot(path=path, filename=filename)
+    return return_axis(show=show, axis=plotter.return_axis)
+
