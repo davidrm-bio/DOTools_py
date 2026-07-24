@@ -942,7 +942,12 @@ def ora_network(
 
     # Fx specific
     shapes: dict | None = None,
-    clustering_algorithm: Literal["hierarchical", "louvain", "connected_components"] = "hierarchical",
+    similarity: Literal["kappa", "overlap", "jaccard"] = "jaccard",
+    k_neighbors: int = 5,
+    edge_threshold: float = 0.3,
+    clustering_algorithm: Literal["hierarchical", "louvain", "connected_components", "leiden"] = "hierarchical",
+    representative_method: Literal["pval", "degree", "combined"] = "pval",
+    ntop_representatives: int =10,
     cluster_method: str = "complete",
     cluster_threshold: float = 0.7,
     cluster_resolution: float = 1,
@@ -951,7 +956,6 @@ def ora_network(
     nx_layout: Any = nx.spring_layout,
     nx_layout_kwargs: Dict | None = None,
     labels_fontproperties: Dict[Literal["size", "weight"], str | int] | None = None,
-
     # Customise
     edge_color: str = "gray",
     edge_alpha: float = 0.75,
@@ -990,6 +994,11 @@ def ora_network(
     :param show: If set to `False`, returns a dictionary with the matplotlib axes.
     :param shapes: Dictionary indicating the marker shape to use for each category in shape_key. The key is a category in df[shape_key] and
                    the value is a valid `matplotlib marker <https://matplotlib.org/stable/api/markers_api.html>`_
+    :param similarity: Method to use to compute the similarity between terms.
+    :param k_neighbors: How many neighbors to use to build similarity graph.
+    :param edge_threshold: Minimum similarity between terms
+    :param representative_method: Method to use to select the representative methods within each cluster
+    :param ntop_representatives: If there are more than `ntop` clusters the first `ntop` most significant representatives terms are shown.
     :param clustering_algorithm: Algorithm to use to cluster the terms.
     :param cluster_method: `Linkage method <https://docs.scipy.org/doc/scipy/reference/generated/scipy.cluster.hierarchy.linkage.html#scipy.cluster.hierarchy.linkage>`_ to use for calculating clusters.
     :param cluster_threshold: depending on the criterion define the threshold to apply when forming flat clusters or specify the max number of clusters.
@@ -1021,7 +1030,7 @@ def ora_network(
         do.pl.ora_network(
             table_go[table_go["state"] == "enriched"], term_key="Term",
             pval_key="Adjusted P-value", score_key="Combined Score", genes_key="Genes", figsize=(10, 6),
-            min_cluster_size=5
+            min_cluster_size=5, clustering_algorithm="leiden"
         )
 
     Create a network and color by a categorical column
@@ -1058,6 +1067,11 @@ def ora_network(
         legend_ncols=legend_ncols,
         legend_loc=legend_loc,
         shapes=shapes,
+        similarity=similarity,
+        k_neighbors=k_neighbors,
+        edge_threshold=edge_threshold,
+        representative_method = representative_method,
+        max_significant_terms=ntop_representatives,
         cluster_method=cluster_method,
         cluster_t=cluster_threshold,
         cluster_criterion=cluster_criterion,

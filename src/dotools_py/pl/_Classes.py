@@ -1085,12 +1085,17 @@ class DrawNetwork:
 
         # Fx specific
         shapes: dict | None = None,
-        cluster_algorithm: Literal["hierarchical", "louvain", "connected_components"] = "hierarchical",
+        similarity: Literal["kappa", "overlap", "jaccard"] = "overlap",
+        k_neighbors: int = 5,
+        edge_threshold: float = 0.3,
+        cluster_algorithm: Literal["hierarchical", "louvain", "connected_components", "leiden"] = "hierarchical",
         cluster_method: str = "complete",
         cluster_t: float = 0.7,
         resolution: float = 1,
         cluster_criterion: str = "distance",
         min_cluster_size: int = 3,
+        representative_method: Literal["pval", "degree", "combined"] = "pval",
+        max_significant_terms: int = 10,
         nx_layout: Any = nx.spring_layout,
         nx_layout_kwargs: Dict | None = None,
         labels_fontproperties: Dict[Literal["size", "weight"], str | int] | None = None,
@@ -1174,16 +1179,25 @@ class DrawNetwork:
                     shapes), f"There are {len(shapes)} and {direction_col} has {df[direction_col].nunique()} values"
         self.shapes = shapes
 
+        self.representative_method = representative_method
         self.cluster_algorithm = cluster_algorithm
         self.cluster_method = cluster_method
         self.cluster_t = cluster_t
         self.cluster_criterion = cluster_criterion
         self.min_cluster_size = min_cluster_size
         self.resolution = resolution
+        self.similarity = similarity
+        self.k_neighbors = k_neighbors
+        self.edge_threshold = edge_threshold
 
         # Get df_filt and S
         self._preprocess()
-        self.representatives = (self.df.sort_values(padj_col).groupby("cluster").first())
+
+        # Show the top N more representatives terms
+        self.representatives = self.choose_representatives()
+        self.representatives = self.representatives.sort_values(self.padj_col, ascending=True).head(max_significant_terms)
+
+        #self.representatives = (self.df.sort_values(padj_col).groupby("clusters").first())
         self.G = None
         self.nx_layout = nx_layout
 
@@ -1198,6 +1212,7 @@ class DrawNetwork:
         self.edge_alpha = edge_alpha
         self.textwrap = textwrap_width
 
+    # Compute Similarity
     @staticmethod
     def kappa(a: NDArray, b: NDArray) -> NDArray:
         N = len(a)
@@ -1214,7 +1229,164 @@ class DrawNetwork:
         return (po - pe) / (1 - pe)
 
     @staticmethod
-    def louvain_clustering(s: NDArray, threshold: float = 0.3, resolution: float = 1) -> NDArray:
+    def overlap(a, b):
+        A = np.sum((a == 1) & (b == 1))
+        na = np.sum(a)
+        nb = np.sum(b)
+        if min(na, nb) == 0:
+            return 0
+        return  A / min(na, nb)
+
+    @staticmethod
+    def jaccard(a, b):
+        inter = np.sum((a == 1) & (b==1))
+        union = np.sum((a==1) | (b==1))
+        if union == 0:
+            return 0
+        return inter / union
+
+    def compute_similarity(self, a, b):
+        if self.similarity == "kappa":
+            return self.kappa(a, b)
+        elif self.similarity == "overlap":
+            return self.overlap(a, b)
+        elif self.similarity == "jaccard":
+            return self.jaccard(a, b)
+        else:
+            raise ValueError("Error computing similarity")
+
+
+    # Clustering of the terms
+    @staticmethod
+    def louvain_clustering(G):
+        communities = nx.community.louvain_communities(G, weight="weight", seed=0)
+        clusters = np.zeros(len(G), dtype=int)
+        for cid, community in enumerate(communities):
+            for node in community:
+                clusters[node] = cid
+        return clusters
+
+    @staticmethod
+    def connected_component_clustering(G):
+        clusters = np.zeros(len(G), dtype=int)
+        for cid, component in enumerate(nx.connected_components(G)):
+            for node in component:
+                clusters[node] = cid
+        return clusters
+
+    def leiden_clustering(self, G):
+        import igraph as ig
+        import leidenalg
+        edges = list(G.edges())
+        weights = [G[u][v]["weight"] for u, v in edges]
+        g = ig.Graph()
+        g.add_vertices(len(G))
+        g.add_edges(edges)
+        partition = leidenalg.find_partition(
+            g, leidenalg.RBConfigurationVertexPartition, weights=weights, resolution_parameter=self.resolution,
+        )
+        clusters = np.zeros(len(G), dtype=int)
+        for cid, community in enumerate(partition):
+            for node in community:
+                clusters[node] = cid
+        return clusters
+
+
+    # Utils
+    def build_similarity_graph(self, S):
+        G = nx.Graph()
+        G.add_nodes_from(range(len(S)))
+        for i in range(len(S)):
+            neighbours = np.argsort(S[i])[::-1]
+            added = 0
+            for j in neighbours:
+                if i == j:
+                    continue
+                if S[i, j] < self.edge_threshold:
+                    continue
+                G.add_edge(i, j, weight=S[i, j])
+                added += 1
+                if added == self.k_neighbors:
+                    break
+        return G
+
+
+    def choose_representatives(self):
+        degree = dict(self.similarity_graph.degree(weight="weight"))
+        df = self.df.copy()
+        df["degree"] = df.node_id.map(degree)
+        representatives = []
+
+        for _, group in df.groupby("clusters"):
+            if self.representative_method == "pval":
+                idx = group[self.padj_col].idxmin()
+            elif self.representative_method == "degree":
+                idx = group.degree.idxmax()
+            else:
+                score = (-np.log10(group[self.padj_col]) + group.degree)
+                idx = score.idxmax()
+
+            try:
+                selected = df.loc[idx,].to_frame()
+            except AttributeError:
+                selected = df.loc[idx,]
+
+            if self.term_col not in selected.columns:
+                selected = selected.T
+            selected = selected.head(1)
+            representatives.append(selected)
+        return pd.concat(representatives)
+
+
+    def remove_small_components(self):
+        components = list(nx.connected_components(self.similarity_graph))
+
+        keep = set()
+        for comp in components:
+            if len(comp) >= self.min_cluster_size:
+                keep.update(comp)
+        keep = sorted(keep)
+
+        self.df = self.df[self.df["node_id"].isin(keep)].copy()
+        self.similarity_graph = self.similarity_graph.subgraph(keep).copy()
+        self.S = self.S[np.ix_(keep, keep)]
+
+        old_to_new = {old: new for new, old in enumerate(keep)}
+        self.df["node_id"] = self.df["node_id"].map(old_to_new)
+        self.similarity_graph = nx.relabel_nodes(self.similarity_graph, old_to_new)
+
+    # Old Functions
+    def remove_isolated_nodes(self):
+        isolated = list(nx.isolates(self.similarity_graph))
+        if not isolated:
+            return
+        keep = sorted(set(self.similarity_graph.nodes()) - set(isolated))
+        self.df = self.df[self.df["node_id"].isin(keep)].copy()
+        self.similarity_graph = self.similarity_graph.subgraph(keep).copy()
+        self.S = self.S[np.ix_(keep, keep)]
+        old_to_new = {old: new for new, old in enumerate(keep)}
+        self.df["node_id"] = self.df["node_id"].map(old_to_new)
+        self.similarity_graph = nx.relabel_nodes(self.similarity_graph, old_to_new)
+
+    def merge_small_clusters(self):
+        cluster_sizes = self.df["clusters"].value_counts()
+        small_clusters = cluster_sizes[cluster_sizes < self.min_cluster_size].index
+        for cluster in small_clusters:
+            nodes = self.df.loc[self.df["clusters"] == cluster, "node_id"]
+            weights = {}
+            for node in nodes:
+                for neighbour in self.similarity_graph.neighbors(node):
+                    neighbour_cluster = self.df.loc[self.df.node_id == neighbour, "clusters"].iloc[0]
+                    if neighbour_cluster == cluster:
+                        continue
+                    w = self.similarity_graph[node][neighbour]["weight"]
+                    weights[neighbour_cluster] = (weights.get(neighbour_cluster, 0) + w)
+            if len(weights):
+                best = max(weights, key=weights.get)
+                self.df.loc[self.df["clusters"] == cluster, "clusters"] = best
+
+    @staticmethod
+    def louvain_clustering_old(s: NDArray, threshold: float = 0.3, resolution: float = 1) -> NDArray:
         G = nx.Graph()
         n = len(s)
         G.add_nodes_from(range(n))
@@ -1231,7 +1403,7 @@ class DrawNetwork:
         return  clusters
 
     @staticmethod
-    def connected_component_clustering(s: NDArray, threshold: float = 0.3) -> NDArray:
+    def connected_component_clustering_old(s: NDArray, threshold: float = 0.3) -> NDArray:
         G = nx.Graph()
         n = len(s)
         G.add_nodes_from(range(n))
@@ -1245,6 +1417,7 @@ class DrawNetwork:
                 clusters[node] = cid
         return clusters
 
+    # Main Fxs
     def _preprocess(self) -> None:
         term2genes = {}
         for _, row in self.df.iterrows():
@@ -1272,34 +1445,65 @@ class DrawNetwork:
         n = x.shape[0]
         s = np.eye(n)
         for i, j in combinations(range(n), 2):
-            k = self.kappa(x[i], x[j])
-            s[i, j], s[j, i] = k, k  # Similarity
-        distance = 1 - s
+            sim = self.compute_similarity(x[i], x[j])
+            s[i, j], s[j, i] = sim, sim  # Similarity
+
+        #distance = 1 - s
+
+        # Clustering
+        #if self.cluster_algorithm == "hierarchical":
+        #    z = linkage(squareform(distance), method=self.cluster_method)
+        #    clusters = fcluster(z, t=self.cluster_t, criterion=self.cluster_criterion)
+        #elif self.cluster_algorithm == "louvain":
+        #    clusters = self.louvain_clustering(s, threshold=self.cluster_t, resolution=self.resolution)
+        #elif self.cluster_algorithm == "connected_components":
+        #    clusters = self.connected_component_clustering(s, threshold=self.cluster_t)
+        #else:
+        #    raise InputError(f"{self.cluster_algorithm} is not a valid cluster_algorithm value")
+        #self.df["cluster"] = clusters
+
+        # Remove singleton
+        #cluster_sizes = self.df["cluster"].value_counts()
+        #valid_clusters = cluster_sizes[cluster_sizes >= self.min_cluster_size].index
+        #self.df = self.df[self.df["cluster"].isin(valid_clusters)].copy()
+
+        # Re-index nodes
+        #old_to_new = dict(zip(self.df["node_id"], range(len(self.df))))
+        #keep = self.df["node_id"].values
+        #s = s[np.ix_(keep, keep)]
+        #self.df["node_id"] = self.df["node_id"].map(old_to_new)
+
+        self.S = s
+        self.similarity_graph = self.build_similarity_graph(s)
+        # self.remove_isolated_nodes()
+        self.remove_small_components()
 
         # Clustering
         if self.cluster_algorithm == "hierarchical":
+            distance = 1 - self.S
             z = linkage(squareform(distance), method=self.cluster_method)
-            clusters = fcluster(z, t=self.cluster_t, criterion=self.cluster_criterion)
+            clusters = fcluster(z, t = self.cluster_t, criterion=self.cluster_criterion)
         elif self.cluster_algorithm == "louvain":
-            clusters = self.louvain_clustering(s, threshold=self.cluster_t, resolution=self.resolution)
+            clusters = self.louvain_clustering(self.similarity_graph)
+        elif self.cluster_algorithm == "leiden":
+            clusters = self.leiden_clustering(self.similarity_graph)
         elif self.cluster_algorithm == "connected_components":
-            clusters = self.connected_component_clustering(s, threshold=self.cluster_t)
+            clusters = self.connected_component_clustering(self.similarity_graph)
         else:
-            raise InputError(f"{self.cluster_algorithm} is not a valid cluster_algorithm value")
-        self.df["cluster"] = clusters
+            raise InputError(f"{self.cluster_algorithm} is not a valid clustering algorithm")
 
-        # Remove singleton
-        cluster_sizes = self.df["cluster"].value_counts()
-        valid_clusters = cluster_sizes[cluster_sizes >= self.min_cluster_size].index
-        self.df = self.df[self.df["cluster"].isin(valid_clusters)].copy()
+        self.df["clusters"] = clusters
 
-        # Re-index nodes
-        old_to_new = dict(zip(self.df["node_id"], range(len(self.df))))
-        keep = self.df["node_id"].values
-        s = s[np.ix_(keep, keep)]
-        self.df["node_id"] = self.df["node_id"].map(old_to_new)
+        # self.merge_small_clusters()
 
-        self.S = s
+        #keep = self.df["node_id"].values
+        #self.S = self.S[np.ix_(keep, keep)]
+        #self.similarity_graph = self.similarity_graph.subgraph(keep).copy()
+
+
+        #old_to_new = {old: new for new, old in enumerate(keep)}
+        #self.df["node_id"] = self.df["node_id"].map(old_to_new)
+        #self.similarity_graph = nx.relabel_nodes(self.similarity_graph, old_to_new)
         return None
 
     def make_figure(self, nrows: int = 1, ncols: int = 2) -> None:
@@ -1314,25 +1518,27 @@ class DrawNetwork:
 
     def draw_graph(self) -> Dict | None:
 
-        self.G = nx.Graph()
+        # self.G = nx.Graph()
+
+        self.G = self.similarity_graph.copy()
 
         # Add Nodes
         for _, row in self.df.iterrows():
             self.G.add_node(
                 row["node_id"],
                 term=row[self.term_col],
-                cluster=row["cluster"],
+                cluster=row["clusters"],
                 score=row[self.score_col],
                 annot=row[self.annot_col],
                 direction=row[self.direction_col]
             )
 
         # Add Edges
-        n = len(self.df)
-        for i in range(n):
-            for j in range(i + 1, n):
-                if self.S[i, j] >= 0.3:
-                    self.G.add_edge(i, j, weight=self.S[i, j])
+        #n = len(self.df)
+        #for i in range(n):
+        #    for j in range(i + 1, n):
+        #        if self.S[i, j] >= 0.3:
+        #           self.G.add_edge(i, j, weight=self.S[i, j])
 
         # Data
         scores = np.array([self.G.nodes[n]["score"] for n in self.G.nodes()])
