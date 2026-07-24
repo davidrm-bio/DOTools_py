@@ -960,6 +960,7 @@ def ora_network(
     edge_color: str = "gray",
     edge_alpha: float = 0.75,
     textwrap_width: int = 25,
+    get_table: bool = False,
 ):
     """Similarity network of overrepresentation analysis results.
 
@@ -1011,7 +1012,9 @@ def ora_network(
     :param edge_color: Color of the edges.
     :param edge_alpha: Alpha value for the edges.
     :param textwrap_width: The maximum width to use when wrapping text.
-    :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes
+    :param get_table: If set to `True` returns the processed input table with clusters.
+    :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes. Additionally, if ``get_table`` is set to `True` returns the process table. If ``show`` is set to `False` and ``get_table`` is set to `True`, return the a tuple (dataframe, dictionary)
+
 
     Example
     -------
@@ -1087,5 +1090,9 @@ def ora_network(
     )
     plotter.draw_graph()
     save_plot(path=path, filename=filename)
-    return return_axis(show=show, axis=plotter.return_axis)
+
+    if get_table:
+        return plotter.df, return_axis(show=show, axis=plotter.return_axis)
+    else:
+        return return_axis(show=show, axis=plotter.return_axis)
 
