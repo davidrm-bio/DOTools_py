@@ -116,7 +116,7 @@ class BaseSeaborn:
                 if self.x_axis + "_colors" in adata.uns.keys():
                     _colormap = dict(zip(iterase_input(self.xticks_order), adata.uns[self.x_axis + "_colors"], strict=True))
                 else:
-                    _colormap = self.DEFAULT_CMAP
+                    _colormap = dict(zip(iterase_input(self.xticks_order), self.DEFAULT_CMAP, strict=True))
             else:
                 _colormap = cmap
         else:
@@ -124,7 +124,7 @@ class BaseSeaborn:
                 if self.hue + "_colors" in adata.uns.keys():
                     _colormap = dict(zip(iterase_input(self.hue_order), adata.uns[self.hue + "_colors"], strict=True))
                 else:
-                    _colormap = self.DEFAULT_CMAP
+                    _colormap = dict(zip(iterase_input(self.hue_order), self.DEFAULT_CMAP, strict=True))
             else:
                 _colormap = cmap
         self.cmap = _colormap
@@ -1153,7 +1153,7 @@ class DrawNetwork:
             assert df[annot_col].nunique() < len(color_list), "There are more categories than colors in df[annot_col]"
             palette = dict(zip(df[annot_col].unique(), color_list))
         elif isinstance(palette, dict):
-            missing = [k for k in palette if k not in df[annot_col].unique()]
+            missing = [k for k in  df[annot_col].unique() if k not in palette]
             assert len(missing) == 0, f"{missing} is missing in palette"
         else:
             raise InputError("Not a valid palette input")
