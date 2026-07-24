@@ -1091,8 +1091,13 @@ def ora_network(
     plotter.draw_graph()
     save_plot(path=path, filename=filename)
 
+    axis_ = return_axis(show=show, axis=plotter.return_axis)
+
     if get_table:
-        return plotter.df, return_axis(show=show, axis=plotter.return_axis)
+        if axis_ is not None:
+            return plotter.df, axis_
+        else:
+            return plotter.df
     else:
-        return return_axis(show=show, axis=plotter.return_axis)
+        return axis_
 
