@@ -116,7 +116,7 @@ class BaseSeaborn:
                 if self.x_axis + "_colors" in adata.uns.keys():
                     _colormap = dict(zip(iterase_input(self.xticks_order), adata.uns[self.x_axis + "_colors"], strict=True))
                 else:
-                    _colormap = dict(zip(iterase_input(self.xticks_order), get_hex_colormaps(self.DEFAULT_CMAP), strict=True))
+                    _colormap = dict(zip(iterase_input(self.xticks_order), get_hex_colormaps(self.DEFAULT_CMAP)[:len(iterase_input(self.xticks_order))], strict=True))
             else:
                 _colormap = cmap
         else:
@@ -124,7 +124,7 @@ class BaseSeaborn:
                 if self.hue + "_colors" in adata.uns.keys():
                     _colormap = dict(zip(iterase_input(self.hue_order), adata.uns[self.hue + "_colors"], strict=True))
                 else:
-                    _colormap = dict(zip(iterase_input(self.hue_order), get_hex_colormaps(self.DEFAULT_CMAP), strict=True))
+                    _colormap = dict(zip(iterase_input(self.hue_order), get_hex_colormaps(self.DEFAULT_CMAP)[:len(iterase_input(self.hue_order))], strict=True))
             else:
                 _colormap = cmap
         self.cmap = _colormap
