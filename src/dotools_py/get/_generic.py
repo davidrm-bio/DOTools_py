@@ -12,6 +12,7 @@ from dotools_py.utility._general import free_memory
 from dotools_py._utils import sanitize_anndata, iterase_input, check_missing
 from dotools_py.settings._global_parameters import FAST_ARRAY_UTILS
 from dotools_py._custom_class import InputError
+from dotools_py.get._get_classes import GenerateMetaCells
 
 if FAST_ARRAY_UTILS:
     import fast_array_utils
@@ -790,3 +791,66 @@ def layer_swap(
             adata_copy.layers[x_key] = adata_copy.X.copy()
         adata_copy.X = adata_copy.layers[layer_key].copy()
         return adata_copy
+
+
+def metacells(
+    adata: ad.AnnData,
+    batch_key: str,
+    annotation_key: str,
+    size: int = 10,
+    min_cells: int = 50,
+    layer: str = "counts",
+    keep_obs: list | None = None,
+    seed: int = 0,
+    n_cpu: int = 8,
+    agg_fx: Literal["count_nonzero", "mean", "sum", "var", "median"] = "sum",
+) -> ad.AnnData:
+    """Generate metacells.
+
+    Generate metacells by randomly sampling `size` cells for each batch and cell-type.
+
+    :param adata: Annotated data matrix.
+    :param batch_key: Column in `adata.obs` with batches.
+    :param annotation_key:  Column in `adata.obs` with annotation.
+    :param size: Number of cells to aggregate to generate one metacell.
+    :param min_cells:  Minimum number of cells for a celltype in a batch to be able to generate a metacell. Celltype with less will be excluded.
+    :param layer: Valid key in `adata.layers` to use.
+    :param keep_obs: List with column names in `adata.obs` to keep. If set to `None` it will keep all categorical columns.
+    :param seed: Seed for random number generator
+    :param n_cpu: Number of workers to use.
+    :param agg_fx: Function to use to aggregate the data to generate metacells.
+    :return: Returns an `AnnData` object containing metacells
+
+    Examples
+    --------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> pdata = do.get.metacells(adata, batch_key="batch", annotation_key="annotation")
+    Creating metacells: 100%|██████████| 10/10 [00:00<00:00, 80504.88it/s]
+    2026-07-28 11:29:59,592 - 75 cells were not used to generate metacells
+    >>> pdata
+    AnnData object with n_obs × n_vars = 61 × 1851
+        obs: 'meta_cells', 'batch', 'condition', 'doublet_class', 'doublet_score', 'leiden', 'cell_type', 'autoAnnot',
+             'annotation', 'annotation_recluster', 'n_genes_by_counts', 'total_counts'
+        var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches',
+             'highly_variable_intersection', 'n_cells_by_counts', 'mean_counts', 'pct_dropout_by_counts', 'total_counts'
+        uns: 'log1p', 'hvg'
+        layers: 'counts', 'logcounts'
+    """
+    generator = GenerateMetaCells(
+        adata=adata,
+        batch_key=batch_key,
+        annotation_key=annotation_key,
+        size=size,
+        min_cells=min_cells,
+        layer=layer,
+        keep_obs=keep_obs,
+        seed=seed,
+        n_cpu=n_cpu,
+        agg_fx=agg_fx,
+    )
+    generator.aggregate()
+
+    return generator.get_pdata()
+
+

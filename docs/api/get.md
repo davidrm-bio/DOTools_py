@@ -25,5 +25,6 @@ AnnData object.
     get.subset
     get.subset_df
     get.pseudobulk
+    get.metacells
     get.layer_swap
 ```

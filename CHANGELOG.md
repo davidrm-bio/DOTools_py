@@ -13,7 +13,12 @@ and this project adheres to [Semantic Versioning][].
 
 ### Features
 
+- Add ``dotools_py.pl.ora_network`` to visualize overrepresentation results as a network
+- Add ``dotools_py.get.metacells`` to generate metacells
+
+
 ### Bug Fixes
+- Minor bug fixes for several plotting functions
 
 ### Documentation
 

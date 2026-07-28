@@ -6,4 +6,5 @@ from dotools_py.get._generic import (expr,
                                      log2fc,
                                      pcts_cells,
                                      pseudobulk,
-                                     layer_swap)
+                                     layer_swap,
+                                     metacells)
