@@ -843,6 +843,10 @@ def metacells(
         uns: 'log1p', 'hvg'
         layers: 'counts', 'logcounts'
     """
+    if "meta_cells" in adata.obs.columns:
+        logger.info("meta_cells present in adata.obs, it will be removed")
+        del adata.obs["meta_cells"]
+
     generator = GenerateMetaCells(
         adata=adata,
         batch_key=batch_key,
