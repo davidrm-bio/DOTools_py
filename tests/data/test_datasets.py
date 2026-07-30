@@ -58,3 +58,8 @@ def test_dummy():
         loader = LoadData(path="/tmp", technology="none")
     except InputError:
         pass
+
+def test_ora_table():
+    df = do.dt.example_ora()
+    assert  df.shape[0] == 2704
+    assert  df.shape[1] == 11

@@ -17,7 +17,7 @@ class LoadData:
 
     def __init__(
         self,
-        path: PathLike = None,
+        path: PathLike | None = None,
         technology: Literal["scrna", "visium"] = "scrna"
     ):
         """Initiate the class
@@ -66,7 +66,7 @@ class LoadData:
         return  self
 
 
-    def _create_dir(self, path: PathLike = None) -> tuple | PathLike:
+    def _create_dir(self, path: PathLike | None = None) -> tuple | PathLike:
         """Create a directory in path to save the data
 
         :param path: Absolute path where the data is going to be saved. If set to `None` save in the Cache folder.
@@ -137,7 +137,7 @@ class LoadData:
         return None
 
 
-def example_10x(path: PathLike = None) -> None:
+def example_10x(path: PathLike | None = None) -> None:
     """Download scRNA 10x dataset.
 
     Downloads an example dataset of PBMC from healthy donors and malignant B cells. Two H5 files for each dataset
@@ -199,7 +199,7 @@ def example_10x_processed() -> ad.AnnData:
     return ad.read_h5ad(HERE / "example_reduced.h5ad")
 
 
-def example_visium(path: PathLike = None) -> None:
+def example_visium(path: PathLike | None = None) -> None:
     """ Download a 10x Visium dataset from the heart.
 
     Downloads a dataset of the human heart. The sample comes from fresh frozen tissue and includes the H&E image.
@@ -261,7 +261,21 @@ def example_visium_processed()-> ad.AnnData:
 
 
 def example_ora() -> pd.DataFrame:
-    """Load example table from ORA.
+    """Load example table from overrepresentation analysis.
+
+    To generate the table the following code was used:
+
+    .. code-block:: python
+
+        import dotools_py as do
+        adata = do.dt.example_10x_processed()
+        do.tl.rank_genes_groups(adata, 'condition')
+        table = do.get.dge_results(adata)
+        table = table[table.group == 'disease']
+        table_go = do.tl.go_analysis(
+                table, 'GeneName', 'padj', 'log2fc', specie='Human',
+                go_catgs = ['GO_Molecular_Function_2023', 'GO_Cellular_Component_2023', 'GO_Biological_Process_2023']
+        )
 
     :return: Returns a pandas DataFrame
 
@@ -269,25 +283,15 @@ def example_ora() -> pd.DataFrame:
     -------
     >>> import dotools_py as do
     >>> df = do.dt.example_ora()
-    >>> df
-                                Gene_set  ...     state
-    0     GO_Molecular_Function_2023  ...  enriched
-    1     GO_Molecular_Function_2023  ...  enriched
-    2     GO_Molecular_Function_2023  ...  enriched
-    3     GO_Molecular_Function_2023  ...  enriched
-    4     GO_Molecular_Function_2023  ...  enriched
-    ...                          ...  ...       ...
-    1396  GO_Biological_Process_2023  ...  depleted
-    1397  GO_Biological_Process_2023  ...  depleted
-    1398  GO_Biological_Process_2023  ...  depleted
-    1399  GO_Biological_Process_2023  ...  depleted
-    1400  GO_Biological_Process_2023  ...  depleted
-    [2704 rows x 11 columns]
+    >>> print(f'Shape: {df.shape}', df.head(), sep='\n')
+    Shape: (2704, 11)
+                         Gene_set  ...     state
+    0  GO_Molecular_Function_2023  ...  enriched
+    1  GO_Molecular_Function_2023  ...  enriched
+    2  GO_Molecular_Function_2023  ...  enriched
+    3  GO_Molecular_Function_2023  ...  enriched
+    4  GO_Molecular_Function_2023  ...  enriched
+    [5 rows x 11 columns]
 
     """
-    #  adata = do.dt.example_ora()
-    # do.tl.rank_genes_groups(adata,  'condition', method='wilcoxon', tie_correct=True, pts=True)
-    # table = do.get.dge_results(adata)
-    # table = table[table.group == 'disease']
-    # table_go = do.tl.go_analysis(table, 'GeneName', 'padj', 'log2fc', specie='Human', go_catgs = ['GO_Molecular_Function_2023', 'GO_Cellular_Component_2023', 'GO_Biological_Process_2023'])
     return pd.read_parquet(HERE / "TableGO_Example.parquet")
