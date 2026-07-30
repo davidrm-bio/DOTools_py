@@ -48,8 +48,8 @@ class GenerateMetaCells:
         self.workers = n_cpu
         self.agg_fx = agg_fx
 
-        self.batches = adata.obs[batch_key].unique().to_list()
-        self.cts = adata.obs[annotation_key].unique().to_list()
+        self.batches = adata.obs[batch_key].unique()
+        self.cts = adata.obs[annotation_key].unique()
         self.keep_obs = (
             adata.obs.select_dtypes(include="category").columns.tolist() if keep_obs is None else iterase_input(keep_obs)
         )

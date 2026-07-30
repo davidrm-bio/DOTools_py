@@ -265,16 +265,14 @@ def example_ora() -> pd.DataFrame:
 
     To generate the table the following code was used:
 
-    >>> import dotools_py as do
-    >>> adata = do.dt.example_10x_processed()
-    >>> do.tl.rank_genes_groups(adata, 'condition')
-    >>> table = do.get.dge_results(adata)
-    >>> table = table[table.group == 'disease']
-    >>>  table_go = do.tl.go_analysis(table, 'GeneName', 'padj', 'log2fc', specie='Human', go_catgs = ['GO_Molecular_Function_2023', 'GO_Cellular_Component_2023', 'GO_Biological_Process_2023'])
+        import dotools_py as do
+        adata = do.dt.example_10x_processed()
+        do.tl.rank_genes_groups(adata, 'condition')
+        table = do.get.dge_results(adata)
+        table = table[table.group == 'disease']
+        table_go = do.tl.go_analysis(table, 'GeneName', 'padj', 'log2fc', specie='Human', go_catgs = ['GO_Molecular_Function_2023', 'GO_Cellular_Component_2023', 'GO_Biological_Process_2023'])
 
-    Returns
-    -------
-    Returns a pandas DataFrame
+    :return: Returns a pandas DataFrame
 
     Example
     -------
