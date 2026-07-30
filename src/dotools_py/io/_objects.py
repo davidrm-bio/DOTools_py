@@ -21,7 +21,7 @@ _Empty = EmptyType()
 
 def read_h5ad(
     path: PathLike,
-    filename: str = None,
+    filename: str | None = None,
     **kwargs,
 ) -> ad.AnnData:
     """Read `.h5ad`-formatted hdf5 file.
@@ -48,7 +48,7 @@ def read_h5ad(
 
 def read_zarr(
     path: PathLike,
-    filename: str = None,
+    filename: str | None = None,
     backend: Literal["anndata", "spatialdata"] = "spatialdata",
 ) -> "ad.AnnData | st.SpatialData":
     """Read from a hierarchical Zarr array store into an AnnData Object.
@@ -87,7 +87,7 @@ def read_zarr(
 
 def read_10x_h5(
     path: PathLike,
-    filename: str = None,
+    filename: str | None = None,
     **kwargs
 ) -> ad.AnnData:
     """Read 10x-Genomics-formatted hdf5 file.
@@ -135,7 +135,7 @@ def read_10x_mtx(
 
 def read_mtx(
     path: PathLike,
-    filename: str = None,
+    filename: str | None = None,
     **kwargs
 ) -> ad.AnnData:
     """Read `.mtx` file.
