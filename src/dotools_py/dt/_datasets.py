@@ -274,6 +274,7 @@ def example_ora() -> pd.DataFrame:
         table = table[table.group == 'disease']
         table_go = do.tl.go_analysis(table, 'GeneName', 'padj', 'log2fc', specie='Human', go_catgs = ['GO_Molecular_Function_2023', 'GO_Cellular_Component_2023', 'GO_Biological_Process_2023'])
 
+
     Returns
     -------
     Returns a pandas DataFrame
