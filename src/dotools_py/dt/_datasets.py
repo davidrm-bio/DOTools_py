@@ -277,7 +277,9 @@ def example_ora() -> pd.DataFrame:
                 go_catgs = ['GO_Molecular_Function_2023', 'GO_Cellular_Component_2023', 'GO_Biological_Process_2023']
         )
 
-    :return: Returns a pandas DataFrame
+    Returns
+    -------
+    Returns a pandas DataFrame
 
     Example
     -------
