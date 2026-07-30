@@ -244,9 +244,9 @@ def mean_expr(
 def dge_results(
     adata: ad.AnnData,
     key: str = "rank_genes_groups",
-    min_log2fc: float = None,
-    padj_cutoff: float = None,
-    max_log2fc: float = None
+    min_log2fc: float | None = None,
+    padj_cutoff: float| None = None,
+    max_log2fc: float| None = None
 ) -> pd.DataFrame:
     """Extract DEGs from AnnData object.
 
@@ -614,12 +614,12 @@ def pseudobulk(
     adata: ad.AnnData,
     batch_key: str,
     cluster_key: str,
-    keep_metadata: list = None,
+    keep_metadata: list | None = None,
     min_cells: int = 10,
     pseudobulk_approach: Literal["sum", "mean"] = "sum",
     technical_replicates: int = 1,
     min_counts: int = 10,
-    layer: str = None,
+    layer: str | None = None,
     workers: int = 5,
     random_state: int = 0,
 ) -> ad.AnnData:
@@ -809,6 +809,10 @@ def metacells(
 
     Generate metacells by randomly sampling `size` cells for each batch and cell-type.
 
+    .. warning::
+        The parameter `min_cells` define the minimum number of cells required for a cell-type in a batch. If there are
+        fewer cells metacells generation will be skipped for the celltype in the batch.
+
     :param adata: Annotated data matrix.
     :param batch_key: Column in `adata.obs` with batches.
     :param annotation_key:  Column in `adata.obs` with annotation.
@@ -825,6 +829,8 @@ def metacells(
     --------
     >>> import dotools_py as do
     >>> adata = do.dt.example_10x_processed()
+    >>> adata.shape
+    (700, 1851)
     >>> pdata = do.get.metacells(adata, batch_key="batch", annotation_key="annotation")
     Creating metacells: 100%|██████████| 10/10 [00:00<00:00, 80504.88it/s]
     2026-07-28 11:29:59,592 - 75 cells were not used to generate metacells
