@@ -33,7 +33,7 @@ This package has been tested on macOS, Linux and Windows System. For a standard 
 we suggest 16GB of RAM and at least 5 CPUs.
 
 Some methods are run through R and require additional dependencies
-including: `Seurat`, `MAST`, `scDblFinder`, `zellkonverter`, `data.table` and `optparse`.
+including: `Seurat`, `MAST`, `scDblFinder`, `anndataR`, `data.table` and `optparse`.
 
 ```R
 if (!require("BiocManager", quietly = TRUE))

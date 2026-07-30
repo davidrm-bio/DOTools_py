@@ -73,7 +73,7 @@ install.packages('data.table', Ncpus = 8)
 remotes::install_github("satijalab/seurat", "seurat5", quiet = TRUE)  # Seurat
 BiocManager::install("MAST")
 BiocManager::install("scDblFinder")
-BiocManager::install("zellkonverter")
+BiocManager::install("anndataR")
 BiocManager::install('glmGamPoi')
 ```
 
