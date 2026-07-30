@@ -518,9 +518,8 @@ def heatmap(
 ):
     """Makes a 2d or 3d heatmap.
 
-     There are two type of visualization:
-        * 2d heatmap: X_axis shows ``x_axis`` categories and Y_axis the ``features``. The color represents the logarithmize mean
-                    nUMI.
+    There are two type of visualization:
+        * 2d heatmap: X_axis shows ``x_axis`` categories and Y_axis the ``features``. The color represents the logarithmize mean nUMI.
         * 3d dotplot: X_axis shows ``x_axis`` categories and Y_axis shows ``y_axis`` categories. For each feature the
                       ``x_axis`` categories will be duplicated, to show how is the expressing across 2 categorical columns
                       in `.obs`. The color represents the logarithmize mean nUMI.
