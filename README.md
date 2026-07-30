@@ -99,7 +99,7 @@ BiocManager::install("DOtools")
 The developmental version can be downloaded using `devtools`:
 
 ```R
-devtools::install_github("MarianoRuzJurado/DOtools", ref="devel")
+pak::pak("MarianoRuzJurado/DOtools", ref="devel")
 ```
 
 ## Release notes
