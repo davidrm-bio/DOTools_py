@@ -154,3 +154,17 @@ def test_subset_df():
     df_subset = do.get.subset_df(df, col=["total_counts", "annotation"], col_groups=[1000, ["B_cells", "T_cells"]],
                                  comparison=[">", "exclude"])
     assert df_subset.shape[0] == 185
+
+def test_metacells():
+    adata = do.dt.example_10x_processed()
+
+    pdata = do.get.metacells(
+        adata, batch_key="batch", annotation_key="annotation", layer="counts"
+    )
+
+    assert pdata.n_obs < adata.n_obs
+
+
+
+
+

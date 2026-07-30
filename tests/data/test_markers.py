@@ -2,8 +2,9 @@ import dotools_py as do
 from dotools_py._custom_class import InputError
 
 def test_heart_markers():
+    adata = do.dt.example_10x_processed()
     for species in ["mouse", "human"]:
-        markers = do.dt.heart_markers(species)
+        markers = do.dt.heart_markers(species, adata=adata)
         cts = ['Art_EC', 'CapEC', 'VeinEC', 'LymphEC', 'EndoEC',
                'SMC', 'PC', 'FB', 'FBa', 'Neurons', 'CM', 'B_cells',
                'T_cells', 'Myeloid', 'MP_recruit', 'MP_resident',
