@@ -40,7 +40,7 @@ functions for enhance visualization of sc/snRNA-seq data.
 ```
 
 
-## Statistical plots
+## Downstream and Statistical plots
 ```{eval-rst}
 .. autosummary::
     :toctree: generated
