@@ -217,6 +217,16 @@ def save_rds(
 
     tmp_path = None
     if adata is not None:  # If adata is provided, save in a tmp folder
+
+        obsm_keys = adata.obsm.keys()
+        for k in obsm_keys:
+            if k.startswith("X_"):
+                continue
+            else:
+                logger.info(f"{k} will be renamed to X_{k}")
+                adata.obsm["X_" + k] = adata.obsm[k]
+                del adata.obsm[k]
+
         path_h5ad = Path("/tmp") / f"Convertion_{uuid.uuid4().hex}"
         path_h5ad.mkdir(parents=True, exist_ok=False)
         tmp_path = path_h5ad
