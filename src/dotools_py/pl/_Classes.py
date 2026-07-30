@@ -951,6 +951,8 @@ class MatrixPlot:
             vmin=self.vmin,
             vmax=self.vmax,
             center=self.vcenter,
+            yticklabels=1,
+            xticklabels=1,
             **self.kwargs,
         )
 
