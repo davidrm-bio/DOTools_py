@@ -1,15 +1,21 @@
 from typing import Literal
 
+import anndata as ad
+
 from dotools_py import logger
 from dotools_py._custom_class import InputError
 
 
 def heart_markers(
     species: Literal["mouse", "human"] = "mouse",
+    adata: ad.AnnData | None = None,
 ) -> dict:
     """Marker genes for cell-types in the heart.
 
+    If an AnnData object is provided, the returned dictionary will only contain genes present in the object.
+
     :param species: Format for gene names. Set `human` for everything upper case and `mouse` for capitalize.
+    :param adata: Annotated data matrix.
     :return: Returns a dictionary with a list of marker genes for major cell-types present in the heart.
 
     Example
@@ -19,6 +25,9 @@ def heart_markers(
     2025-07-02 10:55:01,623 - Getting mouse markers
     >>> df_mouse["EndoEC"]
     ['Nfatc1', 'Npr3', 'Nrg1', 'Pecam1', 'Cdh5', 'Etv2']
+    >>> adata = do.dt.example_10x_processed()
+    >>> do.dt.heart_markers(adata=adata)["EndoEC"]
+    Out[6]: ['Nrg1']
 
     **Summary of Markers genes**
 
@@ -56,6 +65,16 @@ def heart_markers(
         "Mast": ["Il18r1", "Kit", "Slc24a3", "Ntm", "Cpa3", "Slc8a3", "Cdk15", "Hpgds", "Slc38a11",
                  "Rab27b"],  # Refined
     }  # Cell Type Markers in Mouse Format
+
+    dummy = dict(zip(adata.var_names.str.lower(), range(adata.n_vars))) if adata is not None else None
+
+    if dummy is not None:
+        logger.info("AnnData Object provided, filtering features not present in the object")
+        mouse_update = {}
+        for key, values in mouse.items():
+            new_values = [gene for gene in values if gene.lower() in dummy]
+            mouse_update[key] = new_values
+        mouse = mouse_update.copy()
 
     if species == "mouse":
         return mouse
