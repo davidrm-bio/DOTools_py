@@ -12,15 +12,20 @@ and this project adheres to [Semantic Versioning][].
 ## Version 0.0.5
 
 ### Features
-
 - Add ``dotools_py.pl.ora_network`` to visualize overrepresentation results as a network
 - Add ``dotools_py.get.metacells`` to generate metacells
-
+- Add ``do.dt.example_ora`` for tutorial examples
+- Improvement of ``do.pl.heatmap`` to groupby two categories like in ``do.pl.dotplot``
+- Include option to filter-out features not present in the object for ``do.dt.heart_markers``
+- Replace ``zellkonverter`` with ``anndataR`` to improve reading and saving to Seurat/SingleCellExperiment
+- 
 
 ### Bug Fixes
-- Minor bug fixes for several plotting functions
+- Minor bug fixes for several functions
+
 
 ### Documentation
+- Update figure with markers in ``do.dt.heart_markers``
 
 
 ## Version 0.0.4 {small}`2026-06-10`
