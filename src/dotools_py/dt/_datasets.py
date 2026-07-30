@@ -149,7 +149,6 @@ def example_10x(path: PathLike | None = None) -> None:
 
     Example
     -------
-
     >>> import dotools_py as do
     >>> do.dt.example_10x()
     2026-04-17 14:37:49,503 - Downloading data to /Users/david/Library/Caches/dotools_datasets
@@ -207,7 +206,7 @@ def example_visium(path: PathLike | None = None) -> None:
     :param path: Absolute path where the data is saved. If set to `None`, it will be saved to the user cache folder.
     :return: Returns `None`.
 
-    Examples
+    Example
     --------
     >>> import dotools_py as do
     >>> do.dt.example_visium()
@@ -263,22 +262,27 @@ def example_visium_processed()-> ad.AnnData:
 def example_ora() -> pd.DataFrame:
     """Load example table from overrepresentation analysis.
 
+    :return: Returns a pandas DataFrame
+
+    Notes
+    -----
     To generate the table the following code was used:
 
+    .. code-block:: python
+
         import dotools_py as do
+
         adata = do.dt.example_10x_processed()
         do.tl.rank_genes_groups(adata, 'condition')
         table = do.get.dge_results(adata)
         table = table[table.group == 'disease']
         table_go = do.tl.go_analysis(table, 'GeneName', 'padj', 'log2fc', specie='Human', go_catgs = ['GO_Molecular_Function_2023', 'GO_Cellular_Component_2023', 'GO_Biological_Process_2023'])
 
-    :return: Returns a pandas DataFrame
-
     Example
     -------
     >>> import dotools_py as do
     >>> df = do.dt.example_ora()
-    >>> print(f'Shape: {df.shape}', df.head(), sep='\n')
+    >>> print(f'Shape: {df.shape}', df.head())
     Shape: (2704, 11)
                          Gene_set  ...     state
     0  GO_Molecular_Function_2023  ...  enriched
@@ -289,4 +293,5 @@ def example_ora() -> pd.DataFrame:
     [5 rows x 11 columns]
 
     """
+
     return pd.read_parquet(HERE / "TableGO_Example.parquet")
