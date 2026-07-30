@@ -6,9 +6,6 @@ from pathlib import Path
 from typing import Literal
 
 import anndata as ad
-import pandas as pd
-import numpy as np
-from scipy.sparse import issparse, csr_matrix
 
 from dotools_py._utils import get_paths_utils, check_r_package
 from dotools_py import logger
