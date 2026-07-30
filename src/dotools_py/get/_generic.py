@@ -856,7 +856,7 @@ def metacells(
         agg_fx=agg_fx,
     )
     generator.aggregate()
-
+    free_memory()
     return generator.get_pdata()
 
 
