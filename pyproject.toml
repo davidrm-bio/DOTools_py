@@ -127,7 +127,8 @@ optional-dependencies.test = [
   "fastexcel",
   "zarr",
   "appdirs",
-  "rich<14"
+  "rich<14",
+  "decoupler"
 ]
 # https://docs.pypi.org/project_metadata/#project-urls
 urls.Documentation = "https://DOTools_py.readthedocs.io/"
