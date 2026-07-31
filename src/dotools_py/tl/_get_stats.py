@@ -280,10 +280,10 @@ def rank_genes_condition(
                 for case in groups:
                     # TODO might cause memory error in some instances
                     dge_up = dge[
-                        (dge["padj"] < pval_cutoff) & (dge["log2fc"] > log2fc_cutoff) & (dge[dge["group"] == case])
+                        (dge["padj"] < pval_cutoff) & (dge["log2fc"] > log2fc_cutoff) & (dge["group"] == case)
                         ]
                     dge_down = dge[
-                        (dge["padj"] < pval_cutoff) & (dge["log2fc"] < -log2fc_cutoff) & (dge[dge["group"] == case])
+                        (dge["padj"] < pval_cutoff) & (dge["log2fc"] < -log2fc_cutoff) & (dge["group"] == case)
                         ]
 
                     dge_up.to_excel(writer, sheet_name=f"UpregGenes_{case}", index=False)
