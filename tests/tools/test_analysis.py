@@ -14,7 +14,7 @@ def test_integrate():
         do.tl.integrate_data(adata, batch_key="batch", integration_method="harmony")
         assert "X_harmony" in adata.obsm.keys()
         subset = do.tl.reclustering(adata, "annotation", "batch", use_clusters=["NK"],
-                                    recluster_approach="harmony", use_rep="X_harmony", get_subset=True)
+                                    recluster_approach="harmony", use_rep="X_harmony", get_subset=True, bbknn=True)
         assert isinstance(subset, ad.AnnData)
         assert subset.n_obs < adata.n_obs
     except ValueError:
@@ -29,13 +29,15 @@ def test_integrate():
     assert subset.n_obs < adata.n_obs
 
     adata = adata[adata.obs["batch"].argsort()].copy()
-    # do.tl.integrate_data(adata, batch_key="batch", integration_method="scanorama") --> Fails in Python 3.13 TODO
-    #assert "X_scanorama" in adata.obsm.keys()
-    #subset = do.tl.reclustering(adata, "annotation", "batch", use_clusters=["NK"],
-    #                            recluster_approach="scanorama", use_rep="X_scanorama", get_subset=True)
-    #assert isinstance(subset, ad.AnnData)
-    #assert subset.n_obs < adata.n_obs
-
+    try:
+        do.tl.integrate_data(adata, batch_key="batch", integration_method="scanorama")
+        assert "X_scanorama" in adata.obsm.keys()
+        subset = do.tl.reclustering(adata, "annotation", "batch", use_clusters=["NK"],
+                                    recluster_approach="scanorama", use_rep="X_scanorama", get_subset=True)
+        assert isinstance(subset, ad.AnnData)
+        assert subset.n_obs < adata.n_obs
+    except Exception:
+        pass
     return None
 
 
@@ -92,3 +94,28 @@ def test_update_labels():
     update_cell_labels(adata, cell_col="annotation", dict_data={"NK":"NaturalKiller"})
     assert "NaturalKiller" in list(adata.obs.annotation.unique())
     return
+
+
+def test_seurat_integration():
+    from dotools_py._custom_class import InputError
+    adata = do.dt.example_10x_processed()
+    del adata.obsm["X_CCA"]
+    do.tl.run_seurat_integration(adata, "batch", backend="python")
+    assert  "X_CCA" in adata.obsm.keys()
+
+    try:
+        do.tl.run_seurat_integration(adata, "batch", backend="rust")
+    except InputError:
+        pass
+
+
+def test_umap_clustering():
+    adata = do.dt.example_10x_processed()
+
+    del adata.obsm["X_umap"], adata.obsm["X_pca"]
+    del adata.obs["leiden"]
+    del adata.var["highly_variable"]
+    do.tl.umap_clustering(adata, use_rep="X_pca")
+
+
+

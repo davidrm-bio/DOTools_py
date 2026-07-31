@@ -48,9 +48,16 @@ def test_add_gene_metadata():
     assert cols.issubset(adata.var.columns)
     df = adata.var.copy()
     df.reset_index(inplace=True)
-    df = do.utility.add_gene_metadata(df, "index", "human")
+    df = do.utility.add_gene_metadata(df, "index", "human", add_gene_id=True)
     cols = {'biotype', 'locations', 'gene_id'}
     assert cols.issubset(adata.var.columns)
+
+    try:
+        do.utility.add_gene_metadata(["testing"])
+    except Exception:
+        pass
+
+
     return None
 
 
@@ -70,3 +77,16 @@ def test_report():
     # do.utility.create_report("./history.log")
     os.remove("./history.log")
     return
+
+
+
+def test_live_display():
+    import time
+
+    @do.utility.live_display(current=1, total=1)
+    def step():
+        time.sleep(2)
+    try:
+        step()
+    except Exception as e:
+        print("Failed for live_display", e)

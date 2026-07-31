@@ -1,5 +1,8 @@
+import os.path
+
 import dotools_py as do
 import pandas as pd
+import anndata as ad
 
 
 def test_rank_genes_condition():
@@ -19,6 +22,10 @@ def test_rank_genes_condition():
     do.tl.rank_genes_groups(adata, groupby="condition")
     filter_rank_genes_groups(adata, "rank_genes_groups")
     assert "rank_genes_groups_filtered" in adata.uns.keys()
+
+    _ = do.tl.rank_genes_condition(adata, groupby="condition",  reference="healthy", subset_by="annotation",path="./", filename="test.xlsx")
+    assert  os.path.exists("test.xlsx")
+    os.remove("./test.xlsx")
 
     return None
 
@@ -134,6 +141,9 @@ def test_DGEClass():
         groups="disease"
     )
 
+    tester._get_pseudobulk(sample_min_cells=1, sample_min_counts=0, gene_min_count=0, gene_min_total_count=0, layer="counts")
+    assert isinstance(tester.pdata, ad.AnnData)
+
     checks = {
         "logreg": {"GeneName", "statistic", "group"},
         #"mast": {'GeneName', 'pvals', 'padj', 'groups', 'log2fc', 'pts_group', 'pts_ref''},
@@ -156,4 +166,5 @@ def test_DGEClass():
     assert len( tester.find_methods("pseudobulk")) == 3
 
 # TODO edgeR problem generating pseudobulk if the condition is not maintain
+
 

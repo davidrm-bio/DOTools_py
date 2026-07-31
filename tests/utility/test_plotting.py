@@ -42,3 +42,18 @@ def test_spine_format():
     plt.close()
 
     return
+
+def test_tab30():
+    do.utility.tab30()
+
+
+def test_get_ticks_defaults():
+    from dotools_py.utility._plotting import _get_ticks_defaults
+
+    size, weight, rotation, ha, va = _get_ticks_defaults(None)
+    assert size == 12
+    assert  weight == "bold"
+    assert  rotation is None
+    assert ha == "center"
+    assert va == "top"
+    
