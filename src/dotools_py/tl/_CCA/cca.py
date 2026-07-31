@@ -109,7 +109,7 @@ def cca(
 
     # select dimensions with non-zero singular values
     sel_dim = model.singular_values_ != 0
-    logger.debug("non zero dims", sel_dim.sum())
+    logger.debug(f"non zero dims {sel_dim.sum()}")
 
     V = model.components_[sel_dim].T
     U = U[:, sel_dim] / model.singular_values_[sel_dim]
