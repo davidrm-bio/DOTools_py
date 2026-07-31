@@ -18,11 +18,11 @@ and this project adheres to [Semantic Versioning][].
 - Improvement of ``do.pl.heatmap`` to groupby two categories like in ``do.pl.dotplot``
 - Include option to filter-out features not present in the object for ``do.dt.heart_markers``
 - Replace ``zellkonverter`` with ``anndataR`` to improve reading and saving to Seurat/SingleCellExperiment
-- 
+-
 
 ### Bug Fixes
 - Minor bug fixes for several functions
-
+- Fix error when saving results in ``do.tl.rank_genes_condition``
 
 ### Documentation
 - Update figure with markers in ``do.dt.heart_markers``
