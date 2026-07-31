@@ -834,7 +834,10 @@ class MatrixPlot:
                     else:
                         df_pvals.loc[row["group2"], (row["names"], row["group"])] = row["pvals_adj"]
             df_pvals[df_pvals.isna()] = 1
-            annot_pvals  = (df_pvals < self.pval_cutoff).replace({True: "*", False: ""})
+            # annot_pvals  = (df_pvals < self.pval_cutoff).replace({True: "*", False: ""})
+            mask = df_pvals < self.pval_cutoff
+            annot_pvals = df_pvals.mask(mask, "*").mask(~mask, "")
+
             self.annot_pvals = annot_pvals
             self.df_pvals = df_pvals
         else:
