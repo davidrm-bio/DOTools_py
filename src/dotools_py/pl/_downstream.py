@@ -590,9 +590,12 @@ def volcano_plot(
 
     # Data Preparation # # #
     ## Replace Pvals and LFCs greater than limit with the limit
-    dge[pval_col][dge[pval_col] < pval_lim] = pval_lim
-    dge[lfc_col][dge[lfc_col] < lfc_lim[0]] = lfc_lim[0]
-    dge[lfc_col][dge[lfc_col] > lfc_lim[1]] = lfc_lim[1]
+    #dge[pval_col][dge[pval_col] < pval_lim] = pval_lim
+    dge.loc[dge[pval_col] < pval_lim, pval_col] = pval_lim
+    # dge[lfc_col][dge[lfc_col] < lfc_lim[0]] = lfc_lim[0]
+    dge.loc[dge[lfc_col] < lfc_lim[0], lfc_col] = lfc_lim[0]
+    #dge[lfc_col][dge[lfc_col] > lfc_lim[1]] = lfc_lim[1]
+    dge.loc[dge[lfc_col] < lfc_lim[1], lfc_col] = lfc_lim[1]
 
     if clean: # Remove Genes with P adjusted == 1 (Not Informative)
         dge = dge[dge[pval_col] < 1]
