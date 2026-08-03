@@ -469,11 +469,11 @@ class DotPlot(BasePlot):
             # TODO Implement Z-score scaling for normal Dotplot
             # Scale the data
             if standard_scale == "group":
-                dot_color_df = dot_color_df.sub(dot_color_df.min(1), axis=0)
-                dot_color_df = dot_color_df.div(dot_color_df.max(1), axis=0).fillna(0)
+                dot_color_df = dot_color_df.sub(dot_color_df.min(axis=1), axis=0)
+                dot_color_df = dot_color_df.div(dot_color_df.max(axis=1), axis=0).fillna(0)
             elif standard_scale == "var":
-                dot_color_df -= dot_color_df.min(0)
-                dot_color_df = (dot_color_df / dot_color_df.max(0)).fillna(0)
+                dot_color_df -= dot_color_df.min(axis=0)
+                dot_color_df = (dot_color_df / dot_color_df.max(axis=0)).fillna(0)
             elif standard_scale is None:
                 pass
             else:
@@ -968,8 +968,8 @@ class DotPlot(BasePlot):
         )
 
         if standard_scale == "group":
-            dot_color = dot_color.sub(dot_color.min(1), axis=0)
-            dot_color = dot_color.div(dot_color.max(1), axis=0).fillna(0)
+            dot_color = dot_color.sub(dot_color.min(axis=1), axis=0)
+            dot_color = dot_color.div(dot_color.max(axis=1), axis=0).fillna(0)
         elif standard_scale == "var":
             dot_color -= dot_color.min(0)
             dot_color = (dot_color / dot_color.max(0)).fillna(0)
