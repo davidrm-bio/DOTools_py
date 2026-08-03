@@ -1,4 +1,4 @@
-import os.path
+import os
 from pathlib import Path
 import platform
 from typing import Literal
@@ -10,6 +10,8 @@ from rich.console import Console
 
 import anndata as ad
 import pandas as pd
+from dotools_py._custom_class import PathLike
+from  dotools_py._utils import convert_path
 
 
 HERE = Path(__file__).parent
@@ -402,5 +404,27 @@ def live_display(
     return decorator_live_display
 
 
+def set_path(path: PathLike) -> PathLike:
+    """Create the directory if it does not exist and return its path.
 
+     Ensure that a directory exists and return its normalized path.
+     The directory is then created if it does not already exist.
 
+    :param path: A path-like object representing the directory to create, if it does not already exist.
+    :return: Returns the normalized path to the directory.
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> import os
+    >>> test_path = do.utility.set_path("/tmp/testing_folder")
+    >>> test_path
+    PosixPath('/tmp/testing_folder')
+    >>> os.path.exists('/tmp/testing_folder')
+    True
+
+    """
+    if isinstance(path, str):
+        path = convert_path(path)
+    os.makedirs(path, exist_ok=True)
+    return path
