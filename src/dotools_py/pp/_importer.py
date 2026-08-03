@@ -495,7 +495,7 @@ class Importer:
         for idx, pttn in enumerate(self.patterns):
             adata.var[self.pattern_names[idx]] = adata.var["gene_names"].str.startswith(pttn)
         sc.pp.calculate_qc_metrics(
-            adata, qc_vars=self.pattern_names, percent_top=None, log1p=True, inplace=True, parallel=True
+            adata, qc_vars=self.pattern_names, percent_top=None, log1p=True, inplace=True,
         )
         return None
 
