@@ -12,8 +12,7 @@ import matplotlib.pyplot as plt
 from cycler import cycler
 from scanpy.plotting import palettes
 
-from dotools_py import logger
-from dotools_py.logger import set_verbosity
+from dotools_py.logger import logger, set_verbosity
 
 warnings.filterwarnings("ignore")
 
@@ -35,11 +34,22 @@ def interactive_session(enable: bool = True) -> None:
             else:
                 if os.environ.get("DISPLAY", "") == "":
                     raise RuntimeError("No display found. Cannot use GUI backend")
-                mpl.use("TkAgg", force=True)
+
+                try:
+                    mpl.use("TkAgg", force=True)
+                    logger.info('Interactive plotting enabled. Using "TkAgg" backend')
+                except RecursionError:
+                    backend = mpl.get_backend()
+                    logger.warn(
+                        f"Recursion detected while switching to TkAgg. "
+                        f"Keeping existing backend '{backend}'."
+                    )
                 plt.ion()
-                logger.info('Interactive plotting enabled. Using "TkAgg" backend')
         except Exception as e:
             logger.info(f"Interactive(True) Could not enable interactive plotting {e}.")
+            import traceback
+            traceback.print_exc()
+
     else:
         try:
             plt.ioff()
