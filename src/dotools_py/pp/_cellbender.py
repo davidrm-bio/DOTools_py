@@ -1,8 +1,7 @@
 import os
 import subprocess
 
-import anndata as ad
-import numpy as np
+from prelude_py import ad, np
 
 from dotools_py import logger
 from dotools_py._utils import convert_path, get_paths_utils

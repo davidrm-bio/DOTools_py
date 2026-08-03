@@ -1,13 +1,10 @@
 import sys
 from typing import Literal, Dict, Any
 
-import anndata as ad
 import matplotlib.lines as mlines
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
 import networkx as nx
+
+from prelude_py import np, pd, sns, plt, ad
 
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import LinearSegmentedColormap, ListedColormap

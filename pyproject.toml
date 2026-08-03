@@ -64,6 +64,7 @@ dependencies = [
   "appdirs",
   "rich<14",
   "networkx",
+  "prelude_py"
 ]
 
 

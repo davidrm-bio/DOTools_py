@@ -1,6 +1,6 @@
 import platform
 
-from dotools_py import logger
+from dotools_py.logger import logger
 
 FAST_ARRAY_UTILS = False
 

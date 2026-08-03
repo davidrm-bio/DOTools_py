@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 from typing import Literal
 
-import anndata as ad
+from prelude_py import ad
 
 from dotools_py._utils import get_paths_utils, check_r_package
 from dotools_py import logger

@@ -1,9 +1,8 @@
-import pandas as pd
 import tqdm
 import appdirs
 from typing import Literal
 
-import anndata as ad
+from prelude_py import pd, ad
 
 from dotools_py import logger
 from dotools_py._custom_class import PathLike, InputError

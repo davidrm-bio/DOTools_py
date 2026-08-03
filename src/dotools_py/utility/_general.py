@@ -8,8 +8,8 @@ from timeit import default_timer as timer
 import datetime
 from rich.console import Console
 
-import anndata as ad
-import pandas as pd
+
+from prelude_py import ad, pd
 from dotools_py._custom_class import PathLike
 from  dotools_py._utils import convert_path
 

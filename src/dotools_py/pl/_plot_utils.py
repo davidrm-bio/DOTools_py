@@ -5,12 +5,10 @@ from matplotlib.axes import Axes
 from matplotlib import axes
 from dotools_py._custom_class import PathLike
 from dotools_py._utils import convert_path
-import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import functools
-import anndata as ad
-import pandas as pd
-import numpy as np
+
+from prelude_py import np, pd, ad, plt
 
 
 COMMON_EXPR_ARGS = """\

@@ -2,14 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, NamedTuple
 
-import anndata as ad
+from prelude_py import ad, np, sc, plt
+
 import matplotlib.colorbar
 import matplotlib.gridspec as gridspec
 import matplotlib.patches as patches
 import matplotlib.patheffects as path_effects
-import numpy as np
-import scanpy as sc
-from matplotlib import pyplot as plt
 from matplotlib.cm import ScalarMappable
 from scanpy._compat import old_positionals
 from scanpy._settings import settings

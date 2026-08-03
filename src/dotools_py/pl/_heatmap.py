@@ -1,15 +1,12 @@
 from typing import Literal, Dict
 
-import anndata as ad
 import matplotlib.patches as patches
 import matplotlib.lines as mlines
 from matplotlib.colors import ListedColormap
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
+
 from matplotlib.cm import ScalarMappable
-from scipy.stats import zscore
+
+from prelude_py import ad, np, pd, sns, plt
 
 from dotools_py.logger import logger
 from dotools_py.tl import rank_genes_groups

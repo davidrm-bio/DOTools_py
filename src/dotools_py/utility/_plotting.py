@@ -1,5 +1,4 @@
-import matplotlib as mpl
-import matplotlib.pyplot as plt
+from prelude_py import mpl, plt
 from matplotlib.colors import LinearSegmentedColormap, ListedColormap
 
 from dotools_py.logger import  logger

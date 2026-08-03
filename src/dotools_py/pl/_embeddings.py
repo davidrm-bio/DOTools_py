@@ -1,13 +1,10 @@
 from typing import Literal, Dict
 
-import anndata as ad
-import numpy as np
-import pandas as pd
+
+from prelude_py import ad, np, pd, plt, sns
 
 from adjustText import adjust_text
 import matplotlib.patheffects as path_effects
-import matplotlib.pyplot as plt
-import seaborn as sns
 import matplotlib.lines as mlines
 
 from dotools_py.get._generic import expr as get_expr

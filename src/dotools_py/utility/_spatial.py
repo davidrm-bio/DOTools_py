@@ -1,8 +1,6 @@
-import anndata as ad
-import numpy as np
-import pandas as pd
 import scipy.sparse as sp
 from tqdm import tqdm
+from prelude_py import ad, np, pd
 
 from dotools_py._utils import require_dependencies
 

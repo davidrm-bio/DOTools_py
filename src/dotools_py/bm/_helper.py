@@ -1,7 +1,5 @@
-import pandas as pd
-import numpy as np
-from dotools_py.logger import  logger
-
+from dotools_py.logger import logger
+from prelude_py import pd, np
 
 # Helper functions adapted from scib
 

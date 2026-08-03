@@ -1,6 +1,7 @@
 from typing import Literal
 from pathlib import Path
-import pandas as pd
+
+from prelude_py import pd
 
 from dotools_py.logger import logger
 from dotools_py._utils import convert_path

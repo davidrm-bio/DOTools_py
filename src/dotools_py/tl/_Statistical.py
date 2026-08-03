@@ -4,9 +4,7 @@ import uuid
 import subprocess
 from typing import Literal
 
-import anndata as ad
-import numpy as np
-import pandas as pd
+from prelude_py import ad, np, pd
 
 from dotools_py.get import mean_expr as get_mean_expr
 from dotools_py.get import dge_results as get_dge_results

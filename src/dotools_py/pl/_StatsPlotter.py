@@ -1,10 +1,7 @@
 import sys
 from typing import Literal
 
-import anndata as ad
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
+from prelude_py import ad, np, pd, plt
 from matplotlib.collections import PolyCollection
 from matplotlib.patches import PathPatch
 from scipy.stats import f_oneway, kruskal, mannwhitneyu, shapiro, ttest_ind

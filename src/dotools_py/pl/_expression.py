@@ -1,8 +1,6 @@
 from typing import Literal, Dict, Callable
 
-import anndata as ad
-
-import matplotlib.pyplot as plt
+from prelude_py import ad, plt
 from matplotlib.colors import Colormap
 
 

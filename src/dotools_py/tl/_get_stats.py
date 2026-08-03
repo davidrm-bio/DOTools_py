@@ -5,9 +5,7 @@ import subprocess
 import uuid
 from typing import Literal
 
-import anndata as ad
-import numpy as np
-import pandas as pd
+from prelude_py import ad, np, pd
 
 from dotools_py import logger
 from dotools_py.tl._rankGenes import rank_genes_groups

@@ -1,13 +1,9 @@
 import os
 from typing import Literal, Dict
 
-import anndata as ad
-import numpy as np
-import pandas as pd
+from prelude_py import ad, np, pd, plt, sns
 
 from dotools_py.logger import  logger
-import matplotlib.pyplot as plt
-import seaborn as sns
 from dotools_py._utils import iterase_input, check_missing, sanitize_anndata, check_r_package, convert_path
 from dotools_py.pl._plot_utils import save_plot
 from dotools_py._custom_class import  PathLike

@@ -2,12 +2,10 @@ import sys
 from typing import Literal, Union, Dict
 from numpy.typing import NDArray
 
-import anndata as ad
-import numpy as np
-import pandas as pd
+from prelude_py import ad, np, pd, plt
+
 import scipy.stats
 
-import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 import matplotlib.patheffects as path_effects
 from matplotlib.patches import PathPatch

@@ -1,9 +1,6 @@
 from typing import Literal
 
-import anndata as ad
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
+from prelude_py import ad, plt, np, pd
 from scipy.sparse.csgraph import connected_components
 from numba import njit
 

@@ -1,6 +1,6 @@
 from typing import Literal
 
-import anndata as ad
+from prelude_py import ad
 
 from dotools_py import logger
 from dotools_py._custom_class import InputError

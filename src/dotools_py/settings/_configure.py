@@ -7,8 +7,7 @@ import datetime
 import traceback
 from typing import Literal
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
+from prelude_py import plt, mpl
 from cycler import cycler
 from scanpy.plotting import palettes
 

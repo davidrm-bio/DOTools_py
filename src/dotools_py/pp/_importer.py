@@ -3,11 +3,8 @@ import subprocess
 import uuid
 from datetime import date
 from pathlib import Path
-import anndata as ad
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
+
+from prelude_py import ad, np, pd, plt, sns
 
 from dotools_py import logger
 from dotools_py.io import read_10x_h5, read_visium, read_10x_mtx

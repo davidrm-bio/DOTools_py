@@ -1,10 +1,7 @@
 from typing import Mapping
-import anndata as ad
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
 from tqdm import tqdm
 
+from prelude_py import ad, np, pd, plt
 from dotools_py.get import expr as get_expr
 from dotools_py._custom_class import InputError, PathLike
 from dotools_py.pl._plot_utils import remove_extra, get_subplot_shape, spine_format, return_axis, save_plot

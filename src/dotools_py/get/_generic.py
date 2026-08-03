@@ -2,9 +2,7 @@ from typing import Literal
 import operator
 from scipy.sparse import issparse
 
-import anndata as ad
-import pandas as pd
-import numpy as np
+from prelude_py import ad, pd, np
 from numba import njit
 
 from dotools_py import logger

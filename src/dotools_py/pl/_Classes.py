@@ -1,15 +1,12 @@
-import anndata as ad
-import pandas as pd
-import numpy as np
 from typing import Literal, Callable, Dict, Any
 
-import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 import matplotlib.patches as patches
 from matplotlib.cm import ScalarMappable
-import seaborn as sns
 import textwrap
 from adjustText import adjust_text
+
+from prelude_py import ad, pd, np, sns, plt
 
 import networkx as nx
 

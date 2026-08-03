@@ -10,9 +10,7 @@ Module description here.
 import tqdm
 from typing import Literal
 
-import numpy as np
-import anndata as ad
-import scanpy as sc
+from prelude_py import np, ad, sc
 from scipy.sparse import csr_matrix
 
 from dotools_py._utils import sanitize_anndata, iterase_input

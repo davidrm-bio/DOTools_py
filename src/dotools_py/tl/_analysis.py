@@ -3,10 +3,8 @@ from typing import Literal
 import subprocess
 import uuid
 
-import anndata as ad
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
+
+from prelude_py import ad, plt, np, pd
 
 from dotools_py import logger
 from dotools_py.dt import standard_ct_labels_heart

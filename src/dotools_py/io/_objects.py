@@ -1,10 +1,8 @@
 from typing import Literal
-import anndata as ad
 
+from prelude_py import ad, pd, np
 import json
 from PIL import Image
-import numpy as np
-import pandas as pd
 
 from typing import TYPE_CHECKING
 
