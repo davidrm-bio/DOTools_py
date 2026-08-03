@@ -108,6 +108,8 @@ def expr(
     if len(features) != adata.n_vars:
         adata = adata[:, features]  # Retain only the specified features
     if layer is not None:
+        if adata.is_view:
+            adata = adata.copy()
         adata.X = adata.layers[layer].copy()  # Select the specified layer
 
     # Extract expression
@@ -193,6 +195,8 @@ def mean_expr(
     # Set-up configuration
     adata = adata[:, features]
     if layer is not None:
+        if adata.is_view:
+            adata = adata.copy()
         adata.X = adata.layers[layer].copy()
 
     data = adata.copy()
