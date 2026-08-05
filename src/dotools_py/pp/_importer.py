@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 
 def find_doublets(
     adata: ad.AnnData | pd.DataFrame,
+    *,
     batch_key: str | None = None,
     cluster_key: str | bool | None = None,
     doublet_rate: float = None,
@@ -147,6 +148,7 @@ def find_doublets(
 
 def log_normalize(
     adata: ad.AnnData,
+    *,
     target_sum: int = 10_000,
     log_data: bool = True,
 ) -> None:
@@ -181,6 +183,7 @@ def log_normalize(
 
 def pearson_residuals_normalize(
     adata: ad.AnnData,
+    *,
     batch_key: str = None,
     layer: str = None,
     backend: Literal["scanpy", "seurat"] = "scanpy",
@@ -203,7 +206,7 @@ def pearson_residuals_normalize(
     -------
     >>> import dotools_py as do
     >>> adata = do.dt.example_10x_processed()
-    >>> adata = pearson_residuals_normalisation(adata, batch_key="batch", layer="counts", backend="scanpy")
+    >>> adata = do.pp.pearson_residuals_normalize(adata, batch_key="batch", layer="counts", backend="scanpy")
     normalizing counts per cell
     finished (0:00:00)
     computing analytic Pearson residuals on counts
@@ -219,7 +222,7 @@ def pearson_residuals_normalize(
     obsm: 'X_CCA', 'X_pca', 'X_umap'
     layers: 'counts', 'logcounts', 'sqrt_norm', 'pearson_norm'
     >>> adata = do.dt.example_10x_processed()
-    >>> adata = pearson_residuals_normalisation(adata, batch_key="batch", layer="counts", backend="seurat")
+    >>> adata = pearson_residuals_normalize(adata, batch_key="batch", layer="counts", backend="seurat")
     2026-03-05 15:45:26,911 - Preparing to transfer to R
     2026-03-05 15:45:26,928 - Running SCTransform in R
     >>> adata
@@ -721,6 +724,7 @@ class Importer:
 
 
 def importer_py(
+    *,
     # Step 1 - Basic input
     paths: list,
     ids: list,
@@ -884,6 +888,7 @@ def importer_py(
 def quality_control(
     # Step 1 - Basic input
     adata: ad.AnnData,
+    *,
     batch_key: str,
     # Step 2 - Filter low quality cells and features
     min_genes_in_cell: int = 300,

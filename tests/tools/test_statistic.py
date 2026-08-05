@@ -20,7 +20,7 @@ def test_rank_genes_condition():
 
     from dotools_py.tl._rankGenes import filter_rank_genes_groups
     do.tl.rank_genes_groups(adata, groupby="condition")
-    filter_rank_genes_groups(adata, "rank_genes_groups")
+    filter_rank_genes_groups(adata,key= "rank_genes_groups")
     assert "rank_genes_groups_filtered" in adata.uns.keys()
 
     _ = do.tl.rank_genes_condition(adata, groupby="condition",  reference="healthy", subset_by="annotation",path="./", filename="test.xlsx")
@@ -75,7 +75,7 @@ def test_rank_genes_groups():
 
 def test_pseudobulk():
     adata = do.dt.example_10x_processed()
-    df = do.tl.rank_genes_pseudobulk(adata, "healthy", "disease", "annotation", technical_replicates=3)
+    df = do.tl.rank_genes_pseudobulk(adata, ctrl_cond= "healthy", disease_cond="disease", cluster_key= "annotation", technical_replicates=3)
     assert isinstance(df, pd.DataFrame)
     cols = {'baseMean', 'log2FoldChange', 'lfcSE', 'stat', 'pvalue', 'padj','group'}
     assert cols.issubset(df.columns)
@@ -84,7 +84,7 @@ def test_pseudobulk():
 
 def test_consensus():
     adata = do.dt.example_10x_processed()
-    df = do.tl.rank_genes_consensus(adata, "healthy", "disease", "annotation", technical_replicates=3)
+    df = do.tl.rank_genes_consensus(adata,ctrl_cond= "healthy",disease_cond= "disease",cluster_key= "annotation", technical_replicates=3)
     assert isinstance(df, pd.DataFrame)
     assert df.shape[1] == 18
     return
@@ -93,7 +93,7 @@ def test_consensus():
 def test_run():
     adata = do.dt.example_10x_processed()
     try:
-        do.tl.run_mast(adata, "condition", "healthy", "disease")
+        do.tl.run_mast(adata,cond_key= "condition",reference= "healthy",disease= "disease")
     except Exception:
         pass
 

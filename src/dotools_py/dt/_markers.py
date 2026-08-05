@@ -7,6 +7,7 @@ from dotools_py._custom_class import InputError
 
 
 def heart_markers(
+    *,
     species: Literal["mouse", "human"] = "mouse",
     adata: ad.AnnData | None = None,
 ) -> dict:
@@ -21,7 +22,7 @@ def heart_markers(
     Example
     -------
     >>> import dotools_py as do
-    >>> df_mouse = do.dt.heart_markers("mouse")
+    >>> df_mouse = do.dt.heart_markers(species="mouse")
     2025-07-02 10:55:01,623 - Getting mouse markers
     >>> df_mouse["EndoEC"]
     ['Nfatc1', 'Npr3', 'Nrg1', 'Pecam1', 'Cdh5', 'Etv2']

@@ -461,6 +461,7 @@ def small_squares(ax: plt.Axes, pos: list, color: list, size: float = 1, linewid
 
 def heatmap(
     adata: ad.AnnData,
+    *,
     x_axis: str,
     features: str | list,
     y_axis: str | None = None,
@@ -577,18 +578,18 @@ def heatmap(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.heatmap(adata, 'annotation', ['CD4', 'CD79A'], add_stats="x_axis")
+        do.pl.heatmap(adata, x_axis='annotation', features=['CD4', 'CD79A'], add_stats="x_axis")
 
     Create a 3d heatmap grouping also by condition
 
     .. plot::
         :context: close-figs
 
-        do.pl.heatmap(adata, 'condition',  ['CD4', 'CD79A'], 'annotation', figsize=(6, 4))
+        do.pl.heatmap(adata, x_axis='condition',  features=['CD4', 'CD79A'], y_axis='annotation', figsize=(6, 4))
 
         # Add Statistical significance for groups with pvals < 0.05 and log2fc > 0.0
         # Note, the object is quite small, some groups cannot be tested for having one condition only.
-        do.pl.heatmap(adata, 'condition', ['CD4', 'CD79A'], 'annotation', figsize=(6, 4), add_stats='y_axis')
+        do.pl.heatmap(adata, x_axis='condition', features=['CD4', 'CD79A'], y_axis='annotation', figsize=(6, 4), add_stats='y_axis')
 
 
     """
@@ -644,6 +645,7 @@ def heatmap(
 def heatmap_foldchange(
     # Data
     adata: ad.AnnData,
+    *,
     group_by: str | list,
     features: str | list,
     condition_key: str,
@@ -745,7 +747,7 @@ def heatmap_foldchange(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.heatmap_foldchange(adata, 'annotation', ['CD4', 'CD79A'], "condition", "healthy", add_stats=True, figsize=(5, 7))
+        do.pl.heatmap_foldchange(adata, group_by='annotation', features=['CD4', 'CD79A'], condition_key="condition", reference="healthy", add_stats=True, figsize=(5, 7))
 
     """
     import scanpy as sc  # Lazy load

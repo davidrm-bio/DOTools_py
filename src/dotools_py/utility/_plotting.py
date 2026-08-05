@@ -87,7 +87,7 @@ def extended_tab20(n_shades: int = 6) -> list:
     return extended_colors
 
 
-def spine_format(axis: plt.Axes, txt: str = "UMAP", fontsize: int = 12) -> None:
+def spine_format(*, axis: plt.Axes, txt: str = "UMAP", fontsize: int = 12) -> None:
     """Formatting the spines for embeddings.
 
     :param axis: matplotlib axes object.

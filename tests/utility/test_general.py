@@ -19,8 +19,8 @@ def test_transferLabels():
 
     adata_subset = do.get.subset(adata, obs_key="annotation", obs_groups="B_cells", copy=True)
     adata_subset.obs["news"] = "testing"
-    do.utility.transfer_labels(adata,
-                               adata_subset,
+    do.utility.transfer_labels(adata_original=adata,
+                               adata_subset=adata_subset,
                                original_key="annotation",
                                subset_key="news",
                                original_labels=["B_cells"])
@@ -30,8 +30,8 @@ def test_transferLabels():
     adata = do.dt.example_10x_processed()
     adata_subset = do.get.subset(adata, obs_key="annotation", obs_groups="B_cells", copy=True)
     adata_subset.obs["news"] = "testing"
-    adata = do.utility.transfer_labels(adata,
-                               adata_subset,
+    adata = do.utility.transfer_labels(adata_original=adata,
+                               adata_subset=adata_subset,
                                original_key="annotation",
                                subset_key="news",
                                original_labels=["B_cells"],
@@ -43,17 +43,17 @@ def test_transferLabels():
 
 def test_add_gene_metadata():
     adata = do.dt.example_10x_processed()
-    adata = do.utility.add_gene_metadata(adata, "var_names", "human", add_gene_id=True)
+    adata = do.utility.add_gene_metadata(data=adata, gene_key="var_names", species="human", add_gene_id=True)
     cols = {'biotype', 'locations', 'gene_id'}
     assert cols.issubset(adata.var.columns)
     df = adata.var.copy()
     df.reset_index(inplace=True)
-    df = do.utility.add_gene_metadata(df, "index", "human", add_gene_id=True)
+    df = do.utility.add_gene_metadata(data=df, gene_key="index", species="human", add_gene_id=True)
     cols = {'biotype', 'locations', 'gene_id'}
     assert cols.issubset(adata.var.columns)
 
     try:
-        do.utility.add_gene_metadata(["testing"])
+        do.utility.add_gene_metadata(data=["testing"])
     except Exception:
         pass
 
@@ -66,11 +66,11 @@ def test_spatial():
     sp = False
     if sp:
         do.utility.add_smooth_kernel(adata)
-        do.utility.select_slide(adata, "slide1")
+        do.utility.select_slide(adata, s="slide1")
 
 
 def test_report():
-    do.settings.set_kernel_logger("./history.log")
+    do.settings.set_kernel_logger(filename="./history.log")
     files = os.listdir("./")
     assert "history.log" in files
     do.settings.toogle_kernel_logger(False)

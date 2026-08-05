@@ -19,6 +19,7 @@ _Empty = EmptyType()
 
 def read_h5ad(
     path: PathLike,
+    *,
     filename: str | None = None,
     **kwargs,
 ) -> ad.AnnData:
@@ -46,6 +47,7 @@ def read_h5ad(
 
 def read_zarr(
     path: PathLike,
+    *,
     filename: str | None = None,
     backend: Literal["anndata", "spatialdata"] = "spatialdata",
 ) -> "ad.AnnData | st.SpatialData":
@@ -85,6 +87,7 @@ def read_zarr(
 
 def read_10x_h5(
     path: PathLike,
+    *,
     filename: str | None = None,
     **kwargs
 ) -> ad.AnnData:
@@ -133,6 +136,7 @@ def read_10x_mtx(
 
 def read_mtx(
     path: PathLike,
+    *,
     filename: str | None = None,
     **kwargs
 ) -> ad.AnnData:
@@ -201,6 +205,7 @@ def _read_counts(
 
 def read_visium(
     path: PathLike,
+    *,
     counts_file: str = "filtered_feature_bc_matrix.h5",
     library_id: str | None = None,
     load_images: bool = True,

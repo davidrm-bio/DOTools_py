@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning][].
 
 ## Version 0.0.5
 
+### Changes
+- For the majority of the functions the arguments are now keyword-only except `adata`.
+
 ### Features
 - Add ``dotools_py.pl.ora_network`` to visualize overrepresentation results as a network
 - Add ``dotools_py.get.metacells`` to generate metacells

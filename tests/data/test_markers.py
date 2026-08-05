@@ -4,7 +4,7 @@ from dotools_py._custom_class import InputError
 def test_heart_markers():
     adata = do.dt.example_10x_processed()
     for species in ["mouse", "human"]:
-        markers = do.dt.heart_markers(species, adata=adata)
+        markers = do.dt.heart_markers(species=species, adata=adata)
         cts = ['Art_EC', 'CapEC', 'VeinEC', 'LymphEC', 'EndoEC',
                'SMC', 'PC', 'FB', 'FBa', 'Neurons', 'CM', 'B_cells',
                'T_cells', 'Myeloid', 'MP_recruit', 'MP_resident',
@@ -13,7 +13,7 @@ def test_heart_markers():
         for ct in cts:
             assert ct in markers.keys(), f"{ct} not in the marker list"
     try:
-        do.dt.heart_markers("unknown")
+        do.dt.heart_markers(species="unknown")
     except InputError:
         pass
     return

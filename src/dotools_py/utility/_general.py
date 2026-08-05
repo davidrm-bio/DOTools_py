@@ -17,7 +17,7 @@ from  dotools_py._utils import convert_path
 HERE = Path(__file__).parent
 
 
-def free_memory(cuda: bool = False) -> None:
+def free_memory(*, cuda: bool = False) -> None:
     """Garbage collector.
     :param cuda: If set to `True` clean the cache of cuda.
     :return:
@@ -40,6 +40,7 @@ def free_memory(cuda: bool = False) -> None:
 
 
 def transfer_labels(
+    *,
     adata_original: ad.AnnData,
     adata_subset: ad.AnnData,
     original_key: str,
@@ -78,6 +79,7 @@ def transfer_labels(
 
 
 def add_gene_metadata(
+    *,
     data: ad.AnnData | pd.DataFrame,
     gene_key: str,
     species: Literal["mouse", "human"] = "mouse",
@@ -101,7 +103,7 @@ def add_gene_metadata(
     >>> import dotools_py as do
     >>> # AnnData Input
     >>> adata = do.dt.example_10x_processed()
-    >>> adata = add_gene_metadata(adata, "var_names", "human")
+    >>> adata = do.utility.add_gene_metadata(data=adata, gene_key="var_names", species="human")
     >>> adata.var[["biotype", "gene_id", "locations"]].head(5)
                            biotype          gene_id                locations
     ATP2A1-AS1          lncRNA  ENSG00000260442  Unreview status Uniprot
@@ -343,6 +345,7 @@ def create_report(
 _default_console = Console()
 
 def live_display(
+    *,
     console:  None = None,
     current: int | None = None,
     total: int | None = None,
@@ -404,7 +407,7 @@ def live_display(
     return decorator_live_display
 
 
-def set_path(path: PathLike) -> PathLike:
+def set_path(*, path: PathLike) -> PathLike:
     """Create the directory if it does not exist and return its path.
 
      Ensure that a directory exists and return its normalized path.
@@ -417,10 +420,10 @@ def set_path(path: PathLike) -> PathLike:
     -------
     >>> import dotools_py as do
     >>> import os
-    >>> test_path = do.utility.set_path("/tmp/testing_folder")
+    >>> test_path = do.utility.set_path(path="/tmp/testing_folder")
     >>> test_path
     PosixPath('/tmp/testing_folder')
-    >>> os.path.exists('/tmp/testing_folder')
+    >>> os.path.exists("/tmp/testing_folder")
     True
 
     """

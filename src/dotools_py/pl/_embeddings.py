@@ -20,6 +20,7 @@ from dotools_py.pl._plot_utils import (return_axis, save_plot, make_grid_spec, v
 def embedding(
     # Data
     adata: ad.AnnData,
+    *,
     color: str | list,
     split_by: str | None = None,
     catgs_order: list = None,
@@ -306,6 +307,7 @@ def embedding(
 def umap(
     # Data
     adata: ad.AnnData,
+    *,
     color: str | list,
     split_by: str | None = None,
     catgs_order: list = None,
@@ -371,15 +373,15 @@ def umap(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.umap(adata, 'annotation', split_by='condition', ncols=2, figsize=(9, 4), size=20)
-        do.pl.umap(adata, 'CD4', split_by='condition',  size=50, labels='annotation', cmap='Reds')
+        do.pl.umap(adata, color='annotation', split_by='condition', ncols=2, figsize=(9, 4), size=20)
+        do.pl.umap(adata, color='CD4', split_by='condition',  size=50, labels='annotation', cmap='Reds')
 
     or the expression of a gene
 
     .. plot::
         :context: close-figs
 
-        do.pl.umap(adata, 'CD4', split_by='condition',  size=50, labels='annotation', cmap='Reds')
+        do.pl.umap(adata, color='CD4', split_by='condition',  size=50, labels='annotation', cmap='Reds')
 
 
     """
@@ -398,6 +400,7 @@ def umap(
 def split_embedding(
     # Data
     adata: ad.AnnData,
+    *,
     split_by: str,
 
     # Figure Parameters
@@ -445,7 +448,7 @@ def split_embedding(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.split_embedding(adata, 'annotation', ncols=3)
+        do.pl.split_embedding(adata, split_by='annotation', ncols=3)
 
     """
     import scanpy as sc
@@ -545,7 +548,7 @@ def _density_individual_continuous(
         #cbar_ax.set_visible(False)
         #ticks = [float(tck.get_text()) for tck in cbar_ax.get_yticklabels()]
         if color in adata.var_names:
-            df_tmp = get_expr(adata, color)
+            df_tmp = get_expr(adata, features=color)
         else:
             df_tmp = adata.obs[color].to_frame()
             df_tmp["expr"] = df_tmp[color]
@@ -565,7 +568,7 @@ def _density_individual_continuous(
     # Density Plot
     # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     if color in adata.var_names:
-        df_density = get_expr(adata, color, out_format="wide")
+        df_density = get_expr(adata, features=color, out_format="wide")
     else:
         df_density = adata.obs[color].to_frame()
 
@@ -698,6 +701,7 @@ def _density_individual_categorical(
 def density(
     # Data
     adata: ad.AnnData,
+    *,
     color: str | list,
 
     # Figure Parameters
@@ -791,14 +795,14 @@ def density(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.density(adata, 'annotation', basis="X_umap", density_alpha=1, show_basis=False)
+        do.pl.density(adata, color='annotation', basis="X_umap", density_alpha=1, show_basis=False)
 
     or the expression of a gene
 
     .. plot::
         :context: close-figs
 
-        do.pl.density(adata, 'CD4', basis="X_umap", density_alpha=.75)
+        do.pl.density(adata, color='CD4', basis="X_umap", density_alpha=.75)
 
     """
     assert "split_by" not in kwargs, '"split_by" is not supported for do.pl.density'

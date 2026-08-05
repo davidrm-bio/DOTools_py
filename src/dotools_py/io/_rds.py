@@ -13,6 +13,7 @@ from dotools_py._custom_class import PathLike, InputError
 
 
 def read_rds(
+    *,
     path_rds: PathLike,
     path_h5ad: PathLike,
     batch_key: str = "batch",
@@ -96,6 +97,7 @@ def read_rds(
 
 
 def save_rds(
+    *,
     path_rds: PathLike,
     batch_key: str = "batch",
     adata: ad.AnnData | None = None,

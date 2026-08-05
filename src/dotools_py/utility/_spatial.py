@@ -7,6 +7,7 @@ from dotools_py._utils import require_dependencies
 
 def select_slide(
     adata: ad.AnnData,
+    *,
     s: str,
     s_col: str = "sample"
 ) -> ad.AnnData:
@@ -31,6 +32,7 @@ def select_slide(
 @require_dependencies([{"name": "liana"}])
 def add_smooth_kernel(
     adata: ad.AnnData,
+    *,
     layer_name: str = "smooth_X",
     bandwidth: int = 100,
     multiple: bool = True,

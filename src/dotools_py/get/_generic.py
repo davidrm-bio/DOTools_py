@@ -33,6 +33,7 @@ def _expm1_anndata(adata: ad.AnnData) -> None:
 
 def expr(
     adata: ad.AnnData,
+    *,
     features: str | list | None,
     groups: str | list | None = None,
     out_format: Literal["long", "wide"] = "long",
@@ -67,7 +68,7 @@ def expr(
     -------
     >>> import dotools_py as do
     >>> adata = do.dt.example_10x_processed()
-    >>> df = do.get.expr(adata, "CD4", "annotation")
+    >>> df = do.get.expr(adata, features="CD4", groups="annotation")
     >>> df.head(5)
       annotation genes  expr
     0    B_cells   CD4   0.0
@@ -75,7 +76,7 @@ def expr(
     2    T_cells   CD4   0.0
     3    T_cells   CD4   0.0
     4    T_cells   CD4   0.0
-    >>> df = do.get.expr(adata, "CD4", "annotation", out_format="wide")
+    >>> df = do.get.expr(adata, features="CD4", groups="annotation", out_format="wide")
     >>> df.head(5)
                                    CD4 annotation
     CAAAGAATCAGATTGC-1-batch2  0.0    B_cells
@@ -124,6 +125,7 @@ def expr(
 
 def mean_expr(
     adata: ad.AnnData,
+    *,
     group_by: str | list,
     features: list | str | None = None,
     out_format: Literal["long", "wide"] = "long",
@@ -164,7 +166,7 @@ def mean_expr(
     -------
     >>> import dotools_py as do
     >>> adata = do.dt.example_10x_processed()
-    >>> df = do.get.mean_expr(adata, "annotation")
+    >>> df = do.get.mean_expr(adata, group_by="annotation")
     >>> df.head(5)
              gene   group0      expr
     0  ATP2A1-AS1  B_cells  0.000000
@@ -172,7 +174,7 @@ def mean_expr(
     2    C19orf18  B_cells  0.000000
     3        TPP2  B_cells  0.126846
     4       MFSD1  B_cells  0.053630
-    >>> df = do.get.mean_expr(adata, "annotation", out_format="wide")
+    >>> df = do.get.mean_expr(adata, group_by="annotation", out_format="wide")
     >>> df.head(5)
         group0   B_cells  Monocytes        NK   T_cells       pDC
     gene
@@ -245,6 +247,7 @@ def mean_expr(
 
 def dge_results(
     adata: ad.AnnData,
+    *,
     key: str = "rank_genes_groups",
     min_log2fc: float | None = None,
     padj_cutoff: float| None = None,
@@ -322,6 +325,7 @@ def dge_results(
 
 def subset(
     adata: ad.AnnData,
+    *,
     obs_key: str | None = None,
     obs_groups: str | list | float | bool | None = None,
     var_key: str | None = None,
@@ -414,6 +418,7 @@ def subset(
 
 def subset_df(
     df: pd.DataFrame,
+    *,
     col: str | list | None = None,
     col_groups: str | list | float | bool | None = None,
     comparison:  Literal[">=", ">", "==", "<", "<=", "include", "exclude"] | list= "include",
@@ -439,14 +444,14 @@ def subset_df(
     >>> df = adata.obs.copy()
     >>> df.shape
     (700, 22)
-    >>> df_subset = subset_df(df, col=["condition", "annotation"],  col_groups=["healthy", "NK"], comparison="include")
+    >>> df_subset = do.get.subset_df(df, col=["condition", "annotation"],  col_groups=["healthy", "NK"], comparison="include")
     >>> df_subset.shape
     (111, 22)
     >>> df_subset.value_counts(["condition", "annotation"])
     condition  annotation
     healthy    NK            111
     Name: count, dtype: int64
-    >>> df_subset = subset_df(df, col=["total_counts", "annotation"], col_groups=[1000, ["B_cells", "T_cells"]], comparison=["<", "include"] )
+    >>> df_subset = do.get.subset_df(df, col=["total_counts", "annotation"], col_groups=[1000, ["B_cells", "T_cells"]], comparison=["<", "include"] )
     >>> df_subset.shape
     (1, 22)
     >>> df_subset.head(5)[["total_counts", "annotation"]].sort_values("total_counts", ascending=False)
@@ -504,6 +509,7 @@ def _get_log2fc(group: np.ndarray, ref: np.ndarray, psc=1e-9):
 
 def log2fc(
     adata: ad.AnnData,
+    *,
     group_by: str,
     reference: str,
     groups: str | list | None = None,
@@ -560,6 +566,7 @@ def log2fc(
 
 def pcts_cells(
     adata,
+    *,
     group_by: str | list,
     features: str | list = None,
     min_expr: float = 0.0,
@@ -614,6 +621,7 @@ def pcts_cells(
 
 def pseudobulk(
     adata: ad.AnnData,
+    *,
     batch_key: str,
     cluster_key: str,
     keep_metadata: list | None = None,
@@ -758,6 +766,7 @@ def pseudobulk(
 
 def layer_swap(
     adata: ad.AnnData,
+    *,
     layer_key: str,
     x_key: str | None = "X",
     inplace: bool = True,
@@ -797,6 +806,7 @@ def layer_swap(
 
 def metacells(
     adata: ad.AnnData,
+    *,
     batch_key: str,
     annotation_key: str,
     size: int = 10,

@@ -41,6 +41,7 @@ def _run_barcoderanks(adata: ad.AnnData) -> tuple[int, int]:
 
 
 def run_cellbender(
+    *,
     cellranger_path: str,
     output_path: str,
     samplenames: list | None = None,
@@ -83,7 +84,7 @@ def run_cellbender(
     >>> import dotools_py as do
     >>> in_path = "/path/to/cellranger"
     >>> out_path = "/path/to/output"
-    >>> do.pp.run_cellbender(in_path, out_path)
+    >>> do.pp.run_cellbender(cellranger_path=in_path, output_path=out_path)
     """
     import scanpy as sc
 

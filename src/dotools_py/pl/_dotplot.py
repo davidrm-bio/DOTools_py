@@ -1314,6 +1314,7 @@ def dotplot_scanpy(
 
 def dotplot(
     adata: ad.AnnData,
+    *,
     x_axis: str,
     features: str | list | dict,
     y_axis: str = None,
@@ -1441,10 +1442,10 @@ def dotplot(
         import dotools_py as do
         adata = do.dt.example_10x_processed()
         markers = ['CD79A', 'CD4', 'CDK1']
-        do.pl.dotplot(adata, 'annotation', markers, figsize=(4, 3))
+        do.pl.dotplot(adata, x_axis='annotation',features=markers, figsize=(4, 3))
 
         # Add Statistical significance
-        do.pl.dotplot(adata, 'condition', markers, figsize=(6, 4), add_stats='x_axis', set_equal_aspect=True)
+        do.pl.dotplot(adata, x_axis='condition', features=markers, figsize=(6, 4), add_stats='x_axis', set_equal_aspect=True)
 
 
     Create a 3d dotplot grouping also by condition
@@ -1452,11 +1453,11 @@ def dotplot(
     .. plot::
         :context: close-figs
 
-        do.pl.dotplot(adata, 'condition', markers, 'annotation', figsize=(6, 4))
+        do.pl.dotplot(adata, x_axis='condition', features=markers, y_axis='annotation', figsize=(6, 4))
 
         # Add Statistical significance for groups with pvals < 0.05 and log2fc > 0.0
         # Note, the object is quite small, some groups cannot be tested for having one condition only.
-        do.pl.dotplot(adata, 'condition', markers, 'annotation', figsize=(6, 4), add_stats='x_axis', set_equal_aspect=True)
+        do.pl.dotplot(adata, x_axis='condition', features=markers, y_axis='annotation', figsize=(6, 4), add_stats='x_axis', set_equal_aspect=True)
 
 
     """

@@ -8,12 +8,12 @@ def test_importer():
     import os
     os.makedirs("./tmp/", exist_ok=True)
     path = "./tmp/"
-    do.dt.example_10x(path)
+    do.dt.example_10x(path=path)
 
     files = ["./tmp/healthy/outs/filtered_feature_bc_matrix.h5"]
 
     adata = do.pp.importer_py(
-        files,
+        paths=files,
         ids=["Batch1"],
         metadata={"condition": ["healthy"]},
         doublet_tool="Scrublet",
@@ -50,7 +50,7 @@ def test_importer():
 
 def test_log_normalize():
     adata = do.dt.example_10x_processed()
-    do.get.layer_swap(adata, "counts")
+    do.get.layer_swap(adata, layer_key="counts")
     matrix = adata.X.data if issparse(adata.X) else adata.X.flatten()
     if (matrix % 1 != 0).any():
         raise ValueError("The count matrix should only contain integers.")
@@ -69,7 +69,7 @@ def test_quality_control():
     import os
     adata = do.dt.example_10x_processed()
     os.makedirs("./QC", exist_ok=True)
-    do.get.layer_swap(adata, "counts")
+    do.get.layer_swap(adata, layer_key="counts")
     adata_new = do.pp.quality_control(
         adata,
         batch_key="batch",

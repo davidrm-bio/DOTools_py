@@ -90,7 +90,7 @@ def matplotlib_backend(backend: str | Literal["pycharm", "jupyter"] = "tkagg") -
     return None
 
 
-def set_random_state(random_state: int = 0, verbosity: bool = True)-> None:
+def set_random_state(*, random_state: int = 0, verbosity: bool = True)-> None:
     """Set random state.
 
     This function set the global seed for random number generator, specifically for
@@ -127,6 +127,7 @@ def set_random_state(random_state: int = 0, verbosity: bool = True)-> None:
 
 
 def session_settings(
+    *,
     verbosity: int = 2,
     interactive: bool = True,
     dpi: int = 90,
@@ -177,7 +178,7 @@ def session_settings(
     font_family = "Helvetica" if "Helvetica" in available_fonts else "sans-serif"
 
     # Scanpy Settings
-    set_random_state(random_state, verbosity=False)
+    set_random_state(random_state=random_state, verbosity=False)
     interactive_session(interactive)
     logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
     set_verbosity(verbosity)
@@ -263,6 +264,7 @@ _kernel_logger_registered = False
 
 
 def set_kernel_logger(
+    *,
     filename: str | Path="./History.log",
     overwrite: bool =False,
     session: Literal["activate", "deactivate"] = "activate"
@@ -293,7 +295,7 @@ def set_kernel_logger(
     >>> print(open("History.log").read())
     ========== KERNEL SESSION START 2025-12-12 13:48:22.118424 ==========
     [CODE 2025-12-12 13:48:22.120206]
-    >>> do.settings.set_kernel_logger('./History.log')
+    >>> do.settings.set_kernel_logger(filename='./History.log')
     [CODE 2025-12-12 13:48:22.734407]
     >>> adata = do.dt.example_10x_processed()
     [CODE 2025-12-12 13:48:23.606794]

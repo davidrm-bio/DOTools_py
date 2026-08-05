@@ -62,6 +62,7 @@ class StatsPlotter:
 
     def __init__(
         self,
+        *,
         axis: plt.Axes,
         x_axis: str,
         y_axis: str,
@@ -438,6 +439,7 @@ class TestData:
 
     def __init__(
         self,
+        *,
         data: pd.DataFrame | ad.AnnData,
         feature: str,
         cond_key: str,

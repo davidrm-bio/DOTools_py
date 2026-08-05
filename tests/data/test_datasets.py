@@ -7,7 +7,7 @@ import shutil
 def test_example10x():
     path = "./tmp"
     os.makedirs(path, exist_ok=True)  # Generate a tmp folder
-    do.dt.example_10x(path)  # Download datasets
+    do.dt.example_10x(path=path)  # Download datasets
     # Check that two folders where created
     dirs = os.listdir(path)
     assert "disease" in dirs, "Disease dataset missing"
@@ -31,7 +31,7 @@ def test_processed10x():
 def test_visium():
     path = "./tmp"
     os.makedirs(path, exist_ok=True)  # Generate a tmp folder
-    do.dt.example_visium(path)  # Download datasets
+    do.dt.example_visium(path=path)  # Download datasets
     assert  len(os.listdir(path)) !=0
     # Load one test dataset
     try:

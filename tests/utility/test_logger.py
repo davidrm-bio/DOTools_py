@@ -13,7 +13,7 @@ def test_logger():
 
     logger.debug("Test")
 
-    do.settings.set_kernel_logger("./history.log")
+    do.settings.set_kernel_logger(filename="./history.log")
     assert os.path.exists("./history.log")
     do.settings.toogle_kernel_logger(False)
     do.settings.toogle_kernel_logger(True)

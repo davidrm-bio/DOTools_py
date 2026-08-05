@@ -65,6 +65,7 @@ class DGEAnalysis:
 
     def __init__(self,
                  adata: ad.AnnData,
+                 *,
                  groupby: str,
                  batch_key: str = "batch",
                  pseudobulk_mode: Literal["sum", "mean"] = "sum",

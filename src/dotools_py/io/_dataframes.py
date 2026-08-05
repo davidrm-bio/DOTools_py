@@ -17,6 +17,7 @@ def _check_sheet_name(path: PathLike):
 
 def read_excel(
     path: PathLike,
+    *,
     filename: str | None = None,
     sheet_name: str = "Sheet 1",
     backend: Literal["pandas", "polars"] = "pandas",
@@ -80,6 +81,7 @@ def read_excel(
 
 def read_csv(
     path: PathLike,
+    *,
     filename: str | None = None,
     delimiter: str = ",",
     backend: Literal["pandas", "polars"] = "pandas",
@@ -133,6 +135,7 @@ def read_csv(
 
 def read_parquet(
     path: PathLike,
+    *,
     filename: str | None = None,
     backend: Literal["pandas", "polars"] = "pandas",
     **kwargs

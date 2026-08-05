@@ -143,6 +143,7 @@ def _run_scvi(
 
 def run_scvi(
     adata: ad.AnnData,
+    *,
     batch_key: str,
     gene_key: str | Literal["all"] = "highly_variable",
     layer_counts: str = "counts",
@@ -226,6 +227,7 @@ def run_scvi(
 
 def run_scanvi(
     adata: ad.AnnData,
+    *,
     batch_key: str,
     label_key: str,
     unlabel_group: str = "unknown",
@@ -335,6 +337,7 @@ def run_scanvi(
 
 def run_harmony(
     adata: ad.AnnData,
+    *,
     batch_key: str,
     use_rep: str = "X_pca",
     rep_added: str = "X_harmony",
@@ -390,6 +393,7 @@ def run_harmony(
 
 def run_seurat_integration(
     adata: ad.AnnData,
+    *,
     batch_key: str,
     key_hvg: str = "highly_variable",
     backend: Literal["python", "r"] = "r",
@@ -474,6 +478,7 @@ def run_seurat_integration(
 
 def integrate_data(
     adata: ad.AnnData,
+    *,
     batch_key: str,
     hvg_batch: bool = True,
     integration_method: Literal["scanorama", "scvi", "cca4", "cca5", "harmony", "pca"] = "scvi",
@@ -655,7 +660,8 @@ def integrate_data(
 
 
 def update_cell_labels(
-    adata: ad.AnnData, cell_col: str,
+    adata: ad.AnnData, *,
+    cell_col: str,
     key_added: str = "annotation",
     dict_data: str | dict = "default"
 ) -> None:
@@ -681,6 +687,7 @@ def update_cell_labels(
 
 def auto_annot(
     adata: ad.AnnData,
+    *,
     cluster_key: str,
     model: str = "Healthy_Adult_Heart.pkl",
     key_added: str = "autoAnnot",
@@ -736,7 +743,7 @@ def auto_annot(
     -------
     >>> import dotools_py as do
     >>> adata = do.dt.example_10x_processed()
-    >>> do.tl.auto_annot(adata, "leiden", model="Healthy_COVID19_PBMC.pkl", pl_cell_prob=False, convert=False)
+    >>> do.tl.auto_annot(adata, cluster_key="leiden", model="Healthy_COVID19_PBMC.pkl", pl_cell_prob=False, convert=False)
     🔬 Input data has 700 cells and 1851 genes
     🔗 Matching reference genes in the model
     🧬 358 features used for prediction
@@ -807,6 +814,7 @@ def auto_annot(
 
 def reclustering(
     adata: ad.AnnData,
+    *,
     cluster_key: str,
     batch_key: str,
     recluster_approach: Literal["cca4", "cca5", "harmony", "scanorama", "pca", "scvi"],
@@ -884,7 +892,7 @@ def reclustering(
     -------
     >>> import dotools_py as do
     >>> adata = do.dt.example_10x_processed()
-    >>> t_cells = do.tl.reclustering(adata, "annotation", "batch", "harmony", use_clusters="T_cells", get_subset=True)
+    >>> t_cells = do.tl.reclustering(adata, cluster_key="annotation", batch_key="batch", recluster_approach="harmony", use_clusters="T_cells", get_subset=True)
     >>> t_cells
     AnnData object with n_obs × n_vars = 464 × 1851
     obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts',
@@ -1025,6 +1033,7 @@ def reclustering(
 
 def full_recluster(
     adata: ad.AnnData,
+    *,
     cluster_key: str,
     batch_key: str,
     recluster_approach: Literal["cca4", "cca5", "harmony", "scanorama", "pca", "scvi"],
@@ -1137,6 +1146,7 @@ def full_recluster(
 
 def umap_clustering(
     adata: ad.AnnData,
+    *,
     use_rep: str,
     batch_key: str = "batch",
     compute_neighbors: bool = True,
@@ -1171,7 +1181,7 @@ def umap_clustering(
     >>> import dotools_py as do
     >>> adata = do.dt.example_10x_processed()
     >>> del adata.obsm["X_umap"],  adata.obs["leiden"]
-    >>> do.tl.umap_clustering(adata, "X_CCA")
+    >>> do.tl.umap_clustering(adata, use_rep="X_CCA")
     2026-06-03 14:14:04,044 - Computing neighbors
     computing neighbors
         finished: added to `.uns['neighbors']`

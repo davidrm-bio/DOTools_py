@@ -26,7 +26,7 @@ def test_extended_tab20():
 def test_spine_format():
     fig, axs = plt.subplots(1, 1)
     axs.spines["top"].set_visible(True)
-    do.utility.spine_format(axs)
+    do.utility.spine_format(axis=axs)
     top_visible = axs.spines['top'].get_visible()
     assert top_visible == False
     plt.close()
@@ -56,4 +56,4 @@ def test_get_ticks_defaults():
     assert  rotation is None
     assert ha == "center"
     assert va == "top"
-    
+

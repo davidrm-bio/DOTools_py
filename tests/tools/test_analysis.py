@@ -13,7 +13,7 @@ def test_integrate():
     try: # Fails with new version of anndata? Some internal problem in scanpy.external
         do.tl.integrate_data(adata, batch_key="batch", integration_method="harmony")
         assert "X_harmony" in adata.obsm.keys()
-        subset = do.tl.reclustering(adata, "annotation", "batch", use_clusters=["NK"],
+        subset = do.tl.reclustering(adata,cluster_key= "annotation",batch_key= "batch", use_clusters=["NK"],
                                     recluster_approach="harmony", use_rep="X_harmony", get_subset=True, bbknn=True)
         assert isinstance(subset, ad.AnnData)
         assert subset.n_obs < adata.n_obs
@@ -23,7 +23,7 @@ def test_integrate():
     # scVI Integration
     do.tl.integrate_data(adata, batch_key="batch", integration_method="scvi")
     assert "X_scVI" in adata.obsm.keys()
-    subset = do.tl.reclustering(adata, "annotation", "batch", use_clusters=["NK"],
+    subset = do.tl.reclustering(adata,cluster_key= "annotation",batch_key= "batch", use_clusters=["NK"],
                                 recluster_approach="scvi", use_rep="X_scVI", get_subset=True)
     assert isinstance(subset, ad.AnnData)
     assert subset.n_obs < adata.n_obs
@@ -32,7 +32,7 @@ def test_integrate():
     try:
         do.tl.integrate_data(adata, batch_key="batch", integration_method="scanorama")
         assert "X_scanorama" in adata.obsm.keys()
-        subset = do.tl.reclustering(adata, "annotation", "batch", use_clusters=["NK"],
+        subset = do.tl.reclustering(adata,cluster_key= "annotation",batch_key= "batch", use_clusters=["NK"],
                                     recluster_approach="scanorama", use_rep="X_scanorama", get_subset=True)
         assert isinstance(subset, ad.AnnData)
         assert subset.n_obs < adata.n_obs
@@ -46,7 +46,7 @@ def test_autoannot():
 
     os.makedirs("./tmp_autoannot", exist_ok=True)
     del adata.obs["autoAnnot"]
-    do.tl.auto_annot(adata, "leiden", convert=False, pl_cell_prob=True,
+    do.tl.auto_annot(adata,cluster_key= "leiden", convert=False, pl_cell_prob=True,
                      path="./tmp_autoannot", filename="test.svg")
     plt.close()
     assert "autoAnnot" in adata.obs.columns
@@ -60,7 +60,7 @@ def test_reclustering():
     adata = do.dt.example_10x_processed()
 
     counts = adata.obs.value_counts("annotation")
-    adata_subset  = do.tl.reclustering(adata, "annotation", "batch", "cca5",
+    adata_subset  = do.tl.reclustering(adata,cluster_key= "annotation", batch_key= "batch",recluster_approach= "cca5",
                                        use_rep="X_CCA", use_clusters=["B_cells"], get_subset=True)
     assert isinstance(adata_subset, ad.AnnData)
     assert adata_subset.n_obs == counts["B_cells"]
@@ -70,7 +70,7 @@ def test_reclustering():
 def test_full_recluster():
     adata = do.dt.example_10x_processed()
 
-    do.tl.full_recluster(adata, "leiden", batch_key="batch",
+    do.tl.full_recluster(adata,cluster_key= "leiden", batch_key="batch",
                          recluster_approach="cca5", use_rep="X_CCA", resolution=1)
 
     assert "annotation_fullrecluster" in adata.obs.columns
@@ -100,11 +100,11 @@ def test_seurat_integration():
     from dotools_py._custom_class import InputError
     adata = do.dt.example_10x_processed()
     del adata.obsm["X_CCA"]
-    do.tl.run_seurat_integration(adata, "batch", backend="python")
+    do.tl.run_seurat_integration(adata,batch_key= "batch", backend="python")
     assert  "X_CCA" in adata.obsm.keys()
 
     try:
-        do.tl.run_seurat_integration(adata, "batch", backend="rust")
+        do.tl.run_seurat_integration(adata,batch_key= "batch", backend="rust")
     except InputError:
         pass
 

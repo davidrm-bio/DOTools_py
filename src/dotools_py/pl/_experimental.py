@@ -20,6 +20,7 @@ from dotools_py._custom_class import PathLike
 def lineplot(
     # Data
     adata: ad.AnnData,
+    *,
     x_axis: str,
     features: str | list,
     hue: Union[str, Literal["features"]] = None,
@@ -94,7 +95,7 @@ def lineplot(
     .. plot::
         :context: close-figs
 
-        do.pl.lineplot(adata, 'condition', ['CD4', 'CD79A'], hue = 'features')
+        do.pl.lineplot(adata, x_axis='condition', features = ['CD4', 'CD79A'], hue = 'features')
 
     """
     sanitize_anndata(adata)
@@ -227,6 +228,7 @@ def _seaborn_kde_1d(
 def ridgeplot(
     # Data
     adata: ad.AnnData,
+    *,
     group_by: str,
     feature: str,
     layer: str = None,
@@ -309,14 +311,14 @@ def ridgeplot(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.ridgeplot(adata,  'annotation', 'CD4', reference = 'pDC', groups=['B_cells'])
+        do.pl.ridgeplot(adata,  group_by='annotation', feature='CD4', reference = 'pDC', groups=['B_cells'])
 
     Plot a continuous value in `adata.obs`.
 
     .. plot::
         :context: close-figs
 
-        do.pl.ridgeplot(adata,'condition','total_counts', reference = 'healthy', groups=['disease'], figsize=(6, 4), x_label="total_counts", title="", palette={"healthy":"sandybrown", "disease":"royalblue"})
+        do.pl.ridgeplot(adata,group_by='condition', feature='total_counts', reference = 'healthy', groups=['disease'], figsize=(6, 4), x_label="total_counts", title="", palette={"healthy":"sandybrown", "disease":"royalblue"})
 
 
     """
@@ -345,7 +347,7 @@ def ridgeplot(
     # # # # # # # # # #
     # Data preparation
     if feature in adata.var_names.tolist():
-        df = get_expr(adata, feature, groups=group_by, layer=layer)
+        df = get_expr(adata, features=feature, groups=group_by, layer=layer)
     elif feature in adata.obs.columns.tolist():
         df = adata.obs[[feature, group_by]].copy()
         df = df.rename(columns={feature: "expr"})

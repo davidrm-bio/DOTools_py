@@ -1,3 +1,5 @@
+from itertools import groupby
+
 import dotools_py as do
 import pandas as pd
 import anndata as ad
@@ -19,13 +21,13 @@ def test_expr():
     assert df.shape[1] == adata.n_vars
 
     # Check the long format output
-    df = do.get.expr(adata, "CD4", "annotation", layer="logcounts")
+    df = do.get.expr(adata, features="CD4", groups="annotation", layer="logcounts")
     assert isinstance(df, pd.DataFrame)
     cols = {"annotation", "genes", "expr"}
     assert cols.issubset(df.columns)
 
     # Check the wide format output
-    df = do.get.expr(adata, "CD4", "annotation", out_format="wide")
+    df = do.get.expr(adata, features="CD4", groups="annotation", out_format="wide")
     assert isinstance(df, pd.DataFrame)
     cols = {"annotation", "CD4"}
     assert cols.issubset(df.columns)
@@ -41,20 +43,20 @@ def test_mean_expr():
     adata = do.dt.example_10x_processed()
 
     # Check the long format
-    df = do.get.mean_expr(adata, "annotation", layer="logcounts")
+    df = do.get.mean_expr(adata, group_by="annotation", layer="logcounts")
     assert isinstance(df, pd.DataFrame)
     cols = {"gene", "annotation", "expr"}
     assert cols.issubset(df.columns)
 
     # Check the wide format
-    df = do.get.mean_expr(adata, ["annotation", "condition"], out_format="wide")
+    df = do.get.mean_expr(adata, group_by=["annotation", "condition"], out_format="wide")
     assert isinstance(df, pd.DataFrame)
     cols = set([annot + "_" + cond for annot in set(adata.obs["annotation"].unique()) for cond in adata.obs.condition.unique()])
     assert cols.issubset(df.columns)
 
     # Check without logmean
-    df = do.get.mean_expr(adata, "annotation", layer="logcounts", logmean=False, logcounts=True)
-    assert  df.expr.max() >  do.get.mean_expr(adata, "annotation", layer="logcounts", logmean=True, logcounts=True).expr.max()
+    df = do.get.mean_expr(adata, group_by="annotation", layer="logcounts", logmean=False, logcounts=True)
+    assert  df.expr.max() >  do.get.mean_expr(adata, group_by="annotation", layer="logcounts", logmean=True, logcounts=True).expr.max()
     return  None
 
 
@@ -90,7 +92,7 @@ def test_subset():
 def test_log2fc():
     adata = do.dt.example_10x_processed()
 
-    df = do.get.log2fc(adata, "condition", "healthy", "disease")
+    df = do.get.log2fc(adata, group_by="condition", reference="healthy", groups="disease")
     assert isinstance(df, pd.DataFrame)
     cols = {"genes", "log2fc_disease"}
     assert cols.issubset(df.columns)
@@ -100,7 +102,7 @@ def test_log2fc():
 def test_pts():
     adata = do.dt.example_10x_processed()
 
-    df = do.get.pcts_cells(adata, ["condition"])
+    df = do.get.pcts_cells(adata, group_by=["condition"])
     assert isinstance(df, pd.DataFrame)
     cols = {"genes", "disease", "healthy"}
     assert cols.issubset(df.columns)
@@ -128,7 +130,7 @@ def test_get_dge_table():
 
 def test_pseudobulk():
     adata = do.dt.example_10x_processed()
-    pdata = do.get.pseudobulk(adata, "condition", "annotation", min_cells=0, min_counts=0, technical_replicates=2, workers=1)
+    pdata = do.get.pseudobulk(adata, batch_key="condition",cluster_key= "annotation", min_cells=0, min_counts=0, technical_replicates=2, workers=1)
     assert isinstance(pdata, ad.AnnData)
     assert pdata.n_obs == 19
     return None

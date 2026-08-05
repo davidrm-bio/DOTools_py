@@ -12,6 +12,7 @@ from dotools_py.pl._embeddings import embedding
 
 def layers(
     adata: ad.AnnData,
+    *,
     color: str,
     key_layers: str | list,
     ncols: int = 4,
@@ -46,7 +47,7 @@ def layers(
 
         import dotools_py as do
         adata = do.dt.example_visium_processed()
-        do.pl.layers(adata, "NPPA", key_layers= ['counts', 'logcounts'], img_key="lowres")
+        do.pl.layers(adata, color="NPPA", key_layers= ['counts', 'logcounts'], img_key="lowres")
 
     """
     import scanpy as sc
@@ -215,6 +216,7 @@ def _spatial(
 
 def slides(
     adata: ad.AnnData,
+    *,
     color: str | list,
     batch_key: str = "batch",
     ncols: int = 4,
@@ -276,7 +278,7 @@ def slides(
 
         import dotools_py as do
         adata = do.dt.example_visium_processed()
-        do.pl.slides(adata, ["leiden", None], img_key="lowres", figsize=(5,5))
+        do.pl.slides(adata, color=["leiden", None], img_key="lowres", figsize=(5,5))
 
     """
     sanitize_anndata(adata)

@@ -19,6 +19,7 @@ from dotools_py.get import pseudobulk as pseudobulking
 # DGE Analysis
 def run_mast(
     adata: ad.AnnData,
+    *,
     cond_key: str,
     reference: str,
     disease: str | list,
@@ -54,7 +55,7 @@ def run_mast(
     -------
     >>> import dotools_py as do
     >>> adata = do.dt.example_10x_processed()
-    >>> df = do.tl.run_mast(adata, "condition", "healthy", "disease")
+    >>> df = do.tl.run_mast(adata, cond_key="condition", reference="healthy", disease="disease")
     >>> df.head(5)
           GeneName     pvals    log2fc      padj   pts_ref  pts_group   groups
     0   A4GALT  0.001722 -1.018231  0.015546  0.003846   0.000000  disease
@@ -175,6 +176,7 @@ def _run_test(
 
 def rank_genes_condition(
     adata: ad.AnnData,
+    *,
     groupby: str,
     subset_by: str = None,
     reference: str = "rest",
@@ -296,6 +298,7 @@ def rank_genes_condition(
 
 def grouped_ttest(
     adata: ad.AnnData,
+    *,
     annot_key: str = "annotation",
     cond_key: str = "condition",
     batch_key: str = "batch",
@@ -346,7 +349,7 @@ def grouped_ttest(
     main_df = pd.DataFrame([])
     for cell in adata.obs[annot_key].unique():
         subset = adata[adata.obs[annot_key] == cell]  # Select a cell type
-        df_expr = mean_expr(subset, [annot_key, cond_key, batch_key], layer=layer)  # Mean vals in log space
+        df_expr = mean_expr(subset, group_by=[annot_key, cond_key, batch_key], layer=layer)  # Mean vals in log space
 
         if reference == "rest":
             cond_comb = [
@@ -383,6 +386,7 @@ def grouped_ttest(
 
 def go_analysis(
     df: pd.DataFrame,
+    *,
     gene_key: str,
     pval_key: str,
     log2fc_key: str,
@@ -434,6 +438,7 @@ def go_analysis(
 
 def rank_genes_pseudobulk(
     adata: ad.AnnData,
+    *,
     ctrl_cond: str,
     disease_cond: str,
     cluster_key: str,
@@ -582,6 +587,7 @@ def rank_genes_pseudobulk(
 
 def rank_genes_consensus(
     adata: ad.AnnData,
+    *,
     ctrl_cond: str,
     disease_cond: str,
     cluster_key: str,

@@ -20,6 +20,7 @@ from dotools_py.pl._Classes import DrawNetwork
 def correlation(
     # Data
     adata: ad.AnnData,
+    *,
     group_by: str = "batch",
 
     # Figure parameters
@@ -87,7 +88,7 @@ def correlation(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.correlation(adata, 'batch')
+        do.pl.correlation(adata, group_by='batch')
 
 
     """
@@ -206,6 +207,7 @@ def correlation(
 def cell_composition(
     # Data
     adata: ad.AnnData,
+    *,
     annot_key: str,
     condition_key: str,
     batch_key: str,
@@ -287,7 +289,7 @@ def cell_composition(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.cell_composition(adata, "annotation", "condition", "batch", condition_order=["healthy", "disease"], transform="arcsin")
+        do.pl.cell_composition(adata, annot_key="annotation", condition_key="condition", batch_key="batch", condition_order=["healthy", "disease"], transform="arcsin")
 
     """
     ########################
@@ -500,6 +502,7 @@ def cell_composition(
 def volcano_plot(
     # Data
     df: pd.DataFrame,
+    *,
     lfc_col: str = "log2fc",
     pval_col: str = "padj",
     gene_col: str = "GeneName",
@@ -578,7 +581,7 @@ def volcano_plot(
         do.tl.rank_genes_groups(adata,  'condition', method='wilcoxon', tie_correct=True, pts=True)
         table = do.get.dge_results(adata)
         table = table[table.group == 'disease']
-        do.pl.volcano_plot(table, 'log2fc', 'padj', 'GeneName')
+        do.pl.volcano_plot(table)
 
     """
     from adjustText import adjust_text
@@ -729,6 +732,7 @@ def _format_terms_gsea(df: pd.DataFrame, term_col: str, cutoff: int = 35) -> pd.
 
 def split_bar_gsea(
     df: pd.DataFrame,
+    *,
     term_col: str,
     col_split: str,
     cond_col: str,
@@ -781,12 +785,12 @@ def split_bar_gsea(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.tl.rank_genes_groups(adata,  'condition', method='wilcoxon', tie_correct=True, pts=True)
+        do.tl.rank_genes_groups(adata,  groupby='condition', method='wilcoxon', tie_correct=True, pts=True)
         table = do.get.dge_results(adata)
         table = table[table.group == 'disease']
-        table_go = do.tl.go_analysis(table, 'GeneName', 'padj', 'log2fc', specie='Human', go_catgs = ['GO_Molecular_Function_2023', 'GO_Cellular_Component_2023', 'GO_Biological_Process_2023'])
+        table_go = do.tl.go_analysis(table, gene_key='GeneName', pval_key='padj', log2fc_key='log2fc', specie='Human', go_catgs = ['GO_Molecular_Function_2023', 'GO_Cellular_Component_2023', 'GO_Biological_Process_2023'])
         table_go = table_go[table_go['P-value'] < 0.25]
-        do.pl.split_bar_gsea(table_go, 'Term', 'Combined Score', 'state', 'enriched', show=True)
+        do.pl.split_bar_gsea(table_go, term_col='Term', col_split='Combined Score', cond_col='state', pos_cond='enriched', show=True)
 
     .. image:: ../../figures/split_bar_gsea_example.png
         :width: 600px
@@ -914,6 +918,7 @@ def split_bar_gsea(
 
 def ora_network(
     df: pd.DataFrame,
+    *,
     term_key: str,
     pval_key: str,
     score_key: str,

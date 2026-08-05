@@ -136,7 +136,7 @@ class LoadData:
         return None
 
 
-def example_10x(path: PathLike | None = None) -> None:
+def example_10x(*, path: PathLike | None = None) -> None:
     """Download scRNA 10x dataset.
 
     Downloads an example dataset of PBMC from healthy donors and malignant B cells. Two H5 files for each dataset
@@ -197,7 +197,7 @@ def example_10x_processed() -> ad.AnnData:
     return ad.read_h5ad(HERE / "example_reduced.h5ad")
 
 
-def example_visium(path: PathLike | None = None) -> None:
+def example_visium(*, path: PathLike | None = None) -> None:
     """ Download a 10x Visium dataset from the heart.
 
     Downloads a dataset of the human heart. The sample comes from fresh frozen tissue and includes the H&E image.

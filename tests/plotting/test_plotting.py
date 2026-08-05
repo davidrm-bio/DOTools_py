@@ -34,15 +34,15 @@ def test_dotplot():
 def test_downstream():
     # SplitBarGSEA
     adata = do.dt.example_10x_processed()
-    do.tl.rank_genes_groups(adata, 'condition', method='wilcoxon', tie_correct=True, pts=True)
+    do.tl.rank_genes_groups(adata, groupby='condition', method='wilcoxon', tie_correct=True, pts=True)
     table = do.get.dge_results(adata)
     table = table[table.group == 'disease']
     try:
-        table_go = do.tl.go_analysis(table, 'GeneName', 'padj', 'log2fc', specie='Human',
+        table_go = do.tl.go_analysis(table, gene_key='GeneName', pval_key='padj', log2fc_key='log2fc', specie='Human',
                                      go_catgs=['GO_Molecular_Function_2023', 'GO_Cellular_Component_2023',
                                                'GO_Biological_Process_2023'])
         table_go = table_go[table_go['P-value'] < 0.25]
-        axs = do.pl.split_bar_gsea(table_go, 'Term', 'Combined Score', 'state', 'enriched', show=False)
+        axs = do.pl.split_bar_gsea(table_go, term_col='Term', col_split='Combined Score', cond_col='state', pos_cond='enriched', show=False)
         plt.close()
         assert isinstance(axs, plt.Axes)
     except Exception:
@@ -51,21 +51,21 @@ def test_downstream():
     # Volcano
     table = do.get.dge_results(adata)
     table = table[table.group == 'disease']
-    axs = do.pl.volcano_plot(table, 'log2fc', 'padj', 'GeneName', show=False)
+    axs = do.pl.volcano_plot(table, show=False)
     plt.close()
     assert isinstance(axs, dict)
     for key in ["mainplot_ax", "legend_ax"]:
         assert key in axs
 
     # Expr Correlation
-    axs = do.pl.correlation(adata, 'batch', show=False)
+    axs = do.pl.correlation(adata, group_by='batch', show=False)
     plt.close()
     assert isinstance(axs, plt.Axes)
 
-    axs = do.pl.correlation(adata, 'batch', show=False, mask="lower")
+    axs = do.pl.correlation(adata, group_by='batch', show=False, mask="lower")
     plt.close()
     assert isinstance(axs, plt.Axes)
-    axs = do.pl.cell_composition(adata, "annotation", "condition", "batch", condition_order=["healthy", "disease"], transform="arcsin", show=False)
+    axs = do.pl.cell_composition(adata, annot_key="annotation", condition_key="condition", batch_key="batch", condition_order=["healthy", "disease"], transform="arcsin", show=False)
     plt.close()
     assert isinstance(axs,dict)
 
@@ -74,19 +74,19 @@ def test_downstream():
 
 def test_embeddings():
     adata = do.dt.example_10x_processed()
-    axs = do.pl.umap(adata, "annotation", show=False)
+    axs = do.pl.umap(adata, color="annotation", show=False)
     plt.close()
     assert isinstance(axs, plt.Axes)
 
-    axs = do.pl.umap(adata, "annotation", split_by="condition", show=False, labels="annotation")
+    axs = do.pl.umap(adata, color="annotation", split_by="condition", show=False, labels="annotation")
     plt.close()
     assert all(isinstance(ax, plt.Axes) for ax in np.ravel(axs))
 
-    axs = do.pl.umap(adata, ["annotation", "CD4"], show=False, labels="annotation", share_legend=True)
+    axs = do.pl.umap(adata, color=["annotation", "CD4"], show=False, labels="annotation", share_legend=True)
     plt.close()
     assert all(isinstance(ax, plt.Axes) for ax in np.ravel(axs))
 
-    axs = do.pl.split_embedding(adata, "annotation", show=False)
+    axs = do.pl.split_embedding(adata, split_by="annotation", show=False)
     plt.close()
     assert all(isinstance(ax, plt.Axes) for ax in np.ravel(axs))
 
@@ -95,7 +95,7 @@ def test_embeddings():
 
 def test_experimental():
     adata = do.dt.example_10x_processed()
-    axs = do.pl.lineplot(adata, "condition", "CD4", hue="annotation", show=False)
+    axs = do.pl.lineplot(adata, x_axis="condition", features="CD4", hue="annotation", show=False)
     plt.close()
     assert isinstance(axs, dict)
     for key in ["mainplot_ax", "legend_ax"]:
@@ -119,32 +119,32 @@ def test_expression():
     plt.close()
     assert isinstance(ax, plt.Axes)
 
-    ax = do.pl.violinplot(adata, "condition", feature="CD4", hue="annotation", show=False)
+    ax = do.pl.violinplot(adata, x_axis="condition", feature="CD4", hue="annotation", show=False)
     plt.close()
     assert isinstance(ax, dict)
     assert "mainplot_ax" in ax
     assert "legend_ax" in ax
 
-    ax = do.pl.barplot(adata, "condition", feature="CD4", hue="annotation", show=False)
+    ax = do.pl.barplot(adata, x_axis="condition", feature="CD4", hue="annotation", show=False)
     plt.close()
     assert isinstance(ax, dict)
     assert "mainplot_ax" in ax
     assert "legend_ax" in ax
 
-    ax = do.pl.boxplot(adata, "condition", feature="CD4", hue="annotation", show=False)
+    ax = do.pl.boxplot(adata, x_axis="condition", feature="CD4", hue="annotation", show=False)
     plt.close()
     assert isinstance(ax, dict)
     assert "mainplot_ax" in ax
     assert "legend_ax" in ax
 
-    axs = do.pl.boxplot(adata, 'annotation', 'RPL11', hue='condition', reference='healthy', groups=['disease'],
+    axs = do.pl.boxplot(adata, x_axis='annotation', feature='RPL11', hue='condition', reference='healthy', groups=['disease'],
                   hue_order=['healthy', 'disease'], xticks_rotation=45, figsize=(6, 4), show=False)
     plt.close()
     assert isinstance(axs, dict)
     assert "mainplot_ax" in axs
     assert "legend_ax" in axs
 
-    axs = do.pl.boxplot(adata, 'condition', 'total_counts', reference='healthy', groups=['disease'],
+    axs = do.pl.boxplot(adata, x_axis='condition',feature= 'total_counts', reference='healthy', groups=['disease'],
                         xticks_rotation=45, figsize=(6, 4), show=False)
     plt.close()
     assert isinstance(axs, plt.Axes)
@@ -152,11 +152,11 @@ def test_expression():
     from dotools_py.pl import StatsPlotter, TestData
     import seaborn as sns
     try:
-        df = do.get.expr(adata, "CD4", "condition")
+        df = do.get.expr(adata, features="CD4", groups="condition")
         ax = sns.barplot(df, x="condition", y="expr")
-        tester = TestData(df, "expr", "condition", "healthy", ["disease"])
+        tester = TestData(data=df, feature="expr", cond_key="condition", ctrl="healthy", groups=["disease"])
         tester.run_test()
-        plotter = StatsPlotter(ax, "condition", "expr", "healthy", ["disease"], tester.pvals, kind="bar")
+        plotter = StatsPlotter(axis=ax, x_axis="condition",y_axis= "expr",ctrl= "healthy",groups= ["disease"],pvals= tester.pvals, kind="bar")
         plotter.plot_stats()
         plt.close()
     except ValueError:
@@ -236,10 +236,10 @@ def test_plotter():
 def test_spatial():
     # TODO - Update when a test dataset is added
     adata = do.dt.example_visium_processed()
-    do.pl.layers(adata, adata.var_names[0], key_layers=["counts", "logcounts"],  show=False, img_key="lowres")
+    do.pl.layers(adata, color=adata.var_names[0], key_layers=["counts", "logcounts"],  show=False, img_key="lowres")
     plt.close()
     try:
-        do.pl.slides(adata, adata.var_names[0], img_key="lowres")
+        do.pl.slides(adata,color= adata.var_names[0], img_key="lowres")
     except KeyError:
         pass
     plt.close()
@@ -249,14 +249,14 @@ def test_spatial():
 
 def test_density():
     adata = do.dt.example_10x_processed()
-    axs = do.pl.density(adata, "CD4", basis="X_umap", show=False)
+    axs = do.pl.density(adata, color="CD4", basis="X_umap", show=False)
     plt.close()
     assert isinstance(axs, dict)
     assert "mainplot_ax" in axs
     assert "density_legend_ax" in axs
     assert "color_legend_ax" in axs
 
-    axs = do.pl.density(adata, "annotation", basis="X_umap", show=False, show_basis=False)
+    axs = do.pl.density(adata,color= "annotation", basis="X_umap", show=False, show_basis=False)
     plt.close()
     assert isinstance(axs, dict)
     assert "mainplot_ax" in axs
@@ -268,10 +268,10 @@ def test_density():
 
 def test_ridgeplot():
     adata = do.dt.example_10x_processed()
-    axs = do.pl.ridgeplot(adata, "annotation", "CD4", show=False)
+    axs = do.pl.ridgeplot(adata,group_by= "annotation",feature= "CD4", show=False)
     plt.close()
     assert isinstance(axs, plt.Axes)
-    axs = do.pl.ridgeplot(adata, "annotation", "CD4", show=False, reference="B_cells", groups=["NK"])
+    axs = do.pl.ridgeplot(adata,group_by= "annotation",feature= "CD4", show=False, reference="B_cells", groups=["NK"])
     plt.close()
     assert isinstance(axs, dict)
     assert "mainplot_ax" in axs

@@ -183,7 +183,7 @@ class BaseSeaborn:
     def get_expression(self, keep: list) -> pd.DataFrame:
         keep = iterase_input(keep)
         if all(feature in list(self.adata.var_names) for feature in self.feature):
-            df = get_expr(self.adata, self.feature, groups=keep, layer=self.layer)
+            df = get_expr(self.adata, features=self.feature, groups=keep, layer=self.layer)
         elif all(feature in list(self.adata.obs.columns) for feature in self.feature):
             df = self.adata.obs[keep + self.feature]
             df = df.rename(columns={self.feature[0]: "expr"})
@@ -307,7 +307,7 @@ class BaseSeaborn:
                 del testing
 
             stats_plotter = StatsPlotter(
-                axis, x_axis=self.x_axis, y_axis="expr", ctrl=self.reference, groups=self.groups_cond,
+                axis=axis, x_axis=self.x_axis, y_axis="expr", ctrl=self.reference, groups=self.groups_cond,
                 pvals=iterase_input(groups_pvals), txt_size=self.txt_size, txt=self.txt, kind=kind,
                 line_offset=self.line_offset, hue=self.hue, hue_order=self.hue_order,
             )
