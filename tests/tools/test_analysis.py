@@ -14,7 +14,7 @@ def test_integrate():
         do.tl.integrate_data(adata, batch_key="batch", integration_method="harmony")
         assert "X_harmony" in adata.obsm.keys()
         subset = do.tl.reclustering(adata,cluster_key= "annotation",batch_key= "batch", use_clusters=["NK"],
-                                    recluster_approach="harmony", use_rep="X_harmony", get_subset=True, bbknn=True)
+                                    recluster_approach="harmony", use_rep="X_harmony", get_subset=True, bbknn=False)
         assert isinstance(subset, ad.AnnData)
         assert subset.n_obs < adata.n_obs
     except ValueError:
