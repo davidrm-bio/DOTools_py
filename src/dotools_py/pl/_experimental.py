@@ -88,7 +88,7 @@ def lineplot(
 
         import dotools_py as do
         adata = do.dt.example_10x_processed()
-        do.pl.lineplot(adata, 'condition', 'CD4', hue = 'annotation')
+        do.pl.lineplot(adata, x_axis='condition', features='CD4', hue = 'annotation')
 
     Plot the distribution of several genes at the same time.
 
