@@ -126,7 +126,7 @@ optional-dependencies.test = [
   "tqdm",
   "pyarrow",
   "fastexcel",
-  "zarr",
+  "zarr<3",
   "appdirs",
   "rich<14",
   "decoupler"
