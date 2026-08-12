@@ -64,7 +64,8 @@ dependencies = [
   "appdirs",
   "rich<14",
   "networkx",
-  "prelude_py"
+  "prelude_py",
+  "tomlkit"
 ]
 
 
