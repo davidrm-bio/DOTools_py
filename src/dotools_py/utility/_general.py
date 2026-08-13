@@ -21,8 +21,9 @@ HERE = Path(__file__).parent
 
 def free_memory(*, cuda: bool = False) -> None:
     """Garbage collector.
+
     :param cuda: If set to `True` clean the cache of cuda.
-    :return:
+    :return: Returns `None`.
     """
     import ctypes
     import gc
@@ -412,8 +413,8 @@ def live_display(
 def set_path(*, path: PathLike) -> PathLike:
     """Create the directory if it does not exist and return its path.
 
-     Ensure that a directory exists and return its normalized path.
-     The directory is then created if it does not already exist.
+    Ensure that a directory exists and return its normalized path.
+    The directory is then created if it does not already exist.
 
     :param path: A path-like object representing the directory to create, if it does not already exist.
     :return: Returns the normalized path to the directory.
