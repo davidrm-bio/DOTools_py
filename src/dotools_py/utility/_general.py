@@ -505,23 +505,14 @@ def to_toml(
     [build-system]
     build-backend = "hatchling.build"
     requires = ["hatchling"]
-
     [project]
     name = "DoToolsTest"
     version = "0.1.0"
     description = "Code for project DoToolsTest"
     authors = [{name = "David Rodriguez Morales"}]
     maintainers = [{name = "David Rodriguez Morales"}]
-
     requires-python = "==3.14.6"
-
-    dependencies = [
-        "absl-py==2.5.0",
-        ...
-        "zarr==3.2.1",
-        "zipp==4.1.0",
-    ]
-
+    dependencies = ["absl-py==2.5.0", ... "zarr==3.2.1", "zipp==4.1.0"]
     [tool.uv]
     python-downloads = "automatic"
     package = false
