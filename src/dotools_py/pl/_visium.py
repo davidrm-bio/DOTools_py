@@ -325,7 +325,7 @@ def slides(
             if isinstance(common_expr, str):
                 percentile = float(common_expr.replace("p",""))
                 try:
-                    expr = get_expr(adata, color)
+                    expr = get_expr(adata, features=color)
                     vmax = np.percentile(expr["expr"], percentile)
                 except KeyError:
                     vmax = np.percentile(adata.obs[color], percentile)
