@@ -103,16 +103,25 @@ def expr(
     # Remove features not present and warn
     check_missing(adata, features=features, groups=groups)
 
-    # Set-up configuration
-    if len(features) != adata.n_vars:
-        adata = adata[:, features]  # Retain only the specified features
-    if layer is not None:
-        if adata.is_view:
-            adata = adata.copy()
-        adata.X = adata.layers[layer].copy()  # Select the specified layer
+    # Memory Efficient
+    var_idx = adata.var_names.get_indexer(pd.Index(features))
+    matrix = adata.layers[layer] if layer is not None else adata.X
+    matrix = matrix[:, var_idx]
 
+    table_expr = pd.DataFrame(matrix.toarray() if issparse(matrix) else matrix,
+        index=adata.obs_names, columns=features
+    )
+
+    # Old version (ineficient memory handling)
+    # Set-up configuration
+    # if len(features) != adata.n_vars:
+    #     adata = adata[:, features]  # Retain only the specified features
+    # if layer is not None:
+    #     if adata.is_view:
+    #         adata = adata.copy()
+    #     adata.X = adata.layers[layer].copy()  # Select the specified layer
     # Extract expression
-    table_expr = adata.to_df().copy()
+    # table_expr = adata.to_df().copy()
 
     # Add Metadata
     if groups is not None:
@@ -146,7 +155,7 @@ def mean_expr(
     :param out_format: Format of the Dataframe returned. This can be wide or long format.
     :param layer: Layer of the AnnData to use. If not set use `X`.
     :param logcounts: Set to `True` if the input is in log space.
-    :param logmean: If set to `True` the calculated mean will be `log1p` transform.
+    :param logmean: If set to `True` the calculated mean will be `log1p` transform. Only used if logcounts is set to `True`.
                     For expression data it would return the LogMean(nUMI) if set to `True` and Mean(nUMI) if set to `False`.
 
     Returns
@@ -192,50 +201,102 @@ def mean_expr(
     check_missing(adata, features=features, groups=group_by)
     assert out_format == "wide" or out_format == "long", f'{out_format} not recognize, try "long" or "wide"'
 
+    # Memory Efficient
+    var_idx = adata.var_names.get_indexer(pd.Index(features))
+    matrix = adata.layers[layer] if layer is not None else adata.X
+    matrix = matrix[:,  var_idx]
+
+    groups_obs = adata.obs[group_by].groupby(group_by, observed=False)
+
+    results = []
+    for group_name, indices in groups_obs.indices.items():
+        current = matrix[indices]
+
+        # Undo the log for the mean --> Log1p(Mean(nUMI))
+        # If logcounts is False the mean over adata.X / adata.layer is computed and Mean(adata.X) or Mean(adata.layer) is returned
+        if logcounts:
+            current = current.copy()
+            if issparse(current):
+                current.data = np.expm1(current.data) # Log1p(nUMI) --> nUMI
+            else:
+                current = np.expm1(current)
+
+        # Mean over nUMI
+        if FAST_ARRAY_UTILS:
+            current_mean = fast_array_utils.stats.mean(current, axis=0)
+        else:
+            current_mean = current.mean(axis=0)
+        current_mean = np.asarray(current_mean).ravel()
+
+        if logcounts:  # Redo the log on the mean --> Log1p(Mean(nUMI))
+            current_mean = np.log1p(current_mean)
+            if not logmean:  # We remove the log1p to get Mean(nUMI)
+                current_mean = np.expm1(current_mean)
+
+        results.append(
+            pd.DataFrame(
+                {
+                    "gene": features,
+                    "expr": current_mean,
+                    **{
+                        group_by[i]: group_name[i]
+                        if isinstance(group_name, tuple)
+                        else group_name
+                        for i in range(len(group_by))
+                    },
+                }
+            )
+        )
+
+    main_df = pd.concat(results, ignore_index=True)
+
+    # Old Implementation (Memory inefficient)
     # Set-up configuration
-    adata = adata[:, features]
-    if layer is not None:
-        if adata.is_view:
-            adata = adata.copy()
-        adata.X = adata.layers[layer].copy()
+    # adata = adata[:, features]
+    # if layer is not None:
+    #     if adata.is_view:
+    #         adata = adata.copy()
+    #     adata.X = adata.layers[layer].copy()
+    # data = adata.copy()
 
-    data = adata.copy()
-
-    if logcounts:
-        _expm1_anndata(data)
+    # if logcounts:
+    #     _expm1_anndata(data)
 
     # Group data by the specified values
-    group_obs = adata.obs.groupby(group_by, as_index=False)
+    # group_obs = adata.obs.groupby(group_by, as_index=False)
 
     # Compute AverageExpression
-    main_df = pd.DataFrame([])
-    for group_name, df in group_obs:
-        if FAST_ARRAY_UTILS:
-            current_mean = fast_array_utils.stats.mean(data[df.index].X, axis=0)
-            current_mean = np.log1p(current_mean) if logcounts else current_mean
-            df_tmp = pd.DataFrame(current_mean, columns=["expr"])
-        else:
-            if logcounts:
-                df_tmp = np.log1p(
-                    pd.DataFrame(data[df.index].X.mean(axis=0).T, columns=["expr"])
-                )  # Mean expr per gene in groupN
-            else:
-                df_tmp = pd.DataFrame(data[df.index].X.mean(axis=0).T, columns=["expr"])
+    # main_df = pd.DataFrame([])
+    #for group_name, df in group_obs:
+    #    if FAST_ARRAY_UTILS:
+    #        current_mean = fast_array_utils.stats.mean(data[df.index].X, axis=0)
+    #        current_mean = np.log1p(current_mean) if logcounts else current_mean
+    #        df_tmp = pd.DataFrame(current_mean, columns=["expr"])
+    #    else:
+    #        if logcounts:
+    #            df_tmp = np.log1p(
+    #                pd.DataFrame(data[df.index].X.mean(axis=0).T, columns=["expr"])
+    #            )  # Mean expr per gene in groupN
+    #        else:
+    #            df_tmp = pd.DataFrame(data[df.index].X.mean(axis=0).T, columns=["expr"])
 
-        df_tmp["gene"] = adata[df.index].var_names  # Update with Gene names
-        group_name = iterase_input(group_name)
-        for idx, name in enumerate(group_name):
+    #    df_tmp["gene"] = adata[df.index].var_names  # Update with Gene names
+    #    group_name = iterase_input(group_name)
+    #    for idx, name in enumerate(group_name):
             # df_tmp["group" + str(idx)] = str(name).replace("-", "_")  # Update with metadata
-            df_tmp[group_by[idx]] = name
-        main_df = pd.concat([main_df, df_tmp], axis=0)
+    #        df_tmp[group_by[idx]] = name
+    #    main_df = pd.concat([main_df, df_tmp], axis=0)
+
     main_df["expr"] = pd.to_numeric(main_df["expr"])  # Convert to numeric values
 
     # Move expr column to last position
     expr_col = main_df.pop("expr")
-    if logmean:
-        main_df["expr"] = expr_col
-    else:
-        main_df["expr"] = np.expm1(expr_col)
+    # if logmean:
+    #     main_df["expr"] = expr_col
+    # else:
+    #     main_df["expr"] = np.expm1(expr_col)
+    main_df["expr"] = expr_col
+
     # Change to wide format
     if out_format == "wide":
         main_df = pd.pivot_table(main_df, index="gene", columns=group_by, values="expr")
