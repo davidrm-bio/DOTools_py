@@ -29,19 +29,19 @@ def test_dataframes():
 
     # Use polars backend
     # Test Excel
-    df.to_excel("./test.xlsx")
+    df.to_excel("./test.xlsx", index=False)
     df_new = do.io.read_excel(path="./", filename= "test.xlsx", backend="polars")
     assert all(df.columns == df_new.columns)
     os.remove("./test.xlsx")
 
     # Test CSV
-    df.to_csv("./test.csv")
+    df.to_csv("./test.csv", index=False)
     df_new = do.io.read_csv(path="./", filename= "test.csv", backend="polars")
     assert all(df.columns == df_new.columns)
     os.remove("./test.csv")
 
     # Test parquet
-    df.to_parquet("./test.parquet")
+    df.to_parquet("./test.parquet", index=False)
     df_new = do.io.read_parquet(path="./", filename= "test.parquet", backend="polars")
     assert all(df.columns == df_new.columns)
     os.remove("./test.parquet")
