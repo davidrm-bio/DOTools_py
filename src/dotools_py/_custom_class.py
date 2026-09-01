@@ -26,4 +26,4 @@ class EmptyType:
 
 
 PathLike = str | os.PathLike[str] | pathlib.Path
-type ColorLike = str | tuple[float, float, float] | tuple[float, float, float, float]
+ColorLike = str | tuple[float, float, float] | tuple[float, float, float, float]
