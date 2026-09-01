@@ -1,5 +1,5 @@
 from dotools_py.utility._general import (
     free_memory, transfer_labels, add_gene_metadata, create_report, live_display, set_path, to_toml
 )
-from dotools_py.utility._plotting import extended_tab20, generate_cmap, get_hex_colormaps, spine_format, tab30
+from dotools_py.utility._plotting import extended_tab20, generate_cmap, get_hex_colormaps, spine_format, tab30, add_spines
 from dotools_py.utility._spatial import add_smooth_kernel, select_slide

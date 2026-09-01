@@ -148,3 +148,56 @@ def tab30() -> None:
     return None
 
 tab30()
+
+
+def add_spines(
+    ax: plt.Axes,
+    *,
+    left: bool = True,
+    bottom: bool = True,
+    top: bool = False,
+    right: bool = False,
+    all_spines: bool = False,
+    invert: bool = False,
+) -> None:
+    """Add spines to a matplotlib axis.
+
+    :param ax: Matplotlib axis.
+    :param left: If set to `True`, the left spine will be visible.
+    :param bottom:  If set to `True`, the lower spine will be visible.
+    :param top: If set to `True`, the top spine will be visible.
+    :param right: If set to `True`, the right spine will be visible.
+    :param all_spines: If set to `True`, all spines will be visible.
+    :param invert: If set to `True`, the inverse will be set, i.e., if ``top`` is set to `True`, the spine will be hidden.
+    :return: Returns None.
+
+    Example
+    -------
+
+    .. plot::
+        :context: close-figs
+
+        import dotools_py as do
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+
+        df = sns.load_dataset("iris")
+
+        fig, axs = plt.subplots(1, 3, figsize=(10, 5))
+        sns.barplot(df, x="species", y="sepal_length", ax=axs[0])
+        sns.barplot(df, x="species", y="sepal_length", ax=axs[1])
+        sns.barplot(df, x="species", y="sepal_length", ax=axs[2])
+
+        # lower and left by default are set to True, invert removes them and add the ones set to False
+        do.utility.add_spines(axs[1], invert=True)
+        do.utility.add_spines(axs[2], all_spines=True)
+
+    """
+    visibility = {"left": left, "bottom":bottom, "top": top, "right":right}
+    if all_spines:
+        visibility = {name: True for name in visibility}
+    for name, spine in ax.spines.items():
+        spine.set_visible(visibility[name] != invert)
+    return None
+
+

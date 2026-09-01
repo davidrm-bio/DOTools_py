@@ -30,6 +30,7 @@ the analysis.
     utility.extended_tab20
     utility.get_hex_colormaps
     utility.spine_format
+    utility.add_spines
     utility.tab30
 ```
 

@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning][].
 - Replace ``zellkonverter`` with ``anndataR`` to improve reading and saving to Seurat/SingleCellExperiment
 - Add ``dotools_py.utility.set_path`` to create and return a normalize path.
 - Add ``dotools_py.utility.to_toml`` to save information of the current environment to TOML file for sharing.
+- Add utility functions for plotting
 
 ### Bug Fixes
 - Minor bug fixes for several functions
