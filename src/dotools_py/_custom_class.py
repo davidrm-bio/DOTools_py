@@ -15,6 +15,9 @@ class InputError(Exception):
     def __str__(self):
         return f"{self.message}"
 
+    def __repr__(self) -> str:
+        return f"InputError: {self.message}"
+
 
 class EmptyType:
     """A singleton sentinel representing an 'empty' value."""
@@ -23,3 +26,4 @@ class EmptyType:
 
 
 PathLike = str | os.PathLike[str] | pathlib.Path
+type ColorLike = str | tuple[float, float, float] | tuple[float, float, float, float]
