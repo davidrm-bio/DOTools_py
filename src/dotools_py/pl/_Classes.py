@@ -812,29 +812,38 @@ class MatrixPlot:
                         raise NotImplementedError("Testing for features in adata.obs is not implemented")
                     else:
                         raise InputError("Not a valid input for testing")
+                columns = df.columns
+                index = df.index
+                df_pvals = pd.DataFrame([], index=index, columns=columns)
+                for idx, row in table_filt.iterrows():
+                    if self.y_axis is None:
+                        if row["group"] in list(index):
+                            df_pvals.loc[row["group"], row["names"]] = row["pvals_adj"]
+                        else:
+                            df_pvals.loc[row["names"], row["group"]] = row["pvals_adj"]
+                    else:
+                        if row["group"] in list(index):
+                            df_pvals.loc[row["group"], (row["names"], row["group2"])] = row["pvals_adj"]
+                        else:
+                            df_pvals.loc[row["group2"], (row["names"], row["group"])] = row["pvals_adj"]
+                df_pvals[df_pvals.isna()] = 1
+                # annot_pvals  = (df_pvals < self.pval_cutoff).replace({True: "*", False: ""})
+                #mask = df_pvals < self.pval_cutoff
+                #annot_pvals = df_pvals.mask(mask, "*").mask(~mask, "")
             else:
-                raise InputError("Not a valid input for testing")
-
-            columns = df.columns
-            index = df.index
-            df_pvals = pd.DataFrame([], index=index, columns=columns)
-
-            for idx, row in table_filt.iterrows():
-                if self.y_axis is None:
-                    if row["group"] in list(index):
-                        df_pvals.loc[row["group"], row["names"]] = row["pvals_adj"]
-                    else:
-                        df_pvals.loc[row["names"], row["group"]] = row["pvals_adj"]
+                index_data, index_pvals = df.index, self.df_pvals.index
+                columns_data, columns_pvals = df.columns, self.df_pvals.columns
+                if all(v in index_pvals for v in index_data) and all(v in columns_pvals for v in columns_data):
+                    df_pvals = self.df_pvals.reindex(index=index_data, columns=columns_data)
+                elif all(v in columns_pvals for v in index_data) and all(v in index_pvals for v in columns_data):
+                    df_pvals = self.df_pvals.T.reindex(index=index_data, columns=columns_data)
                 else:
-                    if row["group"] in list(index):
-                        df_pvals.loc[row["group"], (row["names"], row["group2"])] = row["pvals_adj"]
-                    else:
-                        df_pvals.loc[row["group2"], (row["names"], row["group"])] = row["pvals_adj"]
-            df_pvals[df_pvals.isna()] = 1
-            # annot_pvals  = (df_pvals < self.pval_cutoff).replace({True: "*", False: ""})
+                    raise InputError(
+                        f"df_pvals does not have the same columns and index."
+                        f"\nExpected index: {index_data}\nExpected columns: {columns_data}"
+                    )
             mask = df_pvals < self.pval_cutoff
             annot_pvals = df_pvals.mask(mask, "*").mask(~mask, "")
-
             self.annot_pvals = annot_pvals
             self.df_pvals = df_pvals
         else:
