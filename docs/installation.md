@@ -21,7 +21,7 @@ uv pip install dotools-py
 uv pip install git+https://github.com/davidrm-bio/DOTools_py.git@main
 ```
 
-Finally, to use this environment in jupyter notebook, add jupyter kernel for this environment:
+Finally, to use this environment in Jupyter notebook, add jupyter kernel for this environment:
 
 ```bash
 python -m ipykernel install --user --name=scrna_py11 --display-name=scrna_py11
@@ -66,7 +66,7 @@ if (!requireNamespace("pak", quietly=TRUE)) {
 pak::pkg_install("bioc::DOtools")
 ```
 
-The developmental version can be downloaded using `devtools`:
+The developmental version can be downloaded using `pak`:
 
 ```R
 pak::pkg_install("github::MarianoRuzJurado/DOtools@devel")

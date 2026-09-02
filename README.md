@@ -94,7 +94,7 @@ if (!requireNamespace("pak", quietly=TRUE)) {
 pak::pkg_install("bioc::DOtools")
 ```
 
-The developmental version can be downloaded using `devtools`:
+The developmental version can be downloaded using `pak`:
 
 ```R
 pak::pkg_install("github::MarianoRuzJurado/DOtools@devel")
