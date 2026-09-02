@@ -1050,6 +1050,9 @@ class MatrixPlot:
         else:
             return return_axis(self.show, self.return_ax_dict, tight=True)
 
+    def dotplot(self):
+        ...
+
 
 class DrawNetwork:
     DEFAULT_TITLE_SIZE = 20
