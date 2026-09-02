@@ -10,7 +10,6 @@ from prelude_py import ad, np, pd, sns, plt
 
 from dotools_py.logger import logger
 from dotools_py.tl import rank_genes_groups
-from dotools_py.get import mean_expr
 from dotools_py.get import log2fc as get_log2fc
 from dotools_py._utils import  convert_path, sanitize_anndata, iterase_input, check_missing
 from dotools_py.pl._plot_utils import make_grid_spec
