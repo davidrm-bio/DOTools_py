@@ -480,8 +480,8 @@ def subset(
 def subset_df(
     df: pd.DataFrame,
     *,
-    col: str | list | None = None,
-    col_groups: str | list | float | bool | None = None,
+    key: str | list | None = None,
+    key_groups: str | list | float | bool | None = None,
     comparison:  Literal[">=", ">", "==", "<", "<=", "include", "exclude"] | list= "include",
 ) -> pd.DataFrame:
     """Subset Pandas DataFrame.
@@ -493,8 +493,8 @@ def subset_df(
     `comparison = ["include", "<"]`. More examples in the section below.
 
     :param df: Pandas DataFrame
-    :param col: Name of the columns to use for subseting. To subset based on multiple columns provide a list.
-    :param col_groups: Values to use for subsetting each column. If several columns are provided, provide a list.
+    :param key: Name of the columns to use for subseting. To subset based on multiple columns provide a list.
+    :param key_groups: Values to use for subsetting each column. If several columns are provided, provide a list.
     :param comparison: How the subset will be performed. If several columns are provided, provide a list.
     :return: Returns a pandas DataFrame subsetted.
 
@@ -521,11 +521,11 @@ def subset_df(
 
     """
 
-    columns = iterase_input(col)
+    columns = iterase_input(key)
     comparison = iterase_input(comparison)
     missing = [c for c in columns if c not in df.columns]
     if len(missing) != 0:
-        raise  InputError(f"{col} not a valid column name")
+        raise  InputError(f"{key} not a valid column name")
 
     if len(comparison) != 1 and len(comparison) != len(columns):
         raise  InputError(f"{len(comparison)} comparisons were provided, but there are {len(columns)} columns, "
@@ -541,11 +541,11 @@ def subset_df(
         comparison = comparison[0]
         columns = columns[0]
         if comparison == "exclude":
-            df_subset = df_subset[~df_subset[columns].isin(iterase_input(col_groups))]
+            df_subset = df_subset[~df_subset[columns].isin(iterase_input(key_groups))]
         elif comparison == "include":
-            df_subset = df_subset[df_subset[columns].isin(iterase_input(col_groups))]
+            df_subset = df_subset[df_subset[columns].isin(iterase_input(key_groups))]
         else:
-            mask = operations[comparison](df_subset[columns], col_groups).values
+            mask = operations[comparison](df_subset[columns], key_groups).values
             df_subset = df_subset[mask]
     else:
         common_comparison = None if len(comparison) != 1 else comparison  # We can provide one common comparison or one per column
@@ -553,11 +553,11 @@ def subset_df(
             current_comparison = common_comparison[0] if common_comparison is not None else comparison[i]
 
             if current_comparison == "exclude":
-                df_subset = df_subset[~df_subset[c].isin(iterase_input(col_groups[i]))]
+                df_subset = df_subset[~df_subset[c].isin(iterase_input(key_groups[i]))]
             elif current_comparison == "include":
-                df_subset = df_subset[df_subset[c].isin(iterase_input(col_groups[i]))]
+                df_subset = df_subset[df_subset[c].isin(iterase_input(key_groups[i]))]
             else:
-                mask = operations[current_comparison](df_subset[c], col_groups[i]).values
+                mask = operations[current_comparison](df_subset[c], key_groups[i]).values
                 df_subset = df_subset[mask]
 
     return df_subset
