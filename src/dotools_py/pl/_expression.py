@@ -27,7 +27,7 @@ def barplot(
     # Figure Parameters
     figsize: tuple[float, float] = (3, 4.2),
     palette: str  | dict | Colormap | None = None,
-    title: str = None,
+    title: str | None = None,
     title_fontproperties: Dict[Literal["size", "weight"], str | int] = None,
     xticks_order: list = None,
     xticks_rotation: int = 45,
@@ -60,13 +60,15 @@ def barplot(
     capsize: float = 0.1,
     marker_size: int = 6,
     estimator: Literal["logmean", "mean", "median"] | Callable = "logmean",
+    pseudobulk: bool = False,
     **kwargs
 )-> plt.Axes | dict | None:
     """Barplot with statistical significance.
 
-    Show the average expression of features in `adata.var_names` or a continuous value in `adata.obs` along different
-    categorical values and test for significance. The mean pseudo-bulk expression per sample will be plotted as dots.
-
+    Show the average expression over the cells of features in `adata.var_names` or a continuous value in `adata.obs` along
+    different categorical values and test for significance. Statistical test is currently computed on the single-cell level.
+    Alternatively, if the p-value are pre-computed they can be provided.
+    The mean pseudo-bulk expression per sample will be plotted as dots.
 
     :param adata: Annotated data matrix.
     :param x_axis: Name of a categorical column in `adata.obs` to groupby.
@@ -111,6 +113,7 @@ def barplot(
     :param estimator: Statistical function to estimate within each categorical bin. If set to `logmean` the mean
                      will be performed on the un-transformed logarithmize data. After calculating the mean,
                      the mean will be log1p transform if `logcounts` is set to `True`. It can also accept a custom function.
+    :param pseudobulk: If set to `True` the mean value will be computed on the sample level. Note, the statistical test is currently only implemented on the single-cell level.
     :param kwargs: Other parameters are passed through to `sns.barplot <https://seaborn.pydata.org/generated/seaborn.barplot.html>`_.
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
 
@@ -147,7 +150,7 @@ def barplot(
     plotter = BaseSeaborn(
         # Data and calculation
         adata=adata, feature=feature, batch_key=batch_key, x_axis=x_axis,  hue=hue, layer=layer,
-        log1p_data=logcounts, pseudobulk = False,
+        log1p_data=logcounts, pseudobulk = pseudobulk,
         # Figure parameters
         figsize=figsize, ax=ax, cmap=palette,
         # Layout
