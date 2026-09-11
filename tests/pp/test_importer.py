@@ -87,3 +87,9 @@ def test_quality_control():
     shutil.rmtree("./QC")
 
 
+def test_pearson_residuals():
+    adata = do.dt.example_10x_processed()
+    adata = do.pp.pearson_residuals_normalize(adata, batch_key="batch", backend="scanpy", layer="counts")
+    assert "sqrt_norm" in adata.layers.keys()
+    assert "pearson_norm" in adata.layers.keys()
+

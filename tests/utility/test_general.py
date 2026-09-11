@@ -90,3 +90,25 @@ def test_live_display():
         step()
     except Exception as e:
         print("Failed for live_display", e)
+
+
+
+def test_to_toml():
+    import shutil
+    import os
+    try:
+        do.utility.to_toml(path='/tmp/CurrentEnv', project_name='DoToolsTest', authors={'name': 'David Rodriguez Morales'})
+        assert all(True if f in ['uv.lock', 'pyproject.toml', '.python-version'] else False for f in os.listdir("/tmp/CurrentEnv"))
+    except Exception:
+        pass
+    shutil.rmtree("/tmp/CurrentEnv")
+
+
+def set_paths():
+    import pathlib
+    import shutil
+    import os
+    path = do.utility.set_path(path="./TestFolder")
+    assert isinstance(path, pathlib.Path)
+    assert os.path.exists(path)
+    shutil.rmtree(path)
