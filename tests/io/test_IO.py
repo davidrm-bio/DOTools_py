@@ -66,7 +66,7 @@ def test_objects():
 
 def test():
     os.makedirs("./tmp", exist_ok=True)
-    do.dt.example_visium("./tmp")
+    do.dt.example_visium(path="./tmp")
     try:
         adata = do.io.read_visium("./tmp")
         assert isinstance(adata, ad.AnnData)
