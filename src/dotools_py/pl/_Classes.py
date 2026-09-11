@@ -327,11 +327,16 @@ class BaseSeaborn:
     ) -> dict:
         # Set up the data
         if self.pseudobulk:
-            raise InputError("Not implemented")
+            df = self.get_mean_expr()
+            df_batch = self.get_mean_expr()
+            if not self.log1p_data and self.feature[0] not in self.adata.obs.columns:
+                df["expr"] = np.expm1(df["expr"])
+                df_batch["expr"] = np.expm1(df_batch["expr"])
+            #raise InputError("Not implemented")
         else:
             df = self.get_expression(keep=[self.x_axis, self.hue] if self.hue is not None else [self.x_axis])
             df_batch = self.get_mean_expr()
-            if not self.log1p_data:
+            if not self.log1p_data and self.feature[0] not in self.adata.obs.columns:
                 df_batch["expr"] = np.expm1(df_batch["expr"])
 
 
