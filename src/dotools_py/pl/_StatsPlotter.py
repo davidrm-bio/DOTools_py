@@ -69,12 +69,12 @@ class StatsPlotter:
         ctrl: str,
         groups: list,
         pvals: list,
-        txt_size: int = None,
-        txt: str = None,
-        kind: str = None,
-        line_offset: float = None,
-        hue: str = None,
-        hue_order: list = None,
+        txt_size: int | None = None,
+        txt: str | None = None,
+        kind: str | None = None,
+        line_offset: float| None = None,
+        hue: str | None = None,
+        hue_order: list | None = None,
     ):
         """Initialize.
 
@@ -114,7 +114,7 @@ class StatsPlotter:
         self.txt = DEFAULT_TXT if txt is None else txt
         self.line_offset = (
             DEFAULT_LINES_OFFSET if line_offset is None else line_offset
-        )  # TODO should be adjusted depending on the y-values
+        )
 
         if pvals is not None:
             pvals = [float(p) for p in pvals]
@@ -127,7 +127,7 @@ class StatsPlotter:
                 for p in pvals
             ]
         else:
-            self.pvals = pvals  # Will not do anything, might raise error?
+            raise ValueError("Provide pvalues")
 
         # Set-Up hue arguments
         self.hue = hue
@@ -264,7 +264,43 @@ class StatsPlotter:
     def _get_offsets(self):
         """Get the offset to add the stats.
 
-        :return: Self
+        :return:
+        """
+
+        pairs_offset = [None] * len(self.pairs_ypos)
+        max_height = max(self.heights.values())
+
+        if max_height != 0:
+            level_offset = abs(max_height) * self.line_offset
+        else:
+            y_min, y_max = self.axis.get_ylim()
+            level_offset = abs(y_max - y_min) * self.line_offset
+
+        if level_offset == 0:
+            level_offset = 0.05
+
+        placed = []
+        order = np.argsort(self.pairs_ypos)
+        for idx in order:
+            x1, x2 = sorted(self.pairs_xpos[idx])
+            new_pos = self.pairs_ypos[idx] + level_offset
+
+            for level in range(len(self.pairs_ypos) + 1):
+                candidate = self.pairs_ypos[idx] + (level + 1) * level_offset
+                overlap = False
+
+                for other_x1, other_x2, other_y in placed:
+                    x_overlap =x1 <= other_x2 and x2 >= other_x1
+                    y_overlap = abs(candidate - other_y) < level_offset * 0.9
+                    if x_overlap and y_overlap:
+                        overlap = True
+                        break
+                if not overlap:
+                    new_pos = candidate
+                    break
+            pairs_offset[idx] = new_pos
+            placed.append((x1, x2, new_pos))
+        self.heights_offset = pairs_offset
         """
         if self.hue:
             pairs_offset = {
@@ -304,8 +340,8 @@ class StatsPlotter:
                         new_pos = val + val * offset_added
                         cont += 1
                 pairs_offset[key] = new_pos
-        self.heights_offset = list(pairs_offset.values())
-        return
+        self.heights_offset = list(pairs_offset.values())"""
+        return self
 
     def _draw_brackets(self):
         """Draw the brackets for the stats conecting ctrl and group.
@@ -314,6 +350,26 @@ class StatsPlotter:
         """
         from matplotlib.path import Path
 
+        rects = []
+
+        y_min, y_max = self.axis.get_ylim()
+        y_range = y_max - y_min
+        stem_length = y_range * 0.015
+
+        for _stat in range(len(self.pairs_xpos)):
+            verts = [
+                (self.pairs_xpos[_stat][0], self.heights_offset[_stat] - stem_length),
+                (self.pairs_xpos[_stat][0], self.heights_offset[_stat]),
+                (self.pairs_xpos[_stat][1], self.heights_offset[_stat]),
+                (self.pairs_xpos[_stat][1], self.heights_offset[_stat] - stem_length)
+            ]
+
+            codes = [Path.MOVETO, Path.LINETO, Path.LINETO, Path.LINETO]
+            patch_path = Path(verts, codes)
+            patch = PathPatch(patch_path, linewidth=1, facecolor="none", edgecolor="k", clip_on=False)
+            rects.append(patch)
+        self.brackets_patchs = rects
+        """
         if self.hue:
             rects, _extra = [], 0
             for group in self.hue_groups:
@@ -359,8 +415,8 @@ class StatsPlotter:
                 patch_path = Path(verts, codes)
                 patch = PathPatch(patch_path, linewidth=1, facecolor="none", edgecolor="k", clip_on=False)
                 rects.append(patch)
-        self.brackets_patchs = rects
-        return
+        self.brackets_patchs = rects"""
+        return self
 
     def _add_stats(self):
         """Plot the stats.
@@ -379,7 +435,7 @@ class StatsPlotter:
 
         bottom_y = self.axis.get_ylim()[0]
         top_y = max(self.heights_offset)
-        buffer = np.abs(top_y) * 0.1
+        buffer = np.abs(top_y - bottom_y) * 0.1
         self.axis.set_ylim(bottom_y, top_y + buffer)
         return
 
