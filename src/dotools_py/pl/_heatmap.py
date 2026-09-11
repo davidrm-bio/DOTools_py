@@ -475,7 +475,8 @@ def heatmap(
     swap_axes: bool = True,
     title: str = "",
     title_fontproperties: Dict[Literal["size", "weight"], str | int] | None = None,
-    palette: str = "Reds",
+    palette: str | None = None,
+    cmap: str | None = None,
 
     xticks_properties: dict | None = None,
     xticks_rotation: int = 45,
@@ -537,7 +538,8 @@ def heatmap(
     :param title: Title for the figure.
     :param title_fontproperties: Dictionary which should contain 'size' and 'weight' to define the fontsize and
                                  fontweight of the title of the figure.
-    :param palette: String denoting matplotlib colormap.
+    :param palette: String denoting matplotlib colormap or a custom matplotlib colormap.
+    :param cmap: String denoting matplotlib colormap or a custom matplotlib colormap.
     :param xticks_properties: Dictionary which should contain 'size' and 'weight' to define the fontsize and fontweight of the font of the x-axis.
     :param xticks_rotation: Rotation of the x-ticks.
     :param yticks_properties: Dictionary which should contain 'size' and 'weight' to define the fontsize and fontweight of the font of the y-axis.
@@ -593,6 +595,13 @@ def heatmap(
 
     """
 
+    if cmap is not None and palette is not None:
+        raise ValueError("Cannot provide both cmap and palette")
+    elif cmap is None and palette is None:
+        cmap = "Reds"
+
+    colormap = cmap or palette
+
     plotter = MatrixPlot(
         adata = adata,
         x_axis = x_axis,
@@ -607,7 +616,7 @@ def heatmap(
         swap_axes = swap_axes,
         title = title,
         title_fontproperties = title_fontproperties,
-        palette = palette,
+        palette = colormap,
         xticks_properties = xticks_properties,
         yticks_properties=yticks_properties,
         xticks_rotation = xticks_rotation,
