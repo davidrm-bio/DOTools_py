@@ -152,7 +152,7 @@ class BaseSeaborn:
         self.xticks_fontweight = xticks_properties.get("weight", self.DEFAULT_XTICKS_FONTWEIGHT)
         rotation = xticks_properties.get("rotation", self.DEFAULT_XTICKS_ROTATION)
         self.rotation = {"rotation": rotation} if rotation is not None else {}
-        if rotation != 90:
+        if rotation != 90 or rotation != 0:
             self.rotation["ha"] = "right"
             self.rotation["va"] = "top"
 
@@ -880,7 +880,10 @@ class MatrixPlot:
 
         self.vmin, self.vmax = vmin, vmax
 
-        colormap = plt.get_cmap(self.palette)
+        colormap = plt.get_cmap(self.palette) if isinstance(self.palette, str) else self.palette
+        if not isinstance(colormap, Colormap):
+            raise ValueError("The cmap provided is not a valid colormap")
+
         normalize = check_colornorm(vmin=self.vmin, vmax=self.vmax, vcenter=self.vcenter)
         mappable = ScalarMappable(norm=normalize, cmap=colormap)
 
