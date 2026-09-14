@@ -447,10 +447,8 @@ def rank_genes_pseudobulk(
     condition_key: str = "condition",
     design: str = "~condition",
     layer: str = "counts",
-    min_cells: int = 50,
     pseudobulk_approach: Literal["sum", "mean"] = "sum",
     technical_replicates: int = 1,
-    min_counts: int = 10,
     workers: int = 8,
     path: PathLike = None,
     filename: str = "DEA_Pseudobulk.xlsx",
@@ -473,11 +471,8 @@ def rank_genes_pseudobulk(
     :param condition_key: Metadata column in `obs` with condition groups.
     :param design: Design factors for DESeq2.
     :param layer: Layer to use. Expected raw counts.
-    :param min_cells: Minimum number of cells per batch/sample required when generating the pseudo-bulk. If there are
-                      fewer cells, DESeq2 / EdgeR will not be run on the cluster.
     :param pseudobulk_approach: How to generate the pseudobulk counts.
     :param technical_replicates: How many technical replicates should be generated per sample.
-    :param min_counts: Minimum number of total counts for a gene to be tested after pseudo-bulking.
     :param workers: Number of CPUs to use for DESEq2.
     :param path: Path to save the file.
     :param filename: Name of the file.
@@ -499,6 +494,9 @@ def rank_genes_pseudobulk(
     from pydeseq2.dds import DeseqDataSet
     from pydeseq2.default_inference import DefaultInference
     from pydeseq2.ds import DeseqStats
+    import scipy.sparse as sp
+
+    technical_replicates = 1 if technical_replicates is None else technical_replicates
 
     # Step 1 - Generate Pseudo-bulk data
     logger.info("Generating Pseudo-bulk data")
@@ -506,14 +504,11 @@ def rank_genes_pseudobulk(
         adata,
         batch_key=batch_key,
         cluster_key=cluster_key,
-        min_cells=min_cells,
         pseudobulk_approach=pseudobulk_approach,
         technical_replicates=technical_replicates,
-        min_counts=min_counts,
         layer=layer,
-        keep_metadata=[condition_key],
-        workers=workers,
-        random_state=random_state
+        random_state=random_state,
+        backend="decoupler" if technical_replicates <= 1 else "dotools"
     )
 
     sanitize_anndata(pdata_cts)
@@ -526,7 +521,8 @@ def rank_genes_pseudobulk(
         for ct in pdata_cts.obs[cluster_key].unique():
             try:
                 pdata = pdata_cts[pdata_cts.obs[cluster_key] == ct].copy()
-                pdata.X = pdata.X.toarray()
+                if sp.issparse(pdata.X):
+                    pdata.X = pdata.X.toarray()
                 if pdata.n_obs == 0:
                     logger.warn(f"Could not test for {ct}")
                     continue
@@ -683,8 +679,6 @@ def rank_genes_consensus(
         condition_key=condition_key,
         design=design,
         layer=count_layer,
-        min_cells=min_cells,
-        min_counts=min_counts,
         pseudobulk_approach=pseudobulk_approach,
         technical_replicates=technical_replicates,
         workers=workers,
