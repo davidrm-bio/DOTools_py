@@ -30,7 +30,7 @@ def correlation(
     ticks_size: int = 12,
 
     # IO
-    path: PathLike = None,
+    path: PathLike | None = None,
     filename: str = "Correlation.svg",
     show: bool = True,
 
@@ -39,7 +39,7 @@ def correlation(
 
     # Fx specific
     mode: Literal["colors", "letters"] = "letters",
-    mask: Literal["upper", "lower"] = None,
+    mask: Literal["upper", "lower"] | None = None,
     square: bool = True,
     linewidths: float = 0.1,
     linecolor: str = "black",
@@ -219,15 +219,15 @@ def cell_composition(
     figsize: tuple = (5, 6),
     ax: plt.Axes | None = None,
     title: str = "",
-    title_fontproperties: Dict[Literal["size", "weight"], str | int] = None,
+    title_fontproperties: Dict[Literal["size", "weight"], str | int] | None = None,
 
-    xticks_rotation: int = None,
+    xticks_rotation: int | None = 45,
     legend_title: str = "",
-    legend_fontproperties: Dict[Literal["size", "weight"], str | int] = None,
+    legend_fontproperties: Dict[Literal["size", "weight"], str | int] | None = None,
     legend_ncols: int = 1,
 
     # IO
-    path: PathLike = None,
+    path: PathLike | None = None,
     filename: str = "Proportions.svg",
     show: bool = True,
 
@@ -412,7 +412,7 @@ def cell_composition(
                         b.set_linewidth(1)
                         b.set_zorder(3)
 
-    if xticks_rotation is not None:
+    if xticks_rotation == 45:
         xticks_prop = {"rotation": xticks_rotation, "ha": "right", "va": "top"}
     else:
         xticks_prop = {"rotation": xticks_rotation}
