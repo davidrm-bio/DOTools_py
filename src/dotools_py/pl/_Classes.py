@@ -82,6 +82,8 @@ class BaseSeaborn:
         line_offset: float = 0.05,
         txt_size: int = 13,
         txt: str = "p = ",
+        edgecolor: str = "k",
+        linewidth: float = 1,
     ):
         sanitize_anndata(adata)
 
@@ -107,6 +109,8 @@ class BaseSeaborn:
         self.width, self.height = figsize
         self.ax =ax
         self.legends_width = self.DEFAULT_LEGEND_WIDTH
+        self.edgecolor = edgecolor
+        self.linewidth = linewidth
 
         if self.hue is None:
             if cmap is None:
@@ -177,6 +181,7 @@ class BaseSeaborn:
         self.line_offset = line_offset
         self.txt_size = txt_size
         self.txt = txt
+
 
 
     # Utils for categorical plots
@@ -358,7 +363,9 @@ class BaseSeaborn:
         main_axis = self.fig.add_subplot(self.gs[0])
         bp = sns.barplot(
             df, x=self.x_axis, y="expr", estimator=fx_est, capsize=capsize, ax=main_axis, palette=self.cmap,
-            hue=self.hue, order=self.xticks_order, hue_order=self.hue_order, legend=False, **kwargs
+            hue=self.hue, order=self.xticks_order, hue_order=self.hue_order, legend=False,
+            edgecolor=self.edgecolor, linewidth=self.linewidth,
+            **kwargs
         )
         sns.stripplot(
             df_batch, x=self.x_axis, y="expr", alpha=0.75, color="k", s=marker_size, ax=bp, hue=self.hue,

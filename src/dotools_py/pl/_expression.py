@@ -61,6 +61,8 @@ def barplot(
     marker_size: int = 6,
     estimator: Literal["logmean", "mean", "median"] | Callable = "logmean",
     pseudobulk: bool = False,
+    edgecolor="k",
+    linewidth=1,
     **kwargs
 )-> plt.Axes | dict | None:
     """Barplot with statistical significance.
@@ -115,6 +117,8 @@ def barplot(
                      the mean will be log1p transform if `logcounts` is set to `True`. It can also accept a custom function.
     :param pseudobulk: If set to `True` the mean value will be computed on the sample level. Note, the statistical test is currently only implemented on the single-cell level.
     :param kwargs: Other parameters are passed through to `sns.barplot <https://seaborn.pydata.org/generated/seaborn.barplot.html>`_.
+    :param edgecolor: Edge color for the bars.
+    :param linewidth: Width of the edge for the bars.
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
 
     Example
@@ -161,7 +165,8 @@ def barplot(
         hue_order=hue_order,
         # Statistics
         reference=reference, groups=groups, groups_pvals=groups_pvals, test=test,
-        corr_method=corr_method, line_offset=line_offset, txt_size=txt_size, txt=txt
+        corr_method=corr_method, line_offset=line_offset, txt_size=txt_size, txt=txt,
+        edgecolor=edgecolor, linewidth=linewidth
     )
     axis = plotter.barplot(
         estimator=estimator, capsize=capsize, marker_size=marker_size, ylabel=ylabel, ylim_max=ylim_max, **kwargs
