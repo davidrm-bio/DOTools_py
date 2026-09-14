@@ -130,9 +130,20 @@ def test_get_dge_table():
 
 def test_pseudobulk():
     adata = do.dt.example_10x_processed()
-    pdata = do.get.pseudobulk(adata, batch_key="condition",cluster_key= "annotation", min_cells=0, min_counts=0, technical_replicates=2, workers=1)
+    pdata = do.get.pseudobulk(adata, batch_key="condition",cluster_key= "annotation",  technical_replicates=2, layer="counts", backend="dotools")
     assert isinstance(pdata, ad.AnnData)
-    assert pdata.n_obs == 19
+    assert pdata.n_obs == 18
+
+    pdata = do.get.pseudobulk(adata, batch_key="condition", cluster_key="annotation", technical_replicates=2,
+                              layer="counts", backend="decoupler")
+    assert isinstance(pdata, ad.AnnData)
+    assert pdata.n_obs == 10
+
+    pdata = do.get.pseudobulk(adata, batch_key="condition", cluster_key="annotation", technical_replicates=2,
+                              layer="counts", backend="scanpy")
+    assert isinstance(pdata, ad.AnnData)
+    assert pdata.n_obs == 10
+
     return None
 
 def test_subset_df():
@@ -140,20 +151,20 @@ def test_subset_df():
 
     df = adata.obs.copy()
     # Subset by Obs_key and Generate a View - Include
-    df_subset = do.get.subset_df(df, col="annotation", col_groups=["B_cells", "T_cells"], comparison="include")
+    df_subset = do.get.subset_df(df, key="annotation", key_groups=["B_cells", "T_cells"], comparison="include")
     assert df_subset["annotation"].nunique() == 2
 
     # Subset by Obs_key and Generate a Copy - Exclude
-    df_subset = do.get.subset_df(df, col="annotation", col_groups=["B_cells", "T_cells"], comparison="exclude")
+    df_subset = do.get.subset_df(df, key="annotation", key_groups=["B_cells", "T_cells"], comparison="exclude")
     assert df_subset["annotation"].nunique() ==  df["annotation"].nunique() - 2
 
     # Subset by Obs_key - >=
-    df_subset = do.get.subset_df(df, col="total_counts", col_groups=100_000, comparison=">=")
+    df_subset = do.get.subset_df(df, key="total_counts", key_groups=100_000, comparison=">=")
     assert df_subset.shape[0] == 0
-    df_subset = do.get.subset_df(df, col=["total_counts", "annotation"], col_groups=[1000, ["B_cells", "T_cells"]],
+    df_subset = do.get.subset_df(df, key=["total_counts", "annotation"], key_groups=[1000, ["B_cells", "T_cells"]],
                          comparison=["<", "include"])
     assert df_subset.shape[0] == 1
-    df_subset = do.get.subset_df(df, col=["total_counts", "annotation"], col_groups=[1000, ["B_cells", "T_cells"]],
+    df_subset = do.get.subset_df(df, key=["total_counts", "annotation"], key_groups=[1000, ["B_cells", "T_cells"]],
                                  comparison=[">", "exclude"])
     assert df_subset.shape[0] == 185
 
