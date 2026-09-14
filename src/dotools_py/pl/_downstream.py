@@ -747,7 +747,7 @@ def split_bar_gsea(
     topn: float = 10,
     colors_pairs: list = ("sandybrown", "royalblue"),
     alpha_colors: float = 0.3,
-    path: PathLike = None,
+    path: PathLike | None = None,
     spacing: float = 5,
     txt_size: float = 12,
     filename: str = "SplitBar.svg",
@@ -978,6 +978,9 @@ def ora_network(
     the overlap of the genes associated with each term and is used to cluster the
     network and determine the graph layout. Node size is scaled according to the
     provided score.
+
+    .. note::
+        This is still an experimental function.
 
     :param df: Pandas dataframe with ora results.
     :param term_key: Column in the dataframe with the term.
