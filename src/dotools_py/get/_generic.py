@@ -762,12 +762,9 @@ def pseudobulk(
     except ValueError:
         pass
 
-    pdata.X = np.nan_to_num(pdata.X, nan=0)
     if not sp.isspmatrix_csr(pdata.X):
         pdata.X = sp.csr_matrix(pdata.X)
-
-    if None in pdata.layers.keys():
-        del pdata.layers[None]
+    # todo check why None is created in layers
     """
     import polars as pl
     from joblib import Parallel, delayed
