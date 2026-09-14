@@ -25,9 +25,10 @@ and this project adheres to [Semantic Versioning][].
 - Add ``dotools_py.utility.to_toml`` to save information of the current environment to TOML file for sharing.
 - Add utility functions for plotting
 - Improvement of the performance of ``do.get.mean_expr`` and ``do.get.expr``
+- Improvement of performance of ``do.get.pseudobulk`` and allow to use different backends (`scanpy`, `decoupler`, `dotools`)
 
 ### Bug Fixes
-- Minor bug fixes for several functions
+- Bug fixes for several functions
 - Fix error when saving results in ``do.tl.rank_genes_condition``
 
 ### Documentation
