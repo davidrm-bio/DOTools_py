@@ -509,7 +509,7 @@ def volcano_plot(
 
     # Figure Parameters
     figsize: tuple[int, int] = (7, 5),
-    ax: plt.Axes = None,
+    ax: plt.Axes | None= None,
 
     title: str = "",
 
@@ -517,7 +517,7 @@ def volcano_plot(
     legend_ncols: int = 1,
 
     # IO
-    path: PathLike = None,
+    path: PathLike | None = None,
     filename: str = "Volcano.svg",
     show: bool = True,
 
@@ -532,7 +532,8 @@ def volcano_plot(
     clean: bool = True,
     dot_size: float = 3,
     topn: int = 10,
-    textprops: dict = None,
+    textprops: dict | None = None,
+    colors: list = ("tomato", "royalblue", "limegreen", "gainsboro"),
     **kwargs,
 ) -> dict | None:
     """Generate a volcano plot.
@@ -568,6 +569,7 @@ def volcano_plot(
     :param topn: if mygenes is None. The top 10 positive and negative genes are plotted.
     :param textprops: properties of the gene labels (See `plt.text <https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.text.html>`_)
     :param show: if set to true, return axis.
+    :param colors: Colors for the genes that are smaller than the cutoffs (padj and log2fc, padj, log2fc, non-significant).
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
 
     Example
@@ -584,6 +586,8 @@ def volcano_plot(
         do.pl.volcano_plot(table)
 
     """
+    if len(colors) != 0:
+        raise ValueError(f"colors needs to have 4 values but {len(colors)} colors were provided")
     from adjustText import adjust_text
 
     dge = df.copy()  # Do not Modify input
@@ -629,13 +633,13 @@ def volcano_plot(
 
     ## Add Main Axis
     axs = fig.add_subplot(gs[0]) if loc_key == 0 else fig.add_subplot(gs[1])
-    axs.scatter(lfcs[cat1], -np.log10(pvals[cat1]), color="tomato", alpha=0.75, label="Padj & log2FC", s=dot_size**2,
+    axs.scatter(lfcs[cat1], -np.log10(pvals[cat1]), color=colors[0], alpha=0.75, label="Padj & log2FC", s=dot_size**2,
                 rasterized=True)
-    axs.scatter(lfcs[cat2], -np.log10(pvals[cat2]), color="royalblue", alpha=0.75, label="Padj", s=dot_size**2,
+    axs.scatter(lfcs[cat2], -np.log10(pvals[cat2]), color=colors[1], alpha=0.75, label="Padj", s=dot_size**2,
                 rasterized=True)
-    axs.scatter(lfcs[cat3], -np.log10(pvals[cat3]), color="limegreen", alpha=0.75, label="log2FC", s=dot_size**2,
+    axs.scatter(lfcs[cat3], -np.log10(pvals[cat3]), color=colors[2], alpha=0.75, label="log2FC", s=dot_size**2,
                 rasterized=True)
-    axs.scatter(lfcs[cat4], -np.log10(pvals[cat4]), color="gainsboro", alpha=0.75, label="NS", s=dot_size**2, rasterized=True)
+    axs.scatter(lfcs[cat4], -np.log10(pvals[cat4]), color=colors[3], alpha=0.75, label="NS", s=dot_size**2, rasterized=True)
 
     # Add lfc/pvals significance lines
     axs.axhline(-np.log10(pval_cut), color="black", linestyle="--", alpha=0.5)
