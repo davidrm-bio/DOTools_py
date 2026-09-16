@@ -586,7 +586,7 @@ def volcano_plot(
         do.pl.volcano_plot(table)
 
     """
-    if len(colors) != 0:
+    if len(colors) != 4:
         raise ValueError(f"colors needs to have 4 values but {len(colors)} colors were provided")
     from adjustText import adjust_text
 
