@@ -304,6 +304,7 @@ def pearson_residuals_normalize(
 
 def filter_cells(
     adata: ad.AnnData,
+    *,
     min_counts: int | None = None,
     min_genes: int | None = None,
     max_counts: int | None = None,
@@ -392,6 +393,7 @@ def filter_cells(
 
 def filter_genes(
     adata: ad.AnnData,
+    *,
     min_counts: int | None = None,
     min_cells: int | None = None,
     max_cells: int | None = None,
