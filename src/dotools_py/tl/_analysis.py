@@ -1165,11 +1165,11 @@ def umap_clustering(
     """Compute UMAP embedding and identify clusters.
 
     This function allows to compute the neighbors, UMAP embedding and identify clusters.
-    The neighbors will be computed based on a low dimentional representation present in
+    The neighbors will be computed based on a low dimensional representation present in
     `adata.obsm`.
 
     :param adata: Annotated data matrix
-    :param use_rep: Low dimentional representation to use to compute neighbors.
+    :param use_rep: Low dimensional representation to use to compute neighbors.
     :param batch_key: Column in adata.obs with batch information
     :param compute_neighbors: If set to `True` compute neighbors.
     :param compute_umap: If set to `True`, the UMAP embeddings will be computed.
@@ -1216,8 +1216,7 @@ def umap_clustering(
         layers: 'counts', 'logcounts'
         obsp: 'connectivities', 'distances'
     """
-    # TODO complete docstrings
-    import scanpy as sc  # TODO check the actual source
+    import scanpy as sc # todo add bbknn
 
     if use_rep == "X_pca" and use_rep not in adata.obsm.keys():
         logger.warn(f"{use_rep} is not present in adata.obsm")
