@@ -5,6 +5,8 @@ from prelude_py import ad, np
 
 from dotools_py import logger
 from dotools_py._utils import convert_path, get_paths_utils
+from dotools_py._custom_class import PathLike
+from dotools_py.io._objects import read_10x_h5
 
 # TODO implement scAR for ambient RNA detection
 
@@ -178,3 +180,134 @@ def run_cellbender(
 
     logger.info("Finished running cellbender")
     return None
+
+
+
+
+def run_ambidose(
+    adata: ad.AnnData,
+    *,
+    raw_matrix: PathLike | ad.AnnData,
+    cluster_key: str | None = None,
+    layer: str | None = None,
+    n_jobs: int | None = None,
+    report_path: PathLike | None = None,
+    report_filename: str = "Report.html",
+    **kwargs
+):
+    """Remove ambient RNA using `Ambidose <https://ambidose.readthedocs.io/en/latest/index.html>`_.
+
+    A filtered AnnData can be provided and should contain raw counts in `.X`, otherwise the argument `layer` can be use
+    to provide raw counts. The feature_names are expected to be available in `adata.var_names`.
+    It is preferable to provide specify the `cluster_key` to estimate cluster-level expression.
+
+    :param adata: Filtered annotated data matrix.
+    :param raw_matrix: Path to the directory with `raw_feature_bc_matrix.h5` or an AnnData object of the `raw_feature_bc_matrix.h5`
+    :param cluster_key: Column in the filtered adata.obs with clusters. This is used to estimate cluster-level expression.
+    :param layer: Layer in the filtered adata.obs to be used. It should contain raw counts.
+    :param n_jobs: Number of cores to use for the estimation of ambient RNA.
+    :param report_path: Path to save the report.
+    :param report_filename: Name of the HTML report file.
+    :param kwargs: Additional arguments pass to `ambidose.denoise <https://ambidose.readthedocs.io/en/latest/api/index.html#ambidose.denoise>`_
+    :return: Returns None. A new layer will be set with the denoised expression matrix and additional metadata will be saved in adata.obs and adata.uns.
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> adata = do.get.subset(adata, obs_key='condition', obs_groups='healthy')
+    >>> raw_path = '/tmp/PublicData10x/healthy/outs/'
+    >>> do.pp.run_ambidose(adata, raw_matrix=raw_path, cluster_key='annotation', layer='counts')
+    >>> adata
+    AnnData object with n_obs × n_vars = 520 × 1851
+        obs: 'batch', 'condition', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts',
+             'total_counts_mt', 'log1p_total_counts_mt', 'pct_counts_mt', 'total_counts_ribo', 'log1p_total_counts_ribo',
+             'pct_counts_ribo', 'n_genes', 'n_counts', 'doublet_class', 'doublet_score', 'leiden', 'cell_type',
+             'autoAnnot', 'celltypist_conf_score', 'annotation', 'annotation_recluster',
+             'ambidose_droplet', 'ambidose_d', 'ambidose_rho', 'ambidose_removed_umi', 'ambidose_dose_execution_ratio',
+             'ambidose_removed_fraction', 'ambidose_rho_trust'
+        var: 'mean', 'std', 'highly_variable', 'means', 'dispersions', 'dispersions_norm', 'highly_variable_nbatches',
+             'highly_variable_intersection'
+        uns: 'annotation_colors', 'annotation_recluster_colors', 'batch_colors', 'hvg', 'leiden', 'leiden_colors',
+             'log1p', 'neighbors', 'pca', 'umap', 'ambidose'
+        obsm: 'X_CCA', 'X_pca', 'X_umap'
+        varm: 'PCs'
+        layers: 'counts', 'logcounts', 'ambidose_denoised'
+        obsp: 'connectivities', 'distances'
+
+    """
+
+    try:
+        import ambidose
+    except ImportError as e:
+        raise ImportError("Could not find `ambidose`. Install it using `pip install ambidose`") from e
+
+
+    if not isinstance(raw_matrix, ad.AnnData):
+        logger.info("Reading the raw_matrix")
+        adata_raw = read_10x_h5(str(convert_path(raw_matrix) / "raw_feature_bc_matrix.h5"))
+    else:
+        adata_raw = raw_matrix
+
+    adata_raw.var_names_make_unique()
+    adata_raw.var["gene_ids"] = adata_raw.var_names
+
+    if report_path is not None:
+        report_path = convert_path(report_path)
+        report_path.mkdir(exist_ok=True)
+        report_path = report_path / report_filename
+
+
+    # Check the barcodes matched
+    raw_bcs = dict(zip(adata_raw.obs_names.to_numpy(), range(adata_raw.n_obs)))
+    filt_bcs = dict(zip(adata.obs_names.to_numpy(), range(adata.n_obs)))
+
+    counter = [True if bc in raw_bcs else False for bc in filt_bcs]
+    if not all(counter):
+        logger.warn(f"There {len(counter) - np.sum(counter)} barcodes in adata not found in adata.raw")
+        logger.warn("Trying to remove suffix")
+        # Barcodes look like letters-1-subset
+        new_bcs = adata.obs_names.str.split("-1").str[0] + "-1"
+        adata.obs["old_bcs"] = adata.obs_names
+        adata.obs_names = new_bcs
+        filt_bcs = dict(zip(adata.obs_names.to_numpy(), range(adata.n_obs)))
+        counter = [True if bc in raw_bcs else False for bc in filt_bcs]
+        if not all(counter):
+            raise ValueError("Could not run match the barcodes in adata.obs_names with the barcodes in the raw matrix")
+
+    if layer is not None:
+        adata.X = adata.layers[layer].copy()
+
+    adata_denoised = ambidose.denoise(
+        adata,
+        raw=adata_raw,
+        type_key=cluster_key,
+        sample_key=None,
+        n_jobs=n_jobs,
+        layer=None,
+        report=report_path,
+        **kwargs
+    )
+
+    adata.layers["ambidose_denoised"] = adata_denoised.layers["ambidose_denoised"].copy()
+    ambidose_meta = [col for col in adata_denoised.obs.columns if col.startswith("ambidose")]
+
+    adata.obs[ambidose_meta] = adata_denoised.obs[ambidose_meta]
+    adata.uns["ambidose"] = adata_denoised.uns["ambidose"]
+    if "old_bcs" in adata.obs.columns:
+        adata.obs_names = adata.obs["old_bcs"].astype(str).values
+        del adata.obs["old_bcs"]
+    del adata_denoised
+    return None
+
+
+
+
+
+
+
+
+
+
+
+

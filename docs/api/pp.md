@@ -14,6 +14,7 @@ analyzing sc/snRNA-seq and Visium with different implementations building on pac
     :toctree: generated
 
     pp.run_cellbender
+    pp.run_ambidose
     pp.importer_py
     pp.quality_control
     pp.log_normalize
