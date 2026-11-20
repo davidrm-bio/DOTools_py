@@ -1,5 +1,5 @@
 import os
-from typing import Literal, Dict
+from typing import Literal, Dict, Iterable
 
 from prelude_py import ad, np, pd, plt, sns
 
@@ -12,9 +12,9 @@ from dotools_py._custom_class import  PathLike
 def _qc_vln(
     adata: ad.AnnData,
     title: str = "ViolinPlots - Quality Metrics",
-    path: PathLike = None,
+    path: PathLike | None = None,
     filename: str = "ViolinPlots.png",
-    stats: list = ("total_counts", "n_genes_by_counts", "pct_counts_mt"),
+    stats: Iterable[str] = ("total_counts", "n_genes_by_counts", "pct_counts_mt"),
     colors: str = "lightsteelblue",
 ) -> None:
     """Violin Plots showing basic QC stats.
@@ -42,14 +42,15 @@ def _qc_vln(
         vln.set_title("")
     plt.suptitle(title, fontsize=30, fontweight="bold")
     save_plot(path, filename)
-    return plt.close()
+    plt.close()
+    return None
 
 
 
 def _filter_quantiles(
     adata: ad.AnnData,
-    low: int | None = None,
-    high: int | None = None,
+    low: float | None = None,
+    high: float | None = None,
 ) -> ad.AnnData:
     """Filter cells based on total nUMI counts using quantiles.
 
@@ -59,6 +60,7 @@ def _filter_quantiles(
     :return: annotated dt matrix
     """
     sanitize_anndata(adata)
+    assert "total_counts" in adata.obs.columns, "'total_counts' is not available in adata.obs"
     counts, mask = adata.obs["total_counts"], np.ones(adata.n_obs, dtype=bool)
     if low:
         mask &= counts > np.percentile(counts, low)
@@ -77,7 +79,7 @@ def py_none_to_r(obj):
 
 def _normalise(
     adata: ad.AnnData,
-    n_reads: int = 10_000,
+    n_reads: int | None = 10_000,
     log_data: bool = True
 ) -> None:
     """Normalize raw counts.
@@ -117,9 +119,9 @@ def _lower_strings(obj):
 
 def _run_sc_dbl_finder(
     adata: ad.AnnData,
-    batch_key: str,
-    cluster_key: str,
-    doublet_rate: float = None,
+    batch_key: str | None,
+    cluster_key: str | None,
+    doublet_rate: float| None = None,
     scdblfinder_metric: Literal['merror', 'logloss', 'auc', 'aucpr'] = "logloss",
     random_state: int = 0,
 ) -> pd.DataFrame:
@@ -142,6 +144,7 @@ def _run_sc_dbl_finder(
     adata_copy = adata.copy()
     del adata_copy.raw
     adata_copy.uns.clear()
+    adata_copy.layers.clear()
 
     with conversion.localconverter(anndata2ri.converter + none_converter + pandas2ri.converter):
         r.assign("adata", adata_copy)
@@ -179,16 +182,16 @@ def _run_sc_dbl_finder(
 
 def _run_ovrlpy(
     df: pd.DataFrame,
-    batch_key: str,
+    batch_key: str | None,
     ovrlpy_report_path: PathLike,
-    ovrlpy_keys: Dict,
+    ovrlpy_keys: Dict | None,
     random_state: int = 0
 ) -> None:
     assert isinstance(df, pd.DataFrame), (
         "To run Ovrlpy (Detection of doublets in scSpatialTranscriptomics provide a DataFrame with X,Y,Z coordinates "
         "for features."
     )
-    assert batch_key is None, "Ovrlpy cannot perform doublet detection across batches"
+    assert batch_key is not None, "Ovrlpy cannot perform doublet detection across batches"
     assert ovrlpy_report_path is not None, "Provide path to save the report from the Ovrlpy inference"
 
     import ovrlpy
