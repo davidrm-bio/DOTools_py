@@ -19,5 +19,7 @@ analyzing sc/snRNA-seq and Visium with different implementations building on pac
     pp.log_normalize
     pp.pearson_residuals_normalize
     pp.find_doublets
+    pp.filter_cells
+    pp.filter_genes
 
 ```

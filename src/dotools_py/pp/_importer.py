@@ -301,6 +301,135 @@ def pearson_residuals_normalize(
     return adata
 
 
+
+def filter_cells(
+    adata: ad.AnnData,
+    min_counts: int | None = None,
+    min_genes: int | None = None,
+    max_counts: int | None = None,
+    max_genes: int | None = None,
+    low_quantile: float | None = None,
+    high_quantile: float | None = None,
+    cut_mt: int | None = None,
+) -> None:
+    """Filter cells based on counts, numbers of genes, and mitochondrial content.
+
+    :param adata: Annotated data matrix.
+    :param min_counts: Minimum number of counts required for a cell to pass filtering.
+    :param min_genes: Minimum number of genes required for a cell to pass filtering.
+    :param max_counts: Maximum number of counts required for a cell to pass filtering.
+    :param max_genes: Maximum number of genes required for a cell to pass filtering.
+    :param low_quantile: Based on the total nUMI counts across all cells, remove cells below the lower quantile. Cannot be used with `min_counts`.
+    :param high_quantile: Based on the total nUMI counts across all cells, remove cells above the high quantile. Cannot be used with `max_counts`.
+    :param cut_mt: Maximum percentage of mitochondrial content for a cell to pass filtering.
+    :return: Returns None.
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> adata.shape
+    (700, 1851)
+    >>> do.get.layer_swap(adata, layer_key="counts")
+    >>> do.pp.filter_cells(adata, min_counts=500, high_quantile=99, min_genes=250)
+    filtered out 600 cells that have less than 500 counts
+    filtered out 84 cells that have less than 250 genes expressed
+    >>> adata.shape
+    (15, 1851)
+
+    """
+    import scanpy as sc
+
+    x_is_raw_counts(adata)  # Check we have raw counts
+
+    # Compute metrics to filter mitochondrial genes
+    adata.var["genes_lower"] = adata.var_names.str.lower
+    metrics_names = []
+    if "pct_counts_mt" not in adata.obs.columns:
+        metrics_names.append("mt")
+        adata.var["mt"] = adata.var["genes_lower"].str.startswith("mt-")
+    if "pct_counts_ribo" not in adata.obs.columns:
+        metrics_names.append("ribo")
+        adata.var["ribo"] = adata.var["genes_lower"].str.startswith(("rbs", "rpl"))
+    if len(metrics_names) != 0:
+        sc.pp.calculate_qc_metrics(
+            adata, qc_vars=metrics_names, percent_top=None, log1p=True, inplace=True, use_raw=False
+        )
+    del adata.var["genes_lower"]
+
+    # Filter cells based on counts and gene numbers
+    assert (min_counts is None) != (low_quantile is None), "Set min_count or low_quantile"
+    assert (max_counts is None) != (high_quantile is None), "Set max_count or high_quantile"
+
+    if min_counts is not None:
+        sc.pp.filter_cells(adata, min_counts=min_counts)
+    if max_counts is not None:
+        sc.pp.filter_cells(adata, max_counts=max_counts)
+    if min_genes is not None:
+        sc.pp.filter_cells(adata, min_genes=min_genes)
+    if max_genes is not None:
+        sc.pp.filter_cells(adata, max_genes=max_genes)
+
+    # Filter based on quantiles
+    assert "total_counts" in adata.obs.columns, "'total_counts' is not available in adata.obs"
+    counts, mask, _cheker = adata.obs["total_counts"], np.ones(adata.n_obs, dtype=bool), False
+    if low_quantile is not None:
+        mask &= counts > np.percentile(counts, low_quantile)
+        _cheker = True
+    if high_quantile is not None:
+        mask &= counts < np.percentile(counts, high_quantile)
+        _cheker = True
+    if _cheker:
+        adata._inplace_subset_obs(mask)
+
+    # Filter based on mitochondrial content
+    if cut_mt is not None:
+        mask = adata.obs["pct_counts_mt"].to_numpy() < cut_mt
+        adata._inplace_subset_obs(mask)
+    return  None
+
+
+
+def filter_genes(
+    adata: ad.AnnData,
+    min_counts: int | None = None,
+    min_cells: int | None = None,
+    max_cells: int | None = None,
+) -> None:
+    """Filter genes based on number of cells and counts.
+
+    :param adata: Annotated data matrix.
+    :param min_counts: Minimum number of counts required for a gene to pass filtering.
+    :param min_cells: Minimum number of cells expressing a gene to pass filtering.
+    :param max_cells: Maximum number of cells expressing a gene to pass filtering.
+    :return: Returns None.
+
+    Example
+    -------
+    >>> import dotools_py as do
+    >>> adata = do.dt.example_10x_processed()
+    >>> adata.shape
+    (700, 1851)
+    >>> do.get.layer_swap(adata, layer_key="counts")
+    >>> do.pp.filter_genes(adata, min_counts=500, min_cells=8)
+    filtered out 1788 genes that are detected in less than 500 counts
+    >>> adata.shape
+    (700, 63)
+
+    """
+    import scanpy as sc
+
+    x_is_raw_counts(adata)  # Check we have raw counts
+    if min_counts is not None:
+        sc.pp.filter_genes(adata, min_counts=min_counts)
+    if min_cells is not None:
+        sc.pp.filter_genes(adata, min_cells=min_cells)
+    if max_cells is not None:
+        sc.pp.filter_genes(adata, max_cells=max_cells)
+    return  None
+
+
+
 class Importer:
     def __init__(
         self,
