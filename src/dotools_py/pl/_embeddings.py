@@ -731,6 +731,9 @@ def density(
 )-> plt.Axes | None:
     """Density plot.
 
+    .. warning::
+        The density across different cannot currently be compared. Since different kernels are used.
+
     Parameters
     ----------
     adata
