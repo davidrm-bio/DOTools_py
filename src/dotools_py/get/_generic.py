@@ -89,16 +89,12 @@ def expr(
     """
 
     sanitize_anndata(adata)
-    if features is None:
-        features = adata.var_names
-
-    features = iterase_input(features)
+    features = list(adata.var_names) if features is None else iterase_input(features)
     groups = iterase_input(groups)
 
     if len(features) == adata.n_vars:
         logger.warn("When all features are extracted, long format can lead to high running time")
 
-    assert len(features) != 0, "No features provided"
     assert out_format == "wide" or out_format == "long", f'{out_format} not recognize, try "long" or "wide"'
 
     # Remove features not present and warn
@@ -211,7 +207,7 @@ def mean_expr(
 
     results = []
     for group_name, indices in groups_obs.indices.items():
-        current = matrix[indices]
+        current = matrix[indices].copy()
 
         # Undo the log for the mean --> Log1p(Mean(nUMI))
         # If logcounts is False the mean over adata.X / adata.layer is computed and Mean(adata.X) or Mean(adata.layer) is returned
@@ -292,10 +288,6 @@ def mean_expr(
 
     # Move expr column to last position
     expr_col = main_df.pop("expr")
-    # if logmean:
-    #     main_df["expr"] = expr_col
-    # else:
-    #     main_df["expr"] = np.expm1(expr_col)
     main_df["expr"] = expr_col
 
     # Change to wide format
