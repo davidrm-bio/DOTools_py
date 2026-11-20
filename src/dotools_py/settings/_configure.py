@@ -46,8 +46,8 @@ def interactive_session(enable: bool = True) -> None:
                 plt.ion()
         except Exception as e:
             logger.info(f"Interactive(True) Could not enable interactive plotting {e}.")
-            import traceback
-            traceback.print_exc()
+            #import traceback
+            #traceback.print_exc()
 
     else:
         try:
@@ -174,8 +174,8 @@ def session_settings(
     """
     import matplotlib.font_manager as fm
 
-    available_fonts = sorted({f.name for f in fm.fontManager.ttflist})
-    font_family = "Helvetica" if "Helvetica" in available_fonts else "sans-serif"
+    #available_fonts = sorted({f.name for f in fm.fontManager.ttflist})
+    font_family = "sans-serif"
 
     # Scanpy Settings
     set_random_state(random_state=random_state, verbosity=False)
@@ -187,7 +187,7 @@ def session_settings(
         {
             # Font settings
             "font.family": font_family,
-            "font.serif": ["Helvetica"],
+            "font.serif": ["Helvetica Neue","Helvetica", "Arial"],
             "font.size": fontsize,
             "font.weight": "normal",
             "axes.labelsize": axes_fontsize,
@@ -253,6 +253,9 @@ def session_settings(
     )
 
     mpl.rcParams["pdf.fonttype"] = 42  # Use TrueType fonts in PDFs (editable text)
+    mpl.rcParams["ps.fonttype"] = 42 # Use TrueType fonts for PostScript.
+    mpl.rcParams["svg.fonttype"] = "none"  # preserves editable text in SVGs.
+    mpl.rcParams["text.usetex"] = False
 
     return None
 
