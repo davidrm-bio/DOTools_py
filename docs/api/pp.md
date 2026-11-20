@@ -4,8 +4,7 @@ The preprocessing module {mod}`dotools_py.pp` compiles all the basic quality con
 analyzing sc/snRNA-seq and Visium with different implementations building on packages from the
 [scverse ecosystem](https://scverse.org/)
 
-
-## Processing
+## Ambient RNA removal
 ```{eval-rst}
 .. module:: dotools_py.pp
 .. currentmodule:: dotools_py
@@ -15,6 +14,13 @@ analyzing sc/snRNA-seq and Visium with different implementations building on pac
 
     pp.run_cellbender
     pp.run_ambidose
+```
+
+## Processing
+```{eval-rst}
+.. autosummary::
+    :toctree: generated
+
     pp.importer_py
     pp.quality_control
     pp.log_normalize
@@ -22,5 +28,5 @@ analyzing sc/snRNA-seq and Visium with different implementations building on pac
     pp.find_doublets
     pp.filter_cells
     pp.filter_genes
-
 ```
+

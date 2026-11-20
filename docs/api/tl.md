@@ -4,7 +4,7 @@ The tools module {mod}`dotools_py.tl` contains functions for the downstream
 analysis and statistical methods.
 
 
-## Downstream processing
+## Integration
 ```{eval-rst}
 .. module:: dotools_py.tl
 .. currentmodule:: dotools_py
@@ -17,13 +17,18 @@ analysis and statistical methods.
     tl.run_scanvi
     tl.run_harmony
     tl.run_seurat_integration
+```
+
+## Clustering and Cell Annotation
+```{eval-rst}
+.. autosummary::
+    :toctree: generated
+
+    tl.umap_clustering
     tl.auto_annot
     tl.reclustering
     tl.full_recluster
-    tl.umap_clustering
-    tl.go_analysis
 ```
-
 
 ## Statistical Analysis
 ```{eval-rst}
@@ -37,6 +42,7 @@ analysis and statistical methods.
     tl.rank_genes_consensus
     tl.grouped_ttest
     tl.run_mast
+    tl.go_analysis
 ```
 
 
