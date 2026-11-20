@@ -762,19 +762,24 @@ def auto_annot(
     if update_models:
         celltypist.models.download_models(force_update=True)
 
-    adata_copy = adata.copy()
+    model_loaded = celltypist.models.Model.load(model=model)
+    if convert:
+        model_loaded.convert()
+
+    # Save memory
+    adata_copy = adata[:, adata.var_names.isin(list(model_loaded.features))].copy()
+    adata_copy.layers.clear()
+    adata_copy.obsm.clear()
+    adata_copy.varm.clear()
+
     steps = ["Setting-up", "Predicting", "Saving predictions", "Updating labels"]
     total_steps = len(steps) if update_label else len(steps) - 1
 
     with tqdm(total=total_steps, desc="Progress", disable=not verbose, colour="tomato") as pbar:
         # Get model
         pbar.set_description(steps.pop(0))
-        model_loaded = celltypist.models.Model.load(model=model)
-        if convert:
-            model_loaded.convert()
         adata_copy.X = adata_copy.X.toarray()  # Leads to high memory usage
         pbar.update(1)
-
         # Do the prediction
         pbar.set_description(steps.pop(0))
         predictions_cells = celltypist.annotate(
