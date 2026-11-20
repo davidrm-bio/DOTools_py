@@ -19,6 +19,7 @@ from dotools_py._utils import (
 
 from dotools_py._custom_class import InputError, PathLike
 from typing import TYPE_CHECKING, Any, Literal, Dict
+from collections.abc import Iterable, Sequence
 from dotools_py.pp._utils import _qc_vln, _filter_quantiles, _normalise, _lower_strings, _run_sc_dbl_finder, _run_ovrlpy
 
 if TYPE_CHECKING:
@@ -33,11 +34,11 @@ def find_doublets(
     *,
     batch_key: str | None = None,
     cluster_key: str | bool | None = None,
-    doublet_rate: float = None,
+    doublet_rate: float| None = None,
     scdblfinder_metric: Literal['merror', 'logloss', 'auc', 'aucpr'] = "logloss",
     method: Literal["scDblFinder", "DoubletDetection", "Scrublet", "Ovrlpy"] = "scDblFinder",
-    ovrlpy_keys: Dict = None,
-    ovrlpy_report_path: PathLike = None,
+    ovrlpy_keys: Dict | None = None,
+    ovrlpy_report_path: PathLike | None = None,
     random_state: int = 0,
 ) -> None:
     """Detect doublets in scRNAseq and iST.
@@ -105,9 +106,9 @@ def find_doublets(
 
     """
 
-    assert adata.n_obs != 0, "The AnnData is empty "
+    assert adata.shape[0] != 0, "The AnnData is empty "
 
-    if method == "scDblFinder":
+    if method == "scDblFinder" and isinstance(adata, ad.AnnData):
         doublets = _run_sc_dbl_finder(
             adata=adata,
             batch_key=batch_key,
@@ -118,26 +119,27 @@ def find_doublets(
         )
         adata.obs[["doublet_class", "doublet_score"]] = doublets.values
 
-    elif method == "DoubletDetection":
+    elif method == "DoubletDetection" and isinstance(adata, ad.AnnData):
         import doubletdetection
         clf = doubletdetection.BoostClassifier(
             n_iters=15, clustering_algorithm="leiden", standard_scaling=True, verbose=False, n_jobs=-1,
             random_state=random_state,
         )
-        doublets = clf.fit(adata.X).predict()
+        doublets = clf.fit(adata.to_df().values).predict()
         doublet_score = clf.doublet_score()
         mapped = np.full(doublets.shape, "singlet", dtype=object)
         mapped[doublets == 1.0] = "doublet"
         adata.obs["doublet_class"] = pd.Categorical(mapped, categories=["singlet", "doublet"])
         adata.obs["doublet_score"] = doublet_score
 
-    elif method == "Scrublet":
+    elif method == "Scrublet"  and isinstance(adata, ad.AnnData) :
         from scanpy.preprocessing import scrublet
         scrublet(adata, expected_doublet_rate=is_none(doublet_rate, 0.05), random_state=random_state)
         adata.obs["doublet_class"] = adata.obs["predicted_doublet"].map({False: "singlet", True: "doublet"})
         del adata.obs["predicted_doublet"]
 
-    elif method == "Ovrlpy":
+    elif method == "Ovrlpy" and isinstance(adata, pd.DataFrame):
+        assert ovrlpy_report_path is not None, "ovrlpy_report_path cannot be `None`"
         _run_ovrlpy(df=adata, batch_key=batch_key, ovrlpy_report_path=ovrlpy_report_path, ovrlpy_keys=ovrlpy_keys)
     else:
         raise InputError("Doublet detection tool available: scDblFinder, Scrublet and DoubletDetection")
@@ -184,8 +186,8 @@ def log_normalize(
 def pearson_residuals_normalize(
     adata: ad.AnnData,
     *,
-    batch_key: str = None,
-    layer: str = None,
+    batch_key: str | None = None,
+    layer: str | None = None,
     backend: Literal["scanpy", "seurat"] = "scanpy",
     theta: int = 100,
 ) -> ad.AnnData:
@@ -302,18 +304,18 @@ def pearson_residuals_normalize(
 class Importer:
     def __init__(
         self,
-        adata: ad.AnnData = None,
-        paths: list = None,
-        ids: list = None,
-        metadata: dict = None,
-        batch_key: str = None,
+        adata: ad.AnnData | None = None,
+        paths: Sequence[PathLike] | None= None,
+        ids: Sequence[str] | None = None,
+        metadata: dict | None = None,
+        batch_key: str | None = None,
         remove_doublets: bool = True,
         doublet_tool: Literal["scDblFinder", "Scrublet", "DoubletDetection"] = "scDblFinder",
-        min_genes_in_cell: int = None,
-        min_cells_with_genes: int = None,
-        cut_mt: int = None,
-        n_reads: int = None,
-        min_counts: int = None,
+        min_genes_in_cell: int | None = None,
+        min_cells_with_genes: int | None= None,
+        cut_mt: int | None= None,
+        n_reads: int | None= None,
+        min_counts: int | None= None,
         max_counts: int | None = None,
         min_genes: int | None = None,
         max_genes: int | None = None,
@@ -324,8 +326,8 @@ class Importer:
         normalisation_method: Literal["LogNormalisation", "PearsonResiduals"] = "LogNormalisation",
         log_data: bool = True,
         report: bool = True,
-        metrics_patterns: list | tuple = ("mt-", ("rbs", "rpl")),
-        metrics_names: list = ("mt", "ribo")
+        metrics_patterns: Sequence[Sequence[str] | str]  = ("mt-", ("rbs", "rpl")),
+        metrics_names: Sequence[str] = ("mt", "ribo")
     ):
         # Checks
         if (adata is None) == (paths is None):
@@ -406,7 +408,7 @@ class Importer:
             except Exception as e:
                 raise InputError(
                     f"{path} is not recognise as a Visium folder"
-                )
+                ) from e
         else:
             raise NotImplementedError(f"{self.technology} is not a valid technology")
 
@@ -584,7 +586,11 @@ class Importer:
                 database[batch_name] = adata_batch
 
         else:  # Case 2 - Input is paths
+
+            assert isinstance(self.paths, Iterable)
+
             for idx, path in enumerate(self.paths):
+                assert isinstance(path, str), "The list of paths need to be strings"
                 self.qc_path = convert_path("/".join(path.split("/")[:-1]))
                 logger.info(f"QualityControl Plots will be saved in\n{self.qc_path}")
 
@@ -605,7 +611,7 @@ class Importer:
 
                 database[batch_name] = adata_batch
                 if self.report:
-                    df_history = pd.DataFrame(self.history, columns=["QC_Step", "nCells", "nFeatures", "Comments"])
+                    df_history = pd.DataFrame(self.history, columns=np.array(["QC_Step", "nCells", "nFeatures", "Comments"]))
                     self.generate_report(df=df_history, filename=metrics_filename, batch_name=batch_name)
 
         logger.info("Concatenating samples")
@@ -706,7 +712,7 @@ class Importer:
 
                 database[batch_name] = adata_batch
                 if self.report:
-                    df_history = pd.DataFrame(self.history, columns=["QC_Step", "nCells", "nFeatures", "Comments"])
+                    df_history = pd.DataFrame(self.history, columns=np.array(["QC_Step", "nCells", "nFeatures", "Comments"]))
                     self.generate_report(df=df_history, filename=metrics_filename, batch_name=batch_name)
 
         logger.info("Concatenating samples")
@@ -726,8 +732,8 @@ class Importer:
 def importer_py(
     *,
     # Step 1 - Basic input
-    paths: list,
-    ids: list,
+    paths: Sequence[PathLike],
+    ids: Sequence[str],
     metadata: dict | None = None,
     batch_key: str = "batch",
     # Step 2 - Filter low quality cells and features
@@ -746,8 +752,8 @@ def importer_py(
     # Extra processing steps and configurations
     normalisation_method: Literal["LogNormalisation", "PearsonResiduals"] = "LogNormalisation",
     log_data: bool = True,
-    metrics_patterns: tuple = ("mt-", ("rbs", "rpl")),
-    metrics_names: list = ("mt", "ribo"),
+    metrics_patterns: Iterable[Iterable[str] | str] = ("mt-", ("rbs", "rpl")),
+    metrics_names: Iterable[str] = ("mt", "ribo"),
     random_state: int = 0,
     technology: Literal["snrna", "scrna", "visium", "xenium"] = "snrna",
 ):
@@ -808,14 +814,14 @@ def importer_py(
     -------
     >>> import dotools_py as do
     >>> paths = ["/path/sample1", "/path/sample2"]
-    >>> batchname = ["sample1", "sample2"]
+    >>> batch_name = ["sample1", "sample2"]
     >>> metadata = {
     ...     "condition": ["WT", "KO"],
     ...     "age": ["3m", "3m"],
     ... }
     >>> adata = do.pp.importer_py(
     ...     paths=paths,
-    ...     ids=batchname,
+    ...     ids=batch_name,
     ...     metadata=metadata,
     ...     batch_key="batch",
     ...     remove_doublets=True,
@@ -829,7 +835,7 @@ def importer_py(
     """
 
     # Checks
-    invalid = next((p for p in paths if not os.path.exists(p)), None)
+    invalid = next((p for p in paths if not os.path.exists(str(p))), None)  # Check the paths exists
     if invalid:
         raise InputError(f"{invalid} is not a valid path")
 
@@ -907,7 +913,7 @@ def quality_control(
     normalization_method: Literal["LogNormalisation", "PearsonResiduals"] = "LogNormalisation",
     log_data: bool = True,
     metrics_patterns: tuple = ("mt-", ("rbs", "rpl")),
-    metrics_names: list = ("mt", "ribo"),
+    metrics_names: Iterable[str] = ("mt", "ribo"),
     random_state: int = 0,
     technology: Literal["snrna", "scrna", "visium", "xenium"] = "snrna",
 ) -> ad.AnnData:
