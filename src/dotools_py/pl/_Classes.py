@@ -862,6 +862,9 @@ class MatrixPlot:
             self.annot_pvals = None
         return None
 
+    def _get_percentage(self) -> pd.DataFrame:
+        ...
+
     # Visualisation
     def make_figure(self, nrows: int = 1, ncols: int = 1, height_ratios: list | None = None, hspace: float | None = None) -> None:
         self.fig, self.gs = make_grid_spec(
@@ -1030,7 +1033,7 @@ class MatrixPlot:
             n = self.x_axis if self.add_stats == "x_axis" else self.y_axis
             txt = f"\nacross {n}"
 
-            sig_ax.set_title("Significance" + txt, fontsize="small", fontweight="bold")
+            sig_ax.set_title("Significance" + txt, fontsize="x-small", fontweight="bold")
             plt.gca().set_aspect("equal")
             sig_ax.axis("off")  # Hide axes for clean display
             self.return_ax_dict["signifiance_ax"] = sig_ax
