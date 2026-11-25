@@ -732,7 +732,7 @@ def density(
     """Density plot.
 
     .. warning::
-        The density across different cannot currently be compared. Since different kernels are used.
+        The density across different conditions cannot currently be compared. Since different kernels are used.
 
     Parameters
     ----------
