@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning][].
 ### Features
 - Add ``dotools_py.pl.ora_network`` to visualize overrepresentation results as a network
 - Add ``dotools_py.get.metacells`` to generate metacells
+- Add ``dotools_py.pp.filter_cells`` and ``dotools_py.pp.filter_genes``
+- Add ``dotools_py.pp.run_ambidose`` for ambient RNA removal
 - Add ``do.dt.example_ora`` for tutorial examples
 - Improvement of ``do.pl.heatmap`` to groupby two categories like in ``do.pl.dotplot``
 - Include option to filter-out features not present in the object for ``do.dt.heart_markers``
