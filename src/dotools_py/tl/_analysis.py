@@ -766,7 +766,7 @@ def auto_annot(
     if convert:
         model_loaded.convert()
 
-    # Save memory
+    # Save memory, take only the genes in the model
     adata_copy = adata[:, adata.var_names.isin(list(model_loaded.features))].copy()
     adata_copy.layers.clear()
     adata_copy.obsm.clear()
@@ -789,7 +789,7 @@ def auto_annot(
 
         # Save predictions
         pbar.set_description(steps.pop(0))
-        predictions_cells_adata = predictions_cells.to_adata()
+        predictions_cells_df = predictions_cells.predicted_labels
 
         prediction_key = "majority_voting" if majority else "predicted_labels"
         if pl_cell_prob:
@@ -803,15 +803,15 @@ def auto_annot(
             except Exception as e:
                 logger.warn(f'Error plotting {e}')
 
-        adata_copy.obs["cell_type"] = predictions_cells_adata.obs.loc[adata_copy.obs.index, prediction_key]
-        adata.obs[key_added] = adata_copy.obs["cell_type"]  # Transfer to original object
-        adata.obs["celltypist_conf_score"] = predictions_cells_adata.obs["conf_score"]
+        #adata_copy.obs["cell_type"] = predictions_cells_df[prediction_key].values
+        adata.obs[key_added] = predictions_cells_df[prediction_key].values  # Transfer to original object
+        # adata.obs["celltypist_conf_score"] = predictions_cells_adata.obs["conf_score"]
         pbar.update(1)
 
         if update_label:
             # Update labels
             pbar.set_description(steps.pop(0))
-            update_cell_labels(adata, key_added, key_updated, dict_data=dict_labels)
+            update_cell_labels(adata, cell_col=key_added, key_added=key_updated, dict_data=dict_labels)
             pbar.update(1)
 
     return None
