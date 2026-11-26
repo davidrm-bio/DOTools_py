@@ -13,7 +13,7 @@ from dotools_py import logger
 from dotools_py.get import mean_expr
 from dotools_py.utility import generate_cmap, free_memory
 from dotools_py._custom_class import PathLike
-from dotools_py._utils import sanitize_anndata, convert_path, require_dependencies
+from dotools_py._utils import sanitize_anndata, convert_path, require_dependencies, iterase_input
 from dotools_py.pl._plot_utils import save_plot, return_axis, make_grid_spec
 from dotools_py.pl._Classes import DrawNetwork
 
@@ -243,6 +243,7 @@ def cell_composition(
     add_total_ncell: bool = True,
     get_props: bool = False,
     random_state: int = 0,
+    txt_fontsize: int = 12,
     **kwargs,
 ) -> None | pd.DataFrame | plt.Axes:
     """Stacked barplot showing changes in cell-type proportions.
@@ -278,6 +279,7 @@ def cell_composition(
     :param add_total_ncell: Add the total number of cells in the dataset.
     :param get_props: If set to `True`, returns a dataframe with the cell proportions.
     :param random_state: seed for random number generator.
+    :param txt_fontsize: Fontsize of the text added to the top of each bar indicating the number of cells per condition.
     :param kwargs: Additional arguments pass to `scanpro() <https://scanpro.readthedocs.io/en/latest/API.html#scanpro.scanpro.scanpro>`_.
     :return: Depending on ``show``, returns the plot if set to `True` or a dictionary with the axes.
 
@@ -327,7 +329,7 @@ def cell_composition(
     ########################
     # Set-Up, Get Data for plotting
     ########################
-    subset_cells = subset_cells if subset_cells is not None else adata.obs[annot_key].cat.categories
+    subset_cells = iterase_input(subset_cells) if subset_cells is not None else adata.obs[annot_key].cat.categories
 
     df = out.results.copy()
     pval_col = "adjusted_p_values" if "adjusted_p_values" in df.columns else "p_values"
@@ -335,6 +337,17 @@ def cell_composition(
     logger.info(f"There are {n_sig} populations with a significant change")
 
     df = df.loc[subset_cells, :]
+
+    if add_total_ncell:
+        df_counts = out.counts
+        df_counts = df_counts[list(subset_cells)]
+        if df_counts.index.name == condition_key:
+            counts_dict = df_counts.sum(axis=1).to_dict()
+        elif df_counts.columns.name == condition_key:
+            counts_dict = df_counts.sum(axis=0).to_dict()
+        else:
+            raise ValueError("Could not show the number of cells per condition")
+
 
     try:
         colors_dict = dict(zip(adata.obs[annot_key].cat.categories, adata.uns[annot_key + "_colors"], strict=False))
@@ -377,6 +390,14 @@ def cell_composition(
             zorder=2,
             color=colors_list,
         )
+
+        if add_total_ncell:
+            axs.text(
+                x_pos + bar_width / 2, np.sum(data_dict["bar_height"][c]),
+                f"{counts_dict[c.split('mean_props_')[-1]]:,}", fontsize=txt_fontsize,
+                ha="center", va="bottom", fontweight="bold"
+            )
+
         xtick.append(x_pos + bar_width / 2)
         xtext.append(c.split("mean_props_")[-1])
 
