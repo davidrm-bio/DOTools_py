@@ -18,7 +18,10 @@ from itertools import combinations
 
 from dotools_py._utils import sanitize_anndata, iterase_input, x_is_raw_counts
 from dotools_py._custom_class import  InputError, PathLike
-from dotools_py.pl._plot_utils import make_grid_spec, return_axis, save_plot, check_colornorm, square_color, small_squares
+from dotools_py.pl._plot_utils import (
+    make_grid_spec, return_axis, save_plot, check_colornorm, square_color, small_squares,
+    fix_kwds, _var_groups, _plot_var_groups_brackets, add_star_on_square
+)
 from dotools_py.utility import get_hex_colormaps
 from matplotlib.colors import Colormap
 from numpy.typing import NDArray
@@ -492,12 +495,19 @@ class MatrixPlot:
     DEFAULT_LEGEND_TITLE_FONTSIZE = 12
     DEFAULT_LEGEND_TITLE_FONTWEIGHT = "bold"
 
+    DEFAULT_SIZE_EXPONENT = 1.5
+    DEFAULT_SMALLEST_DOT = 0.0
+    DEFAULT_LARGEST_DOT = 200.0
+    DEFAULT_PLOT_X_PADDING = 0.8  # a unit is the distance between two x-axis ticks
+    DEFAULT_PLOT_Y_PADDING = 1.0  # a unit is the distance between two y-axis ticks
+
+
 
     def __init__(
         self,
         adata: ad.AnnData,
         x_axis: str,
-        features: str | list,
+        features: str | list | dict,
         y_axis: str | None = None,
         xticks_order: list | None = None,
         yticks_order: list | None = None,
@@ -507,10 +517,11 @@ class MatrixPlot:
         # Figure parameters
         figsize: tuple = (5, 6),
         ax: plt.Axes | None = None,
-        swap_axes: bool = True,
+        swap_axes: bool = False,
         title: str = "",
         title_fontproperties: Dict[Literal["size", "weight"], str | int] | None = None,
-        palette: str = "Reds",
+        palette: str = None,
+        cmap: str = "Reds",
 
         xticks_properties: dict | None = None,
         yticks_properties: dict | None = None,
@@ -518,8 +529,11 @@ class MatrixPlot:
         yticks_rotation: int = 0,
         cluster_x_axis: bool = False,
         cluster_y_axis: bool = False,
+        var_group_offset: float = 0.75,
+        var_group_rotation: float = 0,
 
         legend_title: str = "LogMean(nUMI)\nin group",
+        legend_size_title: str = "Fraction of cells\nin group (%)",
 
         # IO
         path: PathLike | None = None,
@@ -538,6 +552,7 @@ class MatrixPlot:
 
         # Fx specific
         z_score: Literal["x_axis", "y_axis"] | None  = None,
+        standard_scale: Literal["x_axis", "y_axis"] | None = None,
         clustering_method: str = "complete",
         clustering_metric: str = "euclidean",
         linewidth: float = 0.1,
@@ -546,6 +561,18 @@ class MatrixPlot:
         vmax: float | None = None,
         annot_fontsize: float = 12,
         annot_ratio: float = 0.35,
+        expression_cutoff: float = 0.0, ## NEW
+        dot_max: float = None,
+        dot_min: float = None,
+        size_exponent: float = None,
+        largest_dot: float = None,
+        smallest_dot: float = None,
+        norm = None,
+        edge_color = None,
+        edge_lw = None,
+        x_padding = None,
+        y_padding = None,
+        color_on: Literal["dot", "square"] = "square",
         **kwargs,
     ):
 
@@ -554,15 +581,32 @@ class MatrixPlot:
         # region Data Section
         self.adata = adata
         self.x_axis, self.y_axis = x_axis, y_axis
-        self.swap_axes = swap_axes
+
+        if isinstance(features, dict):
+            if y_axis is not None:
+                raise  InputError("When features is a dictionary, y_axis cannot be provided")
+            features, bracket_groups = _var_groups(features)
+            swap_axes = False
+        else:
+            bracket_groups = None
+
+
+        self.swap_axes = not swap_axes
+        self.bracket_groups = bracket_groups
+
+        self.var_group_offset = var_group_offset
+        self.var_group_rotation = var_group_rotation
 
         features = iterase_input(features)
         self._check_missing(adata, features)
         self.features = features
         self.z_score = z_score
+        self.standard_scale = standard_scale
+        assert (z_score is None) or (standard_scale is None), "Cannot provide both z_score and standard_scale"
 
         self.layer = layer
         self.logcounts = logcounts
+        self.expression_cutoff = expression_cutoff  ## NEW
         # endregion
 
 
@@ -574,25 +618,57 @@ class MatrixPlot:
 
         self.legends_width = self.DEFAULT_LEGEND_WIDTH
         self.annot_width = self.DEFAULT_ANNOT_WIDTH
+        self.color_on = color_on
 
         min_figure_height = max([0.35, self.height])
         cbar_legend_height = min_figure_height * 0.08
-        sig_legend = min_figure_height * 0.27
+        sig_legend = min_figure_height * 0.15
         spacer_height = min_figure_height * 0.3
+        size_legend_height = min_figure_height * 0.27
 
-        self.height_ratios_legend = [
-            self.height - sig_legend - cbar_legend_height - spacer_height,
-            sig_legend,
-            spacer_height,
-            cbar_legend_height,
-        ]
+
+        if add_stats is not None:
+            if color_on == "dot":
+                self.height_ratios_legend = [
+                    self.height  - size_legend_height - cbar_legend_height - spacer_height - sig_legend - spacer_height,
+                    sig_legend,
+                    spacer_height,
+                    size_legend_height,
+                    spacer_height,
+                    cbar_legend_height
+                ]
+            elif color_on == "square":
+                self.height_ratios_legend = [
+                    self.height - sig_legend - cbar_legend_height - spacer_height,
+                    sig_legend,
+                    spacer_height,
+                    cbar_legend_height,
+                ]
+            else:
+                raise ValueError(f"{color_on} is not a valid key for color_on. Use dot or square")
+        else:
+            if color_on == "dot":
+                self.height_ratios_legend = [
+                    self.height - size_legend_height - cbar_legend_height - spacer_height,
+                    size_legend_height,
+                    spacer_height,
+                    cbar_legend_height
+                ]
+            elif color_on == "square":
+                self.height_ratios_legend = [
+                    self.height - cbar_legend_height - spacer_height,
+                    spacer_height,
+                    cbar_legend_height,
+                ]
+            else:
+                raise ValueError(f"{color_on} is not a valid key for color_on. Use dot or square")
 
         self.height_ratios_annot = [
             annot_ratio,
             self.height - annot_ratio,
         ]
 
-        self.palette = palette
+        self.palette = cmap if cmap is not None else palette
         # endregion
 
         # region Title properties
@@ -625,6 +701,7 @@ class MatrixPlot:
 
         # region Legend Properties
         self.legend_title = legend_title
+        self.legend_size_title = legend_size_title
         # endregion
 
 
@@ -643,7 +720,8 @@ class MatrixPlot:
         self.df_pvals = df_pvals
 
         square_x_size = {} if square_x_size is None else square_x_size
-        square_x_size = {"width": square_x_size.get("weight", 1), "size": square_x_size.get("size", 0.8)}
+        default_size = 0.5 if color_on == "dot" else 0.8
+        square_x_size = {"width": square_x_size.get("weight", 1), "size": square_x_size.get("size", default_size)}
         self.stats_x_size = stats_x_size
         self.square_x_size = square_x_size
         self.pval_cutoff = pval_cutoff
@@ -663,6 +741,16 @@ class MatrixPlot:
         self.vmax = vmax
         self.vcenter = vcenter
         self.annot_fontsize = annot_fontsize
+        self.dot_max = dot_max  ## NEW
+        self.dot_min = dot_min  ## NEW
+        self.size_exponent = self.DEFAULT_SIZE_EXPONENT if size_exponent is None else size_exponent  ## NEW
+        self.largest_dot = self.DEFAULT_LARGEST_DOT if largest_dot is None else largest_dot
+        self.smallest_dot = self.DEFAULT_SMALLEST_DOT if smallest_dot is None else smallest_dot
+        self.norm = norm
+        self.edge_color = edge_color
+        self.edge_lw = edge_lw
+        self.x_padding = self.DEFAULT_PLOT_X_PADDING if x_padding is None else x_padding
+        self.y_padding = self.DEFAULT_PLOT_Y_PADDING if y_padding is None else y_padding
         # endregion
 
 
@@ -713,6 +801,44 @@ class MatrixPlot:
             self.legend_title = "Z-score"
         df = df.fillna(0)
         return df
+
+    @staticmethod
+    def _min_max(vals, axis=0):
+        vals = np.asarray(vals)
+        min_vals = np.min(vals, axis=axis, keepdims=True)
+        max_vals = np.max(vals, axis=axis, keepdims=True)
+        denom = max_vals - min_vals
+        denom[denom == 0] = np.nan
+        return (vals - min_vals) / denom
+
+    def _min_max_scale(self, df: pd.DataFrame) -> pd.DataFrame:
+        if self.y_axis is None:
+            if self.standard_scale == "y_axis":
+
+                df = df.apply(self._min_max, axis=0, result_type="expand")
+
+            elif self.standard_scale == "x_axis":
+                df = df.apply(lambda row: pd.Series(self._min_max(row), index=df.columns), axis=1)
+            else:
+                raise InputError(f'{self.standard_scale} not a valid key for z_score, use "x_axis" or "y_axis"')
+        else:
+            if self.standard_scale == "y_axis":
+                print(df)
+                df = df.groupby(level="gene", axis=1, group_keys=False).apply(
+                    lambda x: x.apply(self._min_max, axis=0)
+                )
+                print(df)
+            elif self.standard_scale == "x_axis":
+                _backup = df.columns
+                df = df.groupby(level="gene", axis=1, group_keys=False).apply(
+                    lambda x: pd.DataFrame(self._min_max(x, axis=1), index=x.index, columns=x.columns)
+                )
+                df.columns = _backup
+            else:
+                raise InputError(f'{self.standard_scale} not a valid key for z_score, use "x_axis" or "y_axis"')
+
+        df = df.fillna(0)
+        return  df
 
     def _get_categories(self, column: str | None) -> list | None:
         if column is None:
@@ -777,7 +903,7 @@ class MatrixPlot:
                         try:
                             rank_genes_groups(
                                 self.adata, groupby=group_by, method=self.test, tie_correct=True,
-                                corr_method=self.correction_method, layer=self.layer
+                                corr_method=self.correction_method, layer=self.layer, verbose=False
                             )
                             table = sc.get.rank_genes_groups_df(
                                 self.adata, group=None, pval_cutoff=self.pval_cutoff, log2fc_min=self.log2fc_cutoff
@@ -799,12 +925,13 @@ class MatrixPlot:
                         raise InputError("Not a valid input for testing")
                 else:
                     if all(item in list(self.adata.var_names) for item in features):
-                        table_filt = pd.DataFrame([])
+                        table_filt = []
                         for alt in self.adata.obs[alternative].unique():
                             sdata = self.adata[self.adata.obs[alternative] == alt].copy()
                             try:
-                                rank_genes_groups(sdata, groupby=group_by, method=self.test, tie_correct=True,
-                                                  corr_method=self.correction_method, layer=self.layer)
+                                rank_genes_groups(
+                                    sdata, groupby=group_by, method=self.test, tie_correct=True, verbose=False,
+                                    corr_method=self.correction_method, layer=self.layer)
                                 stable = sc.get.rank_genes_groups_df(
                                     sdata, group=None, pval_cutoff=self.pval_cutoff, log2fc_min=self.log2fc_cutoff
                                 )
@@ -817,7 +944,8 @@ class MatrixPlot:
                                 )
                             stable_filt = stable[stable["names"].isin(features)]
                             stable_filt['group2'] = alt
-                            table_filt = pd.concat([table_filt, stable_filt])
+                            table_filt.append(stable_filt)
+                        table_filt = pd.concat(table_filt)
                         if len(table_filt) == 0:
                             logger.warn('No Significant group')
                     elif all(item in list(self.adata.obs.columns) for item in features):
@@ -862,9 +990,6 @@ class MatrixPlot:
             self.annot_pvals = None
         return None
 
-    def _get_percentage(self) -> pd.DataFrame:
-        ...
-
     # Visualisation
     def make_figure(self, nrows: int = 1, ncols: int = 1, height_ratios: list | None = None, hspace: float | None = None) -> None:
         self.fig, self.gs = make_grid_spec(
@@ -903,12 +1028,17 @@ class MatrixPlot:
         mappable = ScalarMappable(norm=normalize, cmap=colormap)
 
         Colorbar(axis, mappable=mappable, orientation="horizontal")
+        if self.standard_scale is not None:
+            axis.set_xticks([vmin, vmax])
+            axis.set_xticklabels(["Min", "Max"])
         axis.set_title(self.legend_title + txt, fontsize="small", fontweight="bold")
         axis.xaxis.set_tick_params(labelsize="small")
         return axis
 
     # Main Fxs
     def heatmap(self):
+        if self.color_on != "square":
+            raise ValueError("For the heatmap color_on needs to be square")
         df = self._get_mean_expr()
 
         # stats_x_size = max(np.sqrt(height * width), 14) if stats_x_size is None else stats_x_size
@@ -922,6 +1052,8 @@ class MatrixPlot:
             # Apply Z-score scaling
             if self.z_score is not None:
                 df = self._scale(df)
+            if self.standard_scale is not None:
+                df = self._min_max_scale(df)
 
             # Reindex
             new_idx, new_cols = self._reindex(df)
@@ -940,8 +1072,11 @@ class MatrixPlot:
             # XCategories x YCategories x Features
             df = df.pivot(index=self.y_axis, columns=["gene", self.x_axis], values="expr")
 
+            # Apply Z-score scaling
             if self.z_score is not None:
                 df = self._scale(df)
+            if self.standard_scale is not None:
+                df = self._min_max_scale(df)
 
             # Reindex
             new_idx, new_cols = self._reindex(df)
@@ -953,11 +1088,9 @@ class MatrixPlot:
             main_ax = self.fig.add_subplot(self.gs[1, 0], sharex=annot_ax)
             legend_ax = self.fig.add_subplot(self.gs[:, 1])
 
-        fig, legend_gs = make_grid_spec(legend_ax, nrows=4, ncols=1, height_ratios=self.height_ratios_legend)
-        color_legend_ax = fig.add_subplot(legend_gs[3])
+        fig, legend_gs = make_grid_spec(legend_ax, nrows=len(self.height_ratios_legend), ncols=1, height_ratios=self.height_ratios_legend)
 
-        if self.add_stats:
-            sig_ax = fig.add_subplot(legend_gs[2])
+        color_legend_ax = fig.add_subplot(legend_gs[3] if self.add_stats is not None else legend_gs[2])
 
         self._compute_stats(df)
 
@@ -1024,6 +1157,7 @@ class MatrixPlot:
 
         # Significance legend
         if self.add_stats:
+            sig_ax = fig.add_subplot(legend_gs[2])
             x, y = 0, 0.5
             sig_ax.scatter(x, y, s=500, facecolors="none", edgecolors="black", marker="s")
             sig_ax.text(x, y, "*", fontsize=18, ha="center", va="center", color="black", fontfamily='DejaVu Sans Mono')
@@ -1033,7 +1167,7 @@ class MatrixPlot:
             n = self.x_axis if self.add_stats == "x_axis" else self.y_axis
             txt = f"\nacross {n}"
 
-            sig_ax.set_title("Significance" + txt, fontsize="x-small", fontweight="bold")
+            sig_ax.set_title("Significance" + txt, fontsize="small", fontweight="bold")
             plt.gca().set_aspect("equal")
             sig_ax.axis("off")  # Hide axes for clean display
             self.return_ax_dict["signifiance_ax"] = sig_ax
@@ -1061,6 +1195,24 @@ class MatrixPlot:
             for text, color in zip(hm.texts, df_x.values.flatten(), strict=False):
                 text.set_color(color)
 
+        # Add Var groups
+        if self.bracket_groups is not None:
+            _fig = plt.gcf()
+            bbox_pos = main_ax.get_position()
+            top_ax = _fig.add_axes((bbox_pos.x0, bbox_pos.y1, bbox_pos.width, 0.1))  # Adjust
+
+            _plot_var_groups_brackets(
+                top_ax, var_groups=self.bracket_groups, left_adjustment=-0.3, right_adjustment=0.3,
+                rotation=self.var_group_rotation, orientation='top',
+            )
+            for text in top_ax.texts:
+                x, y = text.get_position()
+                text.set_position((x, self.var_group_offset))  # Move all text to new position
+            top_ax.set_xlim(-0.5, len(self.features) - 0.3)
+            top_ax.set_ylim(0, 1)
+            self.return_ax_dict["var_group_ax"] = top_ax
+
+
         save_plot(path = self.path, filename =self.filename)
 
         if self.show:
@@ -1069,7 +1221,322 @@ class MatrixPlot:
             return return_axis(self.show, self.return_ax_dict, tight=True)
 
     def dotplot(self):
-        ...
+        if self.color_on != "dot":
+            raise ValueError("For the dotplot color_on needs to be dot")
+        df = self._get_mean_expr()
+        dot_size_df = self._get_percentage()
+
+        if self.y_axis is None:
+            # Features x Categories
+            df = df.pivot(index="gene", columns=self.x_axis, values="expr")
+            dot_size_df = dot_size_df.pivot(index="genes", columns=self.x_axis, values="pct")
+
+            # Apply Z-score scaling
+            if self.z_score is not None:
+                df = self._scale(df)
+            if self.standard_scale is not None:
+                df = self._min_max_scale(df)
+
+            # Reindex
+            new_idx, new_cols = self._reindex(df)
+            df = df.reindex(index=new_idx, columns=new_cols)
+            dot_size_df = dot_size_df.reindex(index=new_idx, columns=new_cols)
+
+            if self.swap_axes:
+                df = df.T
+                dot_size_df = dot_size_df.T
+
+            # Make figure
+            self.make_figure(nrows=1, ncols=2)
+            main_ax = self.fig.add_subplot(self.gs[0])
+            legend_ax = self.fig.add_subplot(self.gs[1])
+            annot_ax = None
+
+        else:
+            # XCategories x YCategories x Features
+            df = df.pivot(index=self.y_axis, columns=["gene", self.x_axis], values="expr")
+            dot_size_df = dot_size_df.pivot(index=self.y_axis, columns=["genes", self.x_axis], values="pct")
+
+            # Apply Z-score scaling
+            if self.z_score is not None:
+                df = self._scale(df)
+            if self.standard_scale is not None:
+                df = self._min_max_scale(df)
+
+            # Reindex
+            new_idx, new_cols = self._reindex(df)
+            df = df.reindex(index=new_idx, columns=new_cols)
+            dot_size_df = dot_size_df.reindex(index=new_idx, columns=new_cols)
+
+            # Make Figure
+            self.make_figure(nrows=2, ncols=2, height_ratios=self.height_ratios_annot, hspace=0)
+            annot_ax = self.fig.add_subplot(self.gs[0, 0])
+            main_ax = self.fig.add_subplot(self.gs[1, 0], sharex=annot_ax)
+            legend_ax = self.fig.add_subplot(self.gs[:, 1])
+
+
+        fig, legend_gs = make_grid_spec(legend_ax, nrows=len(self.height_ratios_legend), ncols=1, height_ratios=self.height_ratios_legend)
+
+
+        # make scatter plot in which
+        # x = var_names
+        # y = groupby category
+        # size = fraction
+        # color = mean expression
+
+        # +0.5 in y and x to set the dot center at 0.5 multiples
+        # this facilitates dendrogram and totals alignment for
+        # matrixplot, dotplot and stackec_violin using the same coordinates.
+
+        y, x = np.indices(df.shape)
+        y = y.flatten() + 0.5
+        x = x.flatten() + 0.5
+        frac = dot_size_df.values.flatten()
+        mean_flat = df.values.flatten()
+        cmap = plt.get_cmap(self.palette)
+
+        if self.dot_max is None:
+            self.dot_max = np.ceil(max(frac) * 10) / 10
+        else:
+            if self.dot_max < 0 or self.dot_max > 1:
+                raise ValueError("`dot_max` value has to be between 0 and 1")
+        if self.dot_min is None:
+            self.dot_min = 0
+        else:
+            if self.dot_min < 0 or self.dot_min > 1:
+                raise ValueError("`dot_min` value has to be between 0 and 1")
+
+        if self.dot_min != 0 or self.dot_max != 1:
+            # clip frac between dot_min and  dot_max
+            frac = np.clip(frac, self.dot_min, self.dot_max)
+            old_range = self.dot_max - self.dot_min
+            # re-scale frac between 0 and 1
+            frac = (frac - self.dot_min) / old_range
+
+        size = frac ** self.size_exponent
+        # rescale size to match smallest_dot and largest_dot
+        size = size * (self.largest_dot - self.smallest_dot) + self.smallest_dot
+        normalize = check_colornorm(self.vmin, self.vmax, self.vcenter, self.norm)
+
+        edge_color = "black" if self.edge_color is None else self.edge_color
+        edge_lw = 0.2 if self.edge_lw is None else self.edge_lw
+        color = cmap(normalize(mean_flat))
+
+        kwds = fix_kwds(
+            self.kwargs, s=size, color=color, linewidth=edge_lw, edgecolor=edge_color,
+        )
+
+        # Add Legends
+        ## Colorbar legend
+        color_legend_ax = fig.add_subplot(legend_gs[5] if self.add_stats is not None else legend_gs[3])
+        self.return_ax_dict["color_legend_ax"] = self._create_colorbar(df=df, axis=color_legend_ax)
+        ## Size legend
+        size_legend_ax = fig.add_subplot(legend_gs[3] if self.add_stats is not None else legend_gs[1])
+        self.return_ax_dict["size_legend_ax"] = self._create_size_legend(df=dot_size_df, axis=size_legend_ax)
+        ## Stats legend
+        #if self.add_stats is not None:
+        #    sig_ax = fig.add_subplot(legend_gs[2])
+
+        self._compute_stats(df)
+
+        # Plot data in main axis
+        main_ax.scatter(x, y, **kwds)
+
+        # Add Ticks
+        y_ticks = np.arange(df.shape[0]) + 0.5
+        main_ax.set_yticks(y_ticks)
+        main_ax.set_yticklabels(
+            df.index.to_list(), fontdict={"weight": self.yticks_fontweight, "size": self.yticks_fontsize},
+            **self.yticks_rotation
+        )
+
+        x_ticks = np.arange(df.shape[1]) + 0.5
+        main_ax.set_xticks(x_ticks)
+        main_ax.set_xticklabels(
+            df.columns.get_level_values(self.x_axis) if annot_ax is not None else df.columns,
+            fontdict={"weight": self.xticks_fontweight, "size": self.xticks_fontsize}, **self.rotation_props_x
+        )
+
+        main_ax.set_title(self.title, fontdict={"size": self.title_size, "weight": self.title_fontweight})
+
+        main_ax.spines[["top", "right", "bottom", "left"]].set_visible(True)
+        main_ax.set_xlabel("")
+        main_ax.set_ylabel("")
+
+
+        # to be consistent with the heatmap plot, is better to
+        # invert the order of the y-axis, such that the first group is on
+        # top
+        main_ax.set_ylim(df.shape[0], 0)
+        main_ax.set_xlim(0, df.shape[1])
+
+        x_padding = self.x_padding - 0.5
+        y_padding = self.y_padding - 0.5
+        main_ax.set_ylim(df.shape[0] + y_padding, -y_padding)
+        main_ax.set_xlim(-x_padding, df.shape[1] + x_padding)
+
+        self.return_ax_dict["mainplot_ax"] = main_ax
+
+        # Add Gene Label
+        if annot_ax is not None:
+            annot_ax.set_xlim(0, df.shape[1])
+            annot_ax.set_ylim(0, 1)
+            annot_ax.axis("off")
+            genes = df.columns.get_level_values("gene")
+
+            start, current = 0, genes[0]
+            for i in range(1, len(genes) + 1):
+                if i == len(genes) or genes[i] != current:
+                    width = i - start
+                    rect = patches.Rectangle(
+                        (start, 0), width, 1, facecolor="lightgray", edgecolor="black",
+                        clip_on=False, linewidth=main_ax.spines["right"].get_linewidth()
+                    )
+                    annot_ax.add_patch(rect)
+                    annot_ax.text(
+                        start + width / 2, 0.5, current, ha="center", va="center", fontsize=self.annot_fontsize,
+                        fontweight="bold",
+                    )
+                    if i < len(genes):
+                        main_ax.axvline(i, color="black", linewidth=main_ax.spines["right"].get_linewidth())
+                        start, current = i, genes[i]
+            self.return_ax_dict["annot_ax"] = annot_ax
+
+        # Add Significance
+        if self.add_stats is not None:
+            sig_ax = fig.add_subplot(legend_gs[2])
+            x, y = 0, 0.5
+            sig_ax.scatter(x, y, s=500, facecolors="none", edgecolors="white", marker="s")
+            sig_ax.text(x, y - 0.005, "*", fontsize=25, ha="center", va="center", color="black", fontfamily='Helvetica')
+            sig_ax.text(x + 0.03, y, "FDR < 0.05", fontsize=12, va="center", fontweight="bold")
+            sig_ax.set_xlim(x - 0.02, x + 0.1)
+
+            n = self.x_axis if self.add_stats == "x_axis" else self.y_axis
+            txt = f"\nacross {n}"
+
+            sig_ax.set_title("Significance" + txt, fontsize="x-small", fontweight="bold")
+            plt.gca().set_aspect("equal")
+            sig_ax.axis("off")  # Hide axes for clean display
+            self.return_ax_dict["signifiance_ax"] = sig_ax
+
+            colormap = plt.get_cmap(self.palette)
+            normalize = check_colornorm(vmin=self.vmin, vmax=self.vmax, vcenter=self.vcenter)
+
+            df_x = pd.DataFrame([], index=df.index, columns=df.columns)
+            df_x[df_x.isna()] = "black"
+            df_x = df.map(lambda x: square_color(colormap(normalize(x))))
+            pos_rows, pos_cols = np.where(self.df_pvals < 0.05)
+            pos = list(zip(pos_rows, pos_cols, strict=False))
+            colors = [df_x.iloc[row, col] for row, col in pos]
+
+            small_squares(
+                main_ax,
+                color=colors,
+                pos=pos,
+                size=self.square_x_size["size"],
+                linewidth=self.square_x_size["width"],
+            )
+
+            d3 = False if self.y_axis is None else True
+            add_star_on_square(main_ax, size=self.stats_x_size if self.stats_x_size is not None else 20, d3=False)
+
+            # Now set colors manually on each annotation text base on the background
+            #for text, color in zip(main_ax.texts, df_x.values.flatten(), strict=False):
+            #    text.set_color(color)
+
+        # Add Var groups
+        if self.bracket_groups is not None:
+            _fig = plt.gcf()
+            bbox_pos = main_ax.get_position()
+            top_ax = _fig.add_axes((bbox_pos.x0, bbox_pos.y1, bbox_pos.width, 0.1))  # Adjust
+
+            _plot_var_groups_brackets(
+                top_ax, var_groups=self.bracket_groups, left_adjustment=-0.3, right_adjustment=0.3,
+                rotation=self.var_group_rotation, orientation='top',
+            )
+            for text in top_ax.texts:
+                x, y = text.get_position()
+                text.set_position((x, self.var_group_offset))  # Move all text to new position
+            top_ax.set_xlim(-0.5, len(self.features) - 0.3)
+            top_ax.set_ylim(0, 1)
+            self.return_ax_dict["var_group_ax"] = top_ax
+
+        save_plot(path = self.path, filename =self.filename)
+
+        if self.show:
+            return plt.show()
+        else:
+            return return_axis(self.show, self.return_ax_dict, tight=True)
+
+    def _get_percentage(self) -> pd.DataFrame:
+        x_axis, y_axis = iterase_input(self.x_axis), iterase_input(self.y_axis)
+        group_by = x_axis + y_axis
+
+        if all(feature in list(self.adata.var_names) for feature in self.features):
+            df_expr = get_expr(
+                self.adata, groups=group_by, features=self.features, layer=self.layer,
+                out_format="wide"
+            )
+        elif all(feature in list(self.adata.obs.columns) for feature in self.features):
+            df_expr = self.adata.obs[self.features + group_by]
+        else:
+            raise InputError(f"{self.features} are not unique to adata.var_names or adata.obs")
+
+        df_expr.set_index(group_by, inplace=True)
+
+        obs_bool = df_expr > self.expression_cutoff
+        dot_size_df = (
+            obs_bool.groupby(level=group_by, observed=True).sum()
+            / obs_bool.groupby(level=group_by, observed=True).count()
+        )
+        dot_size_df = dot_size_df.reset_index().melt(id_vars=group_by, value_name="pct", var_name="genes")
+
+        return dot_size_df
+
+    def _create_size_legend(self, df: pd.DataFrame, axis: plt.Axes):
+        diff = self.dot_max - self.dot_min
+        if 0.3 < diff <= 0.6:
+            step = 0.1
+        elif diff <= 0.3:
+            step = 0.05
+        else:
+            step = 0.2
+
+        size_range = np.arange(self.dot_max, self.dot_min, step * -1)[::-1]
+        if self.dot_min != 0 or self.dot_max != 1:
+            dot_range = self.dot_max - self.dot_min
+            size_values = (size_range - self.dot_min) / dot_range
+        else:
+            size_values = size_range
+
+        size = size_values ** self.size_exponent
+        size = size * (self.largest_dot - self.smallest_dot) + self.smallest_dot
+
+        # plot size bar
+        axis.scatter(
+            np.arange(len(size)) + 0.5, np.repeat(0, len(size)),
+            s=size, color="gray", edgecolor="black", linewidth=0.2,
+            zorder=100,
+        )
+
+        axis.set_xticks(np.arange(len(size)) + 0.5)
+        labels = [f"{np.round((x * 100), decimals=0).astype(int)}" for x in size_range]
+        axis.set_xticklabels(labels, fontsize="small")
+
+        # remove y ticks and labels
+        axis.tick_params(axis="y", left=False, labelleft=False, labelright=False)
+
+        # remove surrounding lines
+        axis.spines[["top", "right", "left", "bottom"]].set_visible(False)
+        axis.grid(visible=False)
+
+        ymax = axis.get_ylim()[1]
+        axis.set_ylim(-1.05 - self.largest_dot * 0.003, 4)
+        axis.set_title(self.legend_size_title, y=ymax + 0.45, size="small")
+
+        xmin, xmax = axis.get_xlim()
+        axis.set_xlim(xmin - 0.15, xmax + 0.5)
+
 
 
 class DrawNetwork:
