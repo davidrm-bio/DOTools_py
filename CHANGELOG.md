@@ -28,10 +28,12 @@ and this project adheres to [Semantic Versioning][].
 - Add utility functions for plotting
 - Improvement of the performance of ``do.get.mean_expr`` and ``do.get.expr``
 - Improvement of performance of ``do.get.pseudobulk`` and allow to use different backends (`scanpy`, `decoupler`, `dotools`)
+- ``dotools_py.pl.cell_composition`` shows the number of cells per condition at the top of the bar
 
 ### Bug Fixes
 - Bug fixes for several functions
 - Fix error when saving results in ``do.tl.rank_genes_condition``
+- Improve consistency for the matrix plots (``dotools_py.pl.dotplot`` and ``dotools_py.pl.heatmap``). Both use the same underlying code.
 
 ### Documentation
 - Update figure with markers in ``do.dt.heart_markers``
