@@ -1,5 +1,7 @@
 import re
-from typing import TypeVar, Callable
+from typing import TypeVar, Callable, Literal, NamedTuple
+from typing_extensions import Self
+from collections.abc import Sequence
 from textwrap import indent
 from matplotlib.axes import Axes
 from matplotlib import axes
@@ -279,8 +281,6 @@ def draw_bracket(x_start, x_end, y_bottom=0, y_top=1, stem_length=0.2):
     return matplotlib.path.Path(verts, codes)
 
 
-
-
 def check_colornorm(vmin=None, vmax=None, vcenter=None, norm=None):
     from matplotlib.colors import Normalize
 
@@ -346,3 +346,246 @@ def small_squares(ax: plt.Axes, pos: list, color: list, size: float = 1, linewid
             rect.set_alpha(0)  # Hide square if they should be in the back, for the dotplot
         ax.add_patch(rect)
     return None
+
+
+
+def fix_kwds(kwds_dict, **kwargs):
+    """Merge the parameters into a single consolidated dictionary.
+
+    Given a dictionary of plot parameters (`kwds_dict`) and a dict of `kwds`,
+    this function prevents argument duplication errors.
+
+    If `kwds_dict` an kwargs have the same key, only the value in `kwds_dict` is kept.
+
+    Parameters
+    ----------
+    kwds_dict
+        kwds dictionary
+    kwargs
+
+    Returns
+    -------
+    `kwds_dict` merged with `kwargs`
+
+    Examples
+    --------
+    >>> def _example(**kwds):
+    ...     return fix_kwds(kwds, key1="value1", key2="value2")
+    >>> _example(key1="value10", key3="value3")
+    {'key1': 'value10', 'key2': 'value2', 'key3': 'value3'}
+
+    """
+    kwargs.update(kwds_dict)
+
+    return kwargs
+
+
+class VarGroups(NamedTuple):
+    labels: Sequence[str]
+    """Var labels."""
+    positions: Sequence[tuple[int, int]]
+    """Var positions.
+
+    Each item in the list should contain the start and end position that the bracket should cover.
+    Eg. `[(0, 4), (5, 8)]` means that there are two brackets,
+    one for the var_names (eg genes) in positions 0-4 and other for positions 5-8
+    """
+
+    @classmethod
+    def validate(
+        cls,
+        labels: Sequence[str] | None,
+        positions: Sequence[tuple[int, int]] | None
+    ) -> Self | None:
+        if labels is None and positions is None:
+            return None
+        if labels is None or positions is None:
+            raise ValueError(
+                "If var_group_labels or var_group_positions are given, both have to be given."
+            )
+        if len(labels) != len(positions):
+            raise ValueError(
+                f"var_group_labels and var_group_positions must have the same length."
+                f"\nGot {len(labels)=} and {len(positions)=}."
+            )
+        return None if len(labels) == 0 else cls(labels, positions)
+
+def _var_groups(var_names) -> tuple:
+    """Adapated from scanpy, Normalize var_names."""
+    from collections.abc import Mapping
+
+    if not isinstance(var_names, Mapping):
+        var_names = [var_names] if isinstance(var_names, str) else var_names
+        return var_names, None
+    if len(var_names) == 0:
+        return [], None
+
+    var_group_labels: list[str] = []
+    var_names_seq: list[str] = []
+    var_group_positions: list[tuple[int, int]] = []
+    for label, vars_list in var_names.items():
+        vars_list = [vars_list] if isinstance(vars_list, str) else vars_list
+        start = len(var_names_seq)
+        # use list() in case var_list is a numpy array or pandas series
+        var_names_seq.extend(list(vars_list))
+        var_group_labels.append(label)
+        var_group_positions.append((start, start + len(vars_list) - 1))
+    if not var_names_seq:
+        msg = "No valid var_names were passed."
+        raise ValueError(msg)
+    return var_names_seq, VarGroups(var_group_labels, var_group_positions)
+
+def _plot_var_groups_brackets(
+    var_groups_ax,
+    *,
+    var_groups: VarGroups,
+    left_adjustment: float = -0.3,
+    right_adjustment: float = 0.3,
+    rotation: float | None = None,
+    orientation: Literal["top", "right"] = "top",
+    wide: bool = False,
+) -> None:
+    """Draw brackets that represent groups of genes on the give axis.
+
+    For best results, this axis is located on top of an image whose
+    x axis contains gene names.
+
+    The `var_groups_ax` should share the x axis with the main ax.
+
+    E.g: `var_groups_ax=fig.add_subplot(axs[0, 0], sharex=dot_ax)`
+
+    This function is used by dotplot, heatmap etc.
+
+    Parameters
+    ----------
+    var_groups_ax
+        In this axis the gene marks are drawn
+    var_groups
+        Group labels and positions
+    left_adjustment
+        adjustment to plot the bracket start slightly before or after the first gene position.
+        If the value is negative the start is moved before.
+    right_adjustment
+        adjustment to plot the bracket end slightly before or after the last gene position
+        If the value is negative the start is moved before.
+    rotation
+        rotation degrees for the labels. If not given, small labels (<4 characters) are not
+        rotated, otherwise, they are rotated 90 degrees
+    orientation
+        location of the brackets. Either `top` or `right`
+
+    Returns
+    -------
+    None
+
+    """
+    from matplotlib import patches
+    from matplotlib.path import Path
+
+    # get the 'brackets' coordinates as lists of start and end positions
+    left = [x[0] + left_adjustment for x in var_groups.positions]
+    right = [x[1] + right_adjustment for x in var_groups.positions]
+
+    # verts and codes are used by PathPatch to make the brackets
+    verts = []
+    codes = []
+    if orientation == "top":
+        # rotate labels if any of them is longer than 4 characters
+        if rotation is None:
+            rotation = 90 if max([len(x) for x in var_groups.labels]) > 4 else 0
+        for idx in range(len(left)):
+            verts.append((left[idx], 0))  # lower-left
+            verts.append((left[idx], 0.6))  # upper-left
+            verts.append((right[idx], 0.6))  # upper-right
+            verts.append((right[idx], 0))  # lower-right
+
+            codes.append(Path.MOVETO)
+            codes.append(Path.LINETO)
+            codes.append(Path.LINETO)
+            codes.append(Path.LINETO)
+
+            group_x_center = left[idx] + float(right[idx] - left[idx]) / 2
+            var_groups_ax.text(
+                group_x_center,
+                1.1,
+                var_groups.labels[idx],
+                ha="center",
+                va="bottom",
+                rotation=rotation,
+            )
+    else:
+        top = left
+        bottom = right
+        for idx in range(len(top)):
+            verts.append((0, top[idx]))  # upper-left
+            verts.append((0.4 if wide else 0.15, top[idx]))  # upper-right
+            verts.append((0.4 if wide else 0.15, bottom[idx]))  # lower-right
+            verts.append((0, bottom[idx]))  # lower-left
+
+            codes.append(Path.MOVETO)
+            codes.append(Path.LINETO)
+            codes.append(Path.LINETO)
+            codes.append(Path.LINETO)
+
+            diff = bottom[idx] - top[idx]
+            group_y_center = top[idx] + float(diff) / 2
+            # cut label to fit available space
+            label = (
+                f"{var_groups.labels[idx][: int(diff * 2)]}."
+                if diff * 2 < len(var_groups.labels[idx])
+                else var_groups.labels[idx]
+            )
+            var_groups_ax.text(
+                1.1 if wide else 0.6,
+                group_y_center,
+                label,
+                ha="right",
+                va="center",
+                rotation=270,
+                fontsize="small",
+            )
+
+    path = Path(verts, codes)
+
+    patch = patches.PathPatch(path, facecolor="none", lw=1.5)
+
+    var_groups_ax.add_patch(patch)
+    var_groups_ax.grid(visible=False)
+    var_groups_ax.axis("off")
+    # remove y ticks
+    var_groups_ax.tick_params(axis="y", left=False, labelleft=False)
+    # remove x ticks and labels
+    var_groups_ax.tick_params(axis="x", bottom=False, labelbottom=False, labeltop=False)
+
+
+
+def add_star_on_square(axis: plt.Axes, size: int = 20, d3: bool = False) -> None:
+    """Draw an asterisk if the upper right corner of a rectangle patch.
+
+    :param axis: Matplotlib axis.
+    :param size: Size of the asterisk.
+    :return: None
+    """
+    for patch in axis.patches:
+        x0, y0 = patch.get_xy()
+        if d3:  # 3D version needs to go reverse
+            upper_right = (x0 + patch.get_width(), y0 + patch.get_height())
+        else:
+            upper_right = (x0 + patch.get_width(), y0)
+
+        if patch.get_width() != patch.get_height():
+            continue # Ignore patches that are not squares
+
+        axis.text(
+            upper_right[0], upper_right[1],
+            "*",
+            fontsize=size,
+            color="black",
+            ha="center",
+            va="center",
+            fontfamily='Helvetica'
+        )
+        patch.set_edgecolor("white")
+    return None
+
+
