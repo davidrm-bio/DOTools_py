@@ -735,6 +735,7 @@ def rank_genes_groups(
     tie_correct: bool = True,
     layer: str | None = None,
     logcounts: bool = True,
+    verbose: bool = True,
     **kwds,
 ) -> AnnData | None:
     """\
@@ -847,8 +848,8 @@ def rank_genes_groups(
 
     if "only_positive" in kwds:
         rankby_abs = not kwds.pop("only_positive")  # backwards compat
-
-    start = logg.info("ranking genes")
+    if verbose:
+        start = logg.info("ranking genes")
     avail_methods = set(get_args(_Method))
     if method not in avail_methods:
         raise ValueError(f"Method must be one of {avail_methods}.")
@@ -943,23 +944,23 @@ def rank_genes_groups(
 
     for col in test_obj.stats.columns.levels[0]:
         adata.uns[key_added][col] = test_obj.stats[col].to_records(index=False, column_dtypes=dtypes[col])
-
-    logg.info(
-        "    finished",
-        time=start,
-        deep=(
-            f"added to `.uns[{key_added!r}]`\n"
-            "    'names', sorted np.recarray to be indexed by group ids\n"
-            "    'scores', sorted np.recarray to be indexed by group ids\n"
-            + (
-                "    'logfoldchanges', sorted np.recarray to be indexed by group ids\n"
-                "    'pvals', sorted np.recarray to be indexed by group ids\n"
-                "    'pvals_adj', sorted np.recarray to be indexed by group ids"
-                if method in {"t-test", "t-test_overestim_var", "wilcoxon"}
-                else ""
-            )
-        ),
-    )
+    if verbose:
+        logg.info(
+            "    finished",
+            time=start,
+            deep=(
+                f"added to `.uns[{key_added!r}]`\n"
+                "    'names', sorted np.recarray to be indexed by group ids\n"
+                "    'scores', sorted np.recarray to be indexed by group ids\n"
+                + (
+                    "    'logfoldchanges', sorted np.recarray to be indexed by group ids\n"
+                    "    'pvals', sorted np.recarray to be indexed by group ids\n"
+                    "    'pvals_adj', sorted np.recarray to be indexed by group ids"
+                    if method in {"t-test", "t-test_overestim_var", "wilcoxon"}
+                    else ""
+                )
+            ),
+        )
     return adata if copy else None
 
 
