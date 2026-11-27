@@ -627,7 +627,7 @@ def heatmap_foldchange(
         sig_ax.set_title("Significance", fontsize="small", fontweight="bold")
         plt.gca().set_aspect("equal")
         sig_ax.axis("off")  # Hide axes for clean display
-        return_ax_dict["signifiance_ax"] = sig_ax
+        return_ax_dict["significance_legend_ax"] = sig_ax
 
     # Modify layout from main plot
     hm.spines[["top", "right", "bottom", "left"]].set_visible(True)
