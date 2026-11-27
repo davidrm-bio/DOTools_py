@@ -22,7 +22,7 @@ def test_dotplot():
     axs = do.pl.dotplot(adata, x_axis="condition", features={"genes":["CD4"]}, show=False, add_stats="x_axis")
     assert isinstance(axs, dict)
     assert "var_group_ax" in axs
-    axs = do.pl.dotplot(adata, x_axis="condition", features="CD4", show=False, standard_scale="group")
+    axs = do.pl.dotplot(adata, x_axis="condition", features="CD4", show=False, standard_scale="x_axis")
     plt.close()
     axs = do.pl.dotplot(adata, x_axis="condition", features="CD4", y_axis="annotation",  show=False, z_score="x_axis")
     plt.close()
@@ -176,7 +176,7 @@ def test_heatmap():
     assert isinstance(axs, dict)
     assert "mainplot_ax" in axs
     assert "legend_ax" in axs
-    assert "signifiance_ax" in axs
+    assert "significance_legend_ax" in axs
 
     axs = do.pl.heatmap_foldchange(adata, group_by="annotation", features="CD4", condition_key="condition",
                                    reference="healthy", add_stats=True, show=False)
@@ -184,7 +184,7 @@ def test_heatmap():
     assert isinstance(axs, dict)
     assert "mainplot_ax" in axs
     assert "legend_ax" in axs
-    assert "signifiance_ax" in axs
+    assert "significance_legend_ax" in axs
     assert "color_group_ax" in axs
     assert "legend_group_ax" in axs
 
