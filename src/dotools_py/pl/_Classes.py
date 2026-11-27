@@ -1170,7 +1170,7 @@ class MatrixPlot:
             sig_ax.set_title("Significance" + txt, fontsize="small", fontweight="bold")
             plt.gca().set_aspect("equal")
             sig_ax.axis("off")  # Hide axes for clean display
-            self.return_ax_dict["signifiance_ax"] = sig_ax
+            self.return_ax_dict["significance_legend_ax"] = sig_ax
 
         if self.add_stats:
             colormap = plt.get_cmap(self.palette)
@@ -1417,7 +1417,7 @@ class MatrixPlot:
             sig_ax.set_title("Significance" + txt, fontsize="x-small", fontweight="bold")
             plt.gca().set_aspect("equal")
             sig_ax.axis("off")  # Hide axes for clean display
-            self.return_ax_dict["signifiance_ax"] = sig_ax
+            self.return_ax_dict["significance_legend_ax"] = sig_ax
 
             colormap = plt.get_cmap(self.palette)
             normalize = check_colornorm(vmin=self.vmin, vmax=self.vmax, vcenter=self.vcenter)
