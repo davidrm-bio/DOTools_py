@@ -778,7 +778,7 @@ def auto_annot(
     with tqdm(total=total_steps, desc="Progress", disable=not verbose, colour="tomato") as pbar:
         # Get model
         pbar.set_description(steps.pop(0))
-        adata_copy.X = adata_copy.X.toarray()  # Leads to high memory usage
+        #adata_copy.X = adata_copy.X.toarray()  # Leads to high memory usage
         pbar.update(1)
         # Do the prediction
         pbar.set_description(steps.pop(0))
